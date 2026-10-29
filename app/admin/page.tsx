@@ -59,8 +59,8 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin">) 
                 {order.customer.note && <p className="mt-1 italic">“{order.customer.note}”</p>}
               </div>
               <ul className="space-y-1">
-                {order.items.map((item) => (
-                  <li key={item.productId} className="flex justify-between gap-2">
+                {order.items.map((item, i) => (
+                  <li key={`${item.productId}:${item.variantId ?? i}`} className="flex justify-between gap-2">
                     <span>{item.name} <span className="text-fg-tertiary">({item.unit}) × {item.qty}</span></span>
                     <span className="tabular-nums">{taka(item.price * item.qty, "en")}</span>
                   </li>

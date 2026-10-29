@@ -3,10 +3,13 @@ import { getProducts } from "@/lib/data";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
 
+export const revalidate = 3600;
+
 /** Motherhood's collection page: a title, one line about it, then the grid. */
 export default async function Home({ params }: PageProps<"/[lang]">) {
   const lang = (await params).lang as Lang;
   const d = t(lang);
+  // What's in season comes first: the cards carry their seasons and CSS orders them by <html data-season>.
   const products = (await getProducts()).filter((p) => p.active);
 
   return (

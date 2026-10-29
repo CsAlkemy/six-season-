@@ -9,7 +9,7 @@ import { requireAdmin } from "@/lib/auth";
 import { CATALOG_TAG, loadOrder, loadProducts, saveOrder, saveProducts, saveSettings } from "@/lib/data";
 import { DEFAULT_SETTINGS } from "@/lib/defaults";
 import { createSession, passwordMatches, SESSION_COOKIE, SESSION_DAYS } from "@/lib/session";
-import { ORDER_STATUSES, type OrderStatus, type Product, type Settings, type Text, type Tone } from "@/lib/types";
+import { ORDER_STATUSES, SEASONS, type OrderStatus, type Product, type Settings, type Text, type Tone } from "@/lib/types";
 
 /** Storefront pages are static; expire them so the change shows on the next visit. */
 function refreshStorefront() {
@@ -98,6 +98,7 @@ export async function saveProduct(_: string | null, form: FormData): Promise<str
     compareAt: compareAt > 0 ? compareAt : null,
     image,
     tone: (["butter", "mustard", "soil", "leaf"].includes(str(form, "tone")) ? str(form, "tone") : "soil") as Tone,
+    seasons: SEASONS.filter((s) => form.getAll("seasons").includes(s)),
     inStock: form.get("inStock") === "on",
     active: form.get("active") === "on",
   };

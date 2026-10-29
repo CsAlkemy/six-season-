@@ -15,6 +15,8 @@ export function methodAvailable(method: PaymentMethod, total: number): boolean {
 
 /** 01XXXXXXXXX from "+880 1X…", "8801X…" or "01X…"; null when it isn't a Bangladeshi mobile. */
 export function normalizePhone(raw: string): string | null {
-  const digits = raw.replace(/\D/g, "").replace(/^88(?=01)/, "");
+  // Bangla keyboards type ০১৭…; read them as 017….
+  const latin = raw.replace(/[০-৯]/g, (d) => String(d.charCodeAt(0) - 0x09e6));
+  const digits = latin.replace(/\D/g, "").replace(/^88(?=01)/, "");
   return /^01[3-9]\d{8}$/.test(digits) ? digits : null;
 }

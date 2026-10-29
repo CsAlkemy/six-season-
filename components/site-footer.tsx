@@ -9,9 +9,10 @@ export function SiteFooter({ lang, settings }: { lang: Lang; settings: Settings 
   const { phone, whatsapp, email, address } = settings.store;
   const hasContact = Boolean(phone || email || whatsapp || address[lang]);
   return (
-    <footer className="mt-24 sm:mt-32">
+    // content-visibility: the browser skips drawing the swaying field while the footer is off-screen.
+    <footer className="mt-24 [contain-intrinsic-size:auto_40rem] [content-visibility:auto] sm:mt-32">
       {/* -mb-px hides the hairline seam between the SVG soil and the block below. */}
-      <Grass className="-mb-px block h-28 w-full sm:h-40" />
+      <Grass className="-mb-px block h-32 w-full sm:h-48" />
       <div className="soil-texture bg-footer text-fg-footer">
         <div className="container-page grid gap-12 pt-8 pb-14 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] md:pt-12">
           <div className="flex flex-col items-start gap-6">

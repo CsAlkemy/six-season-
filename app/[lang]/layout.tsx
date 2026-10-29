@@ -4,10 +4,12 @@ import { notFound } from "next/navigation";
 import "../globals.css";
 import { CartProvider } from "@/components/cart-provider";
 import { SiteFooter } from "@/components/site-footer";
+import { SeasonScene } from "@/components/season-scene";
 import { SiteHeader } from "@/components/site-header";
 import { getSettings } from "@/lib/data";
 import { fontVars } from "@/lib/fonts";
 import { STORE_NAME, t } from "@/lib/i18n";
+import { SEASON_SCRIPT, seasonAt } from "@/lib/season";
 import { LANGS, type Lang } from "@/lib/types";
 
 export const dynamicParams = false;
@@ -33,8 +35,18 @@ export default async function StoreLayout({ children, params }: LayoutProps<"/[l
   const settings = await getSettings();
 
   return (
-    <html lang={lang} className={fontVars}>
+    // The head script sets the visitor's season and data-motion before paint (no JS: today's season, still); the DOM wins on hydration.
+    <html lang={lang} className={fontVars} data-season={seasonAt(Date.now())} suppressHydrationWarning>
+      <head>
+        {/* text/plain on the client: React warns about rendering scripts, and <html> already holds the result. */}
+        <script
+          type={typeof window === "undefined" ? "text/javascript" : "text/plain"}
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: SEASON_SCRIPT }}
+        />
+      </head>
       <body className="flex min-h-dvh flex-col">
+        <SeasonScene />
         <CartProvider>
           <SiteHeader lang={lang} />
           <main className="flex-1">{children}</main>

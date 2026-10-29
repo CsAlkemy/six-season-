@@ -1,16 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState, useTransition } from "react";
+import { useForm, type FieldError } from "react-hook-form";
 
-import { placeOrder, type OrderInput } from "@/app/[lang]/cart/actions";
-import { PAYMENT_LABEL, t, taka } from "@/lib/i18n";
+import { requestCode, verifyCode } from "@/app/[lang]/account/actions";
+import { placeOrder } from "@/app/[lang]/cart/actions";
+import { type Dict, PAYMENT_LABEL, t, taka } from "@/lib/i18n";
+import { orderFormSchema, type OrderFormInput, type OrderFormValues } from "@/lib/order-schema";
 import { deliveryFee, methodAvailable } from "@/lib/pricing";
-import type { Lang, PaymentMethodId, Product, Settings } from "@/lib/types";
+import type { Lang, Product, Settings } from "@/lib/types";
+import { findVariant } from "@/lib/variants";
 
 import { QtyStepper } from "./add-to-cart";
 import { useCart } from "./cart-provider";
 import { CheckIcon, TrashIcon } from "./icons";
+import { OtpField } from "./otp-field";
 import { ProductMedia } from "./product-media";
 
 interface Props {
@@ -18,29 +24,61 @@ interface Props {
   products: Product[];
   delivery: Settings["delivery"];
   methods: Settings["payments"]["methods"];
+  /** The signed-in shopper; their number is already verified, so they skip the OTP. */
+  customer: { name: string; phone: string; address: string } | null;
 }
 
-export function Checkout({ lang, products, delivery, methods }: Props) {
+export function Checkout({ lang, products, delivery, methods, customer }: Props) {
   const d = t(lang);
   const cart = useCart();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
-  const [placed, setPlaced] = useState("");
+  const [placed, setPlaced] = useState<{ no: string; id: string } | null>(null);
+  /** The number a code went to; set while the shopper is typing the code in. */
+  const [otpPhone, setOtpPhone] = useState("");
+  const [code, setCode] = useState("");
 
   const zones = delivery.zones.filter((z) => z.active);
-  const [zoneId, setZoneId] = useState(zones[0]?.id ?? "");
-  const [method, setMethod] = useState<PaymentMethodId>("cod");
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    setFocus,
+    watch,
+    formState: { errors },
+  } = useForm<OrderFormInput, unknown, OrderFormValues>({
+    resolver: zodResolver(orderFormSchema),
+    mode: "onTouched",
+    defaultValues: {
+      name: customer?.name ?? "",
+      phone: customer?.phone ?? "",
+      address: customer?.address ?? "",
+      note: "",
+      zoneId: zones[0]?.id ?? "", method: "cod",
+      trxId: "",
+      website: "",
+    },
+  });
+  const zoneId = watch("zoneId");
+  const method = watch("method");
 
+  // A size the store has since removed drops out, as a hidden product does.
   const lines = cart.lines.flatMap((line) => {
     const product = products.find((p) => p.id === line.id && p.active);
-    return product ? [{ product, qty: line.qty }] : [];
+    const variant = product && findVariant(product, line.variant);
+    return product && variant ? [{ product, variant, line, qty: line.qty }] : [];
   });
-  const subtotal = lines.reduce((sum, l) => sum + l.product.price * l.qty, 0);
+  const subtotal = lines.reduce((sum, l) => sum + l.variant.price * l.qty, 0);
   const zone = zones.find((z) => z.id === zoneId);
   const fee = zone ? deliveryFee(zone, subtotal) : 0;
   const total = subtotal + fee;
   const available = methods.filter((m) => methodAvailable(m, total));
   const selected = available.find((m) => m.id === method) ?? available[0];
+
+  // A method can drop out as the total changes; keep the form on the one the shopper sees selected.
+  useEffect(() => {
+    if (selected && selected.id !== method) setValue("method", selected.id);
+  }, [selected, method, setValue]);
 
   if (placed) {
     return (
@@ -50,10 +88,17 @@ export function Checkout({ lang, products, delivery, methods }: Props) {
         </div>
         <h1 className="text-h3">{d.orderPlaced}</h1>
         <p className="mt-2 text-fg-secondary">{d.orderPlacedBody}</p>
-        <p className="mt-3 text-h4 tracking-wide text-fg-brand">{placed}</p>
-        <Link href={`/${lang}`} className="btn-secondary mt-6">
-          {d.continueShopping}
-        </Link>
+        <p className="mt-3 text-h4 tracking-wide text-fg-brand">{placed.no}</p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          {placed.id && (
+            <Link href={`/${lang}/account?order=${placed.id}`} className="btn-primary">
+              {d.trackOrder}
+            </Link>
+          )}
+          <Link href={`/${lang}`} className="btn-secondary">
+            {d.continueShopping}
+          </Link>
+        </div>
       </div>
     );
   }
@@ -69,49 +114,57 @@ export function Checkout({ lang, products, delivery, methods }: Props) {
     );
   }
 
-  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const input: OrderInput = {
-      lang,
-      lines: lines.map((l) => ({ id: l.product.id, qty: l.qty })),
-      name: String(form.get("name") ?? ""),
-      phone: String(form.get("phone") ?? ""),
-      address: String(form.get("address") ?? ""),
-      note: String(form.get("note") ?? ""),
-      zoneId,
-      method: selected?.id ?? "cod",
-      trxId: String(form.get("trxId") ?? ""),
-      website: String(form.get("website") ?? ""),
-    };
-    setError("");
-    startTransition(async () => {
-      const result = await placeOrder(input).catch(() => null);
-      if (result?.ok) {
-        cart.clear();
-        setPlaced(result.no);
-        window.scrollTo({ top: 0 });
-      } else {
-        setError(result?.error === "phone" ? d.errPhone : result?.error === "required" ? d.errRequired : d.errGeneric);
-      }
-    });
+  const place = async (values: OrderFormValues) => {
+    const result = await placeOrder({ ...values, lang, lines: lines.map((l) => ({ id: l.product.id, variant: l.variant.id, qty: l.qty })) }).catch(() => null);
+    if (result?.ok) {
+      cart.clear();
+      setPlaced({ no: result.no, id: result.id });
+      window.scrollTo({ top: 0 });
+    } else if (result?.error === "verify") {
+      setOtpPhone("");
+      setError(d.errVerify);
+    } else {
+      setError(result?.error === "phone" ? d.errPhone : result?.error === "required" ? d.errRequired : d.errGeneric);
+    }
   };
 
+  const sendCode = async (phone: string) => {
+    const result = await requestCode(phone, lang).catch(() => null);
+    if (result?.ok) {
+      setOtpPhone(phone);
+      setCode("");
+    } else setError(d[result?.error ?? "errSms"]);
+  };
+
+  // Guests get a code on the first submit and place the order once it checks out; signed-in shoppers order straight away.
+  const onSubmit = (values: OrderFormValues) => {
+    setError("");
+    startTransition(async () => {
+      if (customer?.phone === values.phone) return place(values);
+      if (otpPhone !== values.phone) return sendCode(values.phone);
+      if (code.length !== 6) return setError(d.errCode);
+      const verified = await verifyCode({ phone: values.phone, code, name: values.name }).catch(() => null);
+      if (verified?.ok) await place(values);
+      else setError(d[verified?.error ?? "errGeneric"]);
+    });
+  };
+  const verifying = !customer && otpPhone !== "";
+
   return (
-    <form onSubmit={onSubmit} className="grid items-start gap-8 lg:grid-cols-[1fr_380px]">
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid items-start gap-8 lg:grid-cols-[1fr_380px]">
       <div className="space-y-8">
         <section className="card divide-y divide-border">
-          {lines.map(({ product, qty }) => (
-            <div key={product.id} className="flex items-center gap-4 p-4">
+          {lines.map(({ product, variant, line, qty }) => (
+            <div key={`${product.id}:${variant.id}`} className="flex items-center gap-4 p-4">
               <ProductMedia product={product} lang={lang} className="size-16! shrink-0 rounded-md [&_svg]:size-6 [&_span]:hidden" />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold">{product.name[lang]}</p>
-                <p className="text-body-sm text-fg-secondary">
-                  {product.unit[lang]} · {taka(product.price, lang)}
+                <p className="font-display text-body-md font-medium text-fg-secondary">
+                  {variant.label[lang]} · {taka(variant.price, lang)}
                 </p>
               </div>
-              <QtyStepper small value={qty} onChange={(n) => cart.setQty(product.id, n)} />
-              <button type="button" onClick={() => cart.setQty(product.id, 0)} className="grid size-8 place-items-center rounded-full text-fg-tertiary hover:bg-error-soft hover:text-fg-error" aria-label="Remove">
+              <QtyStepper small value={qty} onChange={(n) => cart.setQty(line.id, line.variant, n)} />
+              <button type="button" onClick={() => cart.setQty(line.id, line.variant, 0)} className="grid size-8 place-items-center rounded-full text-fg-tertiary hover:bg-error-soft hover:text-fg-error" aria-label="Remove">
                 <TrashIcon />
               </button>
             </div>
@@ -123,21 +176,26 @@ export function Checkout({ lang, products, delivery, methods }: Props) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="name" className="label">{d.name}</label>
-              <input id="name" name="name" required maxLength={80} autoComplete="name" className="field" />
+              <input id="name" autoComplete="name" aria-invalid={!!errors.name} aria-describedby="name-error" className="field" {...register("name")} />
+              <FieldMessage id="name-error" error={errors.name} d={d} />
             </div>
             <div>
               <label htmlFor="phone" className="label">{d.phone}</label>
-              <input id="phone" name="phone" required type="tel" inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" className="field" />
+              <input id="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="01XXXXXXXXX" readOnly={!!customer || verifying} aria-invalid={!!errors.phone} aria-describedby="phone-error" className="field read-only:bg-subtle read-only:text-fg-secondary" {...register("phone")} />
+              <FieldMessage id="phone-error" error={errors.phone} d={d} />
+              {customer && <p className="mt-1.5 text-body-sm text-fg-tertiary">{d.loggedInAs} · {customer.phone}</p>}
             </div>
             <div className="sm:col-span-2">
               <label htmlFor="address" className="label">{d.address}</label>
-              <textarea id="address" name="address" required rows={2} maxLength={400} autoComplete="street-address" className="field" />
+              <textarea id="address" rows={2} autoComplete="street-address" aria-invalid={!!errors.address} aria-describedby="address-error" className="field" {...register("address")} />
+              <FieldMessage id="address-error" error={errors.address} d={d} />
             </div>
             <div className="sm:col-span-2">
               <label htmlFor="note" className="label">{d.note}</label>
-              <input id="note" name="note" maxLength={300} className="field" />
+              <input id="note" aria-invalid={!!errors.note} aria-describedby="note-error" className="field" {...register("note")} />
+              <FieldMessage id="note-error" error={errors.note} d={d} />
             </div>
-            <input name="website" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden />
+            <input tabIndex={-1} autoComplete="off" className="hidden" aria-hidden {...register("website")} />
           </div>
         </section>
 
@@ -145,9 +203,9 @@ export function Checkout({ lang, products, delivery, methods }: Props) {
           <h2 className="mb-4 text-h4">{d.deliveryArea}</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {zones.map((z) => (
-              <Choice key={z.id} name="zone" checked={zoneId === z.id} onChange={() => setZoneId(z.id)}>
+              <Choice key={z.id} name="zone" checked={zoneId === z.id} onChange={() => setValue("zoneId", z.id, { shouldValidate: true })}>
                 <span className="font-semibold">{z.name[lang]}</span>
-                <span className="text-body-sm text-fg-secondary">
+                <span className="font-display text-body-md font-medium text-fg-secondary">
                   {taka(z.fee, lang)} · {z.time[lang]}
                   {z.freeAbove > 0 && ` · ${lang === "bn" ? `${taka(z.freeAbove, lang)} ${d.freeAbove}` : `${d.freeAbove} ${taka(z.freeAbove, lang)}`}`}
                 </span>
@@ -160,20 +218,21 @@ export function Checkout({ lang, products, delivery, methods }: Props) {
           <h2 className="mb-4 text-h4">{d.payment}</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {available.map((m) => (
-              <Choice key={m.id} name="method" checked={selected?.id === m.id} onChange={() => setMethod(m.id)}>
+              <Choice key={m.id} name="method" checked={selected?.id === m.id} onChange={() => setValue("method", m.id)}>
                 <span className="font-semibold">{PAYMENT_LABEL[m.id][lang]}</span>
-                <span className="text-body-sm text-fg-secondary">{m.instructions[lang]}</span>
+                <span className="text-body-md text-fg-secondary">{m.instructions[lang]}</span>
               </Choice>
             ))}
           </div>
           {selected && selected.id !== "cod" && (
             <div className="mt-4 rounded-lg bg-subtle p-4">
-              <p className="text-body-sm">
+              <p className="text-body-md">
                 {d.sendTo} <strong>{taka(total, lang)}</strong> → <strong className="tabular-nums">{selected.account}</strong>
                 {selected.accountType && ` (${selected.accountType})`}
               </p>
               <label htmlFor="trxId" className="label mt-3">{d.trxId}</label>
-              <input id="trxId" name="trxId" required maxLength={40} className="field uppercase" />
+              <input id="trxId" aria-invalid={!!errors.trxId} aria-describedby="trxId-error" className="field uppercase" {...register("trxId")} />
+              <FieldMessage id="trxId-error" error={errors.trxId} d={d} />
             </div>
           )}
         </section>
@@ -185,9 +244,27 @@ export function Checkout({ lang, products, delivery, methods }: Props) {
         <div className="border-t border-border pt-3">
           <Row label={d.total} value={taka(total, lang)} strong />
         </div>
+        {verifying && (
+          <div className="border-t border-border pt-4">
+            <OtpField
+              d={d}
+              phone={otpPhone}
+              value={code}
+              onChange={setCode}
+              disabled={pending}
+              onResend={() => startTransition(() => sendCode(otpPhone))}
+              onChangeNumber={() => {
+                setOtpPhone("");
+                setError("");
+                setFocus("phone");
+              }}
+            />
+          </div>
+        )}
+        {!customer && !verifying && <p className="text-body-sm text-fg-tertiary">{d.verifyPhoneHint}</p>}
         {error && <p className="rounded-md bg-error-soft p-3 text-body-sm text-fg-error" role="alert">{error}</p>}
         <button type="submit" disabled={pending || !selected || !zone} className="btn-primary w-full">
-          {pending ? d.placing : d.placeOrder}
+          {pending ? (customer || verifying ? d.placing : d.sending) : verifying ? d.verifyAndOrder : customer ? d.placeOrder : d.sendCode}
         </button>
       </aside>
     </form>
@@ -207,7 +284,17 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
   return (
     <div className={`flex justify-between ${strong ? "text-h4" : "text-fg-secondary"}`}>
       <span>{label}</span>
-      <span className={strong ? "" : "font-semibold text-fg-primary"}>{value}</span>
+      <span className={strong ? "font-display" : "font-display font-semibold text-fg-primary"}>{value}</span>
     </div>
+  );
+}
+
+/** The schema's message is a dictionary key, so errors read in the page's language. */
+function FieldMessage({ id, error, d }: { id: string; error?: FieldError; d: Dict }) {
+  if (!error?.message) return null;
+  return (
+    <p id={id} role="alert" className="mt-1.5 text-body-sm font-medium text-fg-error">
+      {d[error.message as keyof Dict] ?? d.errRequired}
+    </p>
   );
 }

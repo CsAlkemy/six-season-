@@ -5,6 +5,7 @@ A small storefront for ghee, mustard oil, gur and eggs. Bangla at `/bn` (default
 - **Next.js 16 + Tailwind 4.** Storefront pages are prerendered static HTML. The only client JS is the cart and checkout.
 - **Vercel Blob** holds everything: `data/products.json`, `data/settings.json`, product photos and one JSON file per order under `orders/`. No database.
 - **Admin** is server actions behind a password cookie (`proxy.ts` + `lib/session.ts`).
+- **Customers** sign in with their mobile number (`/[lang]/account`): password, or a 6-digit SMS code. Guests verify their number by code before an order goes through, which also signs them in so they can track it. Profile, orders and tracking all live on the account page (`lib/customers.ts`, `lib/sms.ts`).
 - **Design tokens** follow Motherhood's setup (`app/globals.css`): a raw palette, then semantic roles (`bg-brand`, `text-fg-secondary`…). The colours come from the logo: soil `#463121` and leaf `#02BF64`.
 
 ## Run locally
@@ -21,7 +22,7 @@ With no `BLOB_READ_WRITE_TOKEN` the store still shows the starter products from 
 
 1. Push this folder to GitHub and import it in Vercel.
 2. **Storage → Create → Blob**, then connect it to the project. This adds `BLOB_READ_WRITE_TOKEN`. Choose **public** access, because product photos are served straight from Blob.
-3. Add the env vars `ADMIN_PASSWORD` and `ADMIN_SECRET` (`openssl rand -hex 32`).
+3. Add the env vars `ADMIN_PASSWORD`, `ADMIN_SECRET` (`openssl rand -hex 32`), and `SMS_API_KEY` + `SMS_SENDER_ID` from BulkSMSBD for OTP codes.
 4. Deploy. Then **Settings → Domains**: add your domain and set the DNS records Vercel shows.
 5. Open `/admin`, fill in **Settings** (phone, WhatsApp, delivery areas, payments) and update the products and photos.
 

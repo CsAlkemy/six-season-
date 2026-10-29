@@ -31,6 +31,8 @@ export const DEFAULT_PRODUCTS: Product[] = [
     compareAt: null,
     image: "/images/products/mustard-oil.jpg",
     tone: "mustard",
+    // Fresh oil from the winter mustard harvest.
+    seasons: ["sheet", "basanta"],
     inStock: true,
     active: true,
   },
@@ -47,6 +49,8 @@ export const DEFAULT_PRODUCTS: Product[] = [
     compareAt: null,
     image: "/images/products/gur.jpg",
     tone: "soil",
+    // Khejur rosh runs from late Hemanta through Sheet.
+    seasons: ["hemanta", "sheet"],
     inStock: true,
     active: true,
   },

@@ -54,7 +54,7 @@
   --color-neutral-200: #e4e4e1;
   --color-neutral-300: #d1d1cd;
   --color-neutral-400: #a3a39e;
-  --color-neutral-500: #767671;
+  --color-neutral-500: #62625d;
   --color-neutral-600: #5a5a56;
   --color-neutral-700: #40403d;
   --color-neutral-900: #1d1d1b;
@@ -227,7 +227,7 @@
 }
 
 @utility field {
-  @apply w-full rounded-md border border-border-strong bg-surface px-4 py-3 text-body-md outline-none transition placeholder:text-fg-tertiary focus:border-brand focus:ring-4 focus:ring-brand-soft;
+  @apply w-full rounded-md border border-border-strong bg-surface px-4 py-3 text-body-md outline-none transition placeholder:text-fg-tertiary focus:border-brand focus:ring-4 focus:ring-brand-soft aria-invalid:border-fg-error aria-invalid:focus:ring-error-soft;
 }
 
 @utility label {
@@ -249,6 +249,138 @@
     37px 31px;
 }
 
+/*
+ * The six seasons. <html data-season> (set before paint by lib/season.ts) picks the footer's plants and grass
+ * colours and what drifts across the page; <html data-motion="on"> lets it all move. Everything that moves
+ * animates transform only, so the browser keeps it on the GPU and never re-lays out the page.
+ */
+
+/* Only the current season's icons and badges show. */
+html:not([data-season="grishma"]) [data-season-only="grishma"],
+html:not([data-season="barsha"]) [data-season-only="barsha"],
+html:not([data-season="sharat"]) [data-season-only="sharat"],
+html:not([data-season="hemanta"]) [data-season-only="hemanta"],
+html:not([data-season="sheet"]) [data-season-only="sheet"],
+html:not([data-season="basanta"]) [data-season-only="basanta"] {
+  display: none;
+}
+
+/*
+ * The grass's plants go by inherited variables instead, because the field's side tiles are <use> copies and
+ * selectors can't see past them to <html>; custom properties inherit into them. The sway works the same way.
+ */
+[data-grass-season] {
+  display: none;
+}
+
+[data-grass-season="grishma"] {
+  display: var(--grass-show-grishma, none);
+}
+[data-grass-season="barsha"] {
+  display: var(--grass-show-barsha, none);
+}
+[data-grass-season="sharat"] {
+  display: var(--grass-show-sharat, none);
+}
+[data-grass-season="hemanta"] {
+  display: var(--grass-show-hemanta, none);
+}
+[data-grass-season="sheet"] {
+  display: var(--grass-show-sheet, none);
+}
+[data-grass-season="basanta"] {
+  display: var(--grass-show-basanta, none);
+}
+
+[data-season="grishma"] {
+  --grass-show-grishma: inline;
+}
+[data-season="barsha"] {
+  --grass-show-barsha: inline;
+}
+[data-season="sharat"] {
+  --grass-show-sharat: inline;
+}
+[data-season="hemanta"] {
+  --grass-show-hemanta: inline;
+}
+[data-season="sheet"] {
+  --grass-show-sheet: inline;
+}
+[data-season="basanta"] {
+  --grass-show-basanta: inline;
+}
+
+/* Grass colours: winter's olive and sage by default, sun-dried in Grishma, rain-soaked in Barsha, gold in Hemanta. */
+:root {
+  --grass-back: #4e5c3a;
+  --grass-mid: #64744a;
+  --grass-front: #7a8b5c;
+  --grass-tip: #98a878;
+}
+
+[data-season="grishma"] {
+  --grass-back: #5b5a33;
+  --grass-mid: #77723f;
+  --grass-front: #968c50;
+  --grass-tip: #bba96c;
+}
+
+[data-season="barsha"] {
+  --grass-back: #2f5631;
+  --grass-mid: #3d6e3d;
+  --grass-front: #4f8848;
+  --grass-tip: #6ea45c;
+}
+
+[data-season="sharat"] {
+  --grass-back: #435f37;
+  --grass-mid: #587b45;
+  --grass-front: #729556;
+  --grass-tip: #9bb877;
+}
+
+[data-season="hemanta"] {
+  --grass-back: #55552d;
+  --grass-mid: #737034;
+  --grass-front: #9a8a3c;
+  --grass-tip: #c4a84c;
+}
+
+[data-season="basanta"] {
+  --grass-back: #3d6637;
+  --grass-mid: #528443;
+  --grass-front: #6d9f53;
+  --grass-tip: #97c06c;
+}
+
+.grass-back {
+  fill: var(--grass-back);
+}
+
+.grass-mid {
+  fill: var(--grass-mid);
+}
+
+.grass-front {
+  fill: var(--grass-front);
+}
+
+.grass-tip {
+  fill: var(--grass-tip);
+}
+
+.grass-stem {
+  stroke: var(--grass-back);
+}
+
+/* Changing season in the picker fades the field over instead of snapping. */
+.grass path {
+  transition:
+    fill 0.8s ease,
+    stroke 0.8s ease;
+}
+
 /* Grass in the footer leans with the wind; each layer at its own pace so it never moves as one block. */
 @keyframes grass-sway {
   from {
@@ -259,10 +391,14 @@
   }
 }
 
+[data-motion="on"] {
+  --grass-sway: grass-sway;
+}
+
 .grass-sway {
   transform-box: fill-box;
   transform-origin: 50% 100%;
-  animation: grass-sway 5s ease-in-out infinite alternate;
+  animation: var(--grass-sway, none) 5s ease-in-out infinite alternate;
 }
 
 .grass-sway-slow {
@@ -280,8 +416,228 @@
   animation-delay: -3s;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .grass-sway {
-    animation: none;
+/*
+ * The season across the whole page: lib/season-scene.ts draws the sky and what drifts through it on two fixed
+ * canvases, one behind the content and one in front of it under the header. The same sky as a CSS gradient on
+ * <body> shows until three.js has loaded, or for good without WebGL.
+ */
+.season-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+.season-canvas-back {
+  z-index: -1;
+}
+
+.season-canvas-front {
+  z-index: 20;
+}
+
+[data-scene="on"] .season-canvas {
+  opacity: 1;
+}
+
+html[data-season] body {
+  background: linear-gradient(var(--sky-top), var(--sky-bottom)) fixed;
+}
+
+/*
+ * Season tokens for the page around the sky: the card panels, their border and glow, the accent that marks what's
+ * in season, and a motif in the corner of every card (a krishnachura petal, rain, kash, a paddy ear…).
+ */
+:root {
+  --sky-top: #d4dce3;
+  --sky-bottom: #f6f7f6;
+  --season-accent: #b8901a;
+  --season-card: #fbfaf6;
+  --season-line: #e3e2da;
+  --season-glow: #8a9aa833;
+  --season-motif: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><g fill='%23e9b928'><circle cx='20' cy='12' r='5'/><circle cx='28' cy='20' r='5'/><circle cx='20' cy='28' r='5'/><circle cx='12' cy='20' r='5'/></g><circle cx='20' cy='20' r='3.5' fill='%23a3731a'/></svg>");
+}
+
+[data-season="grishma"] {
+  --sky-top: #f9d8a6;
+  --sky-bottom: #fff6e6;
+  --season-accent: #d4472a;
+  --season-card: #fff8ee;
+  --season-line: #f4d8bf;
+  --season-glow: #e4572e40;
+  --season-motif: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><g fill='%23e4572e'><ellipse cx='20' cy='9' rx='5' ry='8'/><ellipse cx='31' cy='17' rx='5' ry='8' transform='rotate(72 31 17)'/><ellipse cx='27' cy='30' rx='5' ry='8' transform='rotate(144 27 30)'/><ellipse cx='13' cy='30' rx='5' ry='8' transform='rotate(216 13 30)'/></g><ellipse cx='9' cy='17' rx='5' ry='8' fill='%23f2cf6b' transform='rotate(288 9 17)'/><circle cx='20' cy='20' r='3' fill='%23f2cf6b'/></svg>");
+}
+
+[data-season="barsha"] {
+  --sky-top: #8fa1b2;
+  --sky-bottom: #dfe6ec;
+  --season-accent: #2c6688;
+  --season-card: #f3f7fa;
+  --season-line: #c9d6e0;
+  --season-glow: #2c668840;
+  --season-motif: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><g fill='%235a88a8'><path d='M12 4c4 7 6 10 6 13a6 6 0 0 1-12 0c0-3 2-6 6-13Z'/><path d='M28 14c4 7 6 10 6 13a6 6 0 0 1-12 0c0-3 2-6 6-13Z' opacity='.7'/><path d='M14 26c3 5 4 7 4 9a4 4 0 0 1-8 0c0-2 1-4 4-9Z' opacity='.5'/></g></svg>");
+}
+
+[data-season="sharat"] {
+  --sky-top: #7fbbe8;
+  --sky-bottom: #f1f8fd;
+  --season-accent: #2f7fbf;
+  --season-card: #f7fbfe;
+  --season-line: #cfe3f3;
+  --season-glow: #2f7fbf38;
+  --season-motif: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><path d='M20 39C20 28 18 18 14 8' stroke='%2398a878' stroke-width='1.6' fill='none'/><g fill='%23d9d0bb'><ellipse cx='12' cy='8' rx='3' ry='8' transform='rotate(-25 12 8)'/><ellipse cx='17' cy='6' rx='3' ry='8' transform='rotate(5 17 6)'/><ellipse cx='8' cy='12' rx='3' ry='7' transform='rotate(-55 8 12)'/></g></svg>");
+}
+
+[data-season="hemanta"] {
+  --sky-top: #efc27a;
+  --sky-bottom: #fbf0da;
+  --season-accent: #b06a14;
+  --season-card: #fff9ec;
+  --season-line: #f0dcb3;
+  --season-glow: #d9a21b45;
+  --season-motif: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><path d='M8 38C14 26 20 14 32 6' stroke='%23a3836a' stroke-width='1.6' fill='none'/><g fill='%23d9a21b'><ellipse cx='30' cy='9' rx='2.6' ry='5' transform='rotate(50 30 9)'/><ellipse cx='25' cy='12' rx='2.6' ry='5' transform='rotate(20 25 12)'/><ellipse cx='26' cy='17' rx='2.6' ry='5' transform='rotate(80 26 17)'/><ellipse cx='20' cy='17' rx='2.6' ry='5' transform='rotate(20 20 17)'/><ellipse cx='21' cy='23' rx='2.6' ry='5' transform='rotate(80 21 23)'/></g></svg>");
+}
+
+[data-season="basanta"] {
+  --sky-top: #f9cfc4;
+  --sky-bottom: #fbf8ee;
+  --season-accent: #c4362a;
+  --season-card: #fff7f3;
+  --season-line: #f4d6cd;
+  --season-glow: #d4402f38;
+  --season-motif: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><g fill='%23d4402f'><ellipse cx='20' cy='9' rx='5.5' ry='8'/><ellipse cx='31' cy='17' rx='5.5' ry='8' transform='rotate(72 31 17)'/><ellipse cx='27' cy='30' rx='5.5' ry='8' transform='rotate(144 27 30)'/><ellipse cx='13' cy='30' rx='5.5' ry='8' transform='rotate(216 13 30)'/><ellipse cx='9' cy='17' rx='5.5' ry='8' transform='rotate(288 9 17)'/></g><circle cx='20' cy='20' r='3.5' fill='%23f2cf6b'/></svg>");
+}
+
+/* The header lets the sky through, frosted, with the season's colour along its edge. */
+.season-header {
+  background: color-mix(in srgb, var(--season-card) 78%, transparent);
+  border-color: var(--season-line);
+  backdrop-filter: blur(14px) saturate(1.2);
+  transition:
+    background-color 0.8s ease,
+    border-color 0.8s ease;
+}
+
+/* A product card in the season's colours, lifting on hover; its motif sits in the corner of the details. */
+.season-card {
+  background-color: color-mix(in srgb, var(--season-card) 94%, transparent);
+  border: 1px solid var(--season-line);
+  box-shadow:
+    0 1px 2px #0000000a,
+    0 18px 40px -24px var(--season-glow);
+  transition:
+    transform 0.35s ease,
+    box-shadow 0.35s ease,
+    background-color 0.8s ease,
+    border-color 0.8s ease;
+}
+
+.season-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 2px 4px #0000000d,
+    0 26px 50px -22px var(--season-glow);
+}
+
+.season-card-body {
+  background: var(--season-motif) right 0.75rem top 0.75rem / 2.25rem no-repeat;
+}
+
+.season-badge {
+  background: var(--season-accent);
+  color: var(--fg-inverse);
+}
+
+/* What's at its best in the chosen season leads the grid and wears the accent; CSS so the picker moves it at once. */
+html[data-season="grishma"] [data-in-season~="grishma"],
+html[data-season="barsha"] [data-in-season~="barsha"],
+html[data-season="sharat"] [data-in-season~="sharat"],
+html[data-season="hemanta"] [data-in-season~="hemanta"],
+html[data-season="sheet"] [data-in-season~="sheet"],
+html[data-season="basanta"] [data-in-season~="basanta"] {
+  order: -1;
+  border-color: var(--season-accent);
+  box-shadow:
+    0 0 0 1px var(--season-accent),
+    0 22px 48px -20px var(--season-glow);
+}
+
+/*
+ * The season picker: a soft panel that opens with a small lift, its choices tinted by the season on show. Nearly
+ * opaque, since it sits inside the frosted header and a nested backdrop-filter can only blur the header, not the page.
+ */
+.season-popover {
+  border-radius: 1.5rem;
+  border: 1px solid #ffffffb3;
+  background: color-mix(in srgb, var(--season-card) 97%, transparent);
+  box-shadow:
+    0 1px 0 #ffffff inset,
+    0 24px 60px -16px #00000038,
+    0 8px 20px -12px var(--season-glow);
+  transform-origin: top right;
+  animation: popover-in 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.96);
   }
+}
+
+.season-option {
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--season-line) 60%, transparent);
+  background: #ffffffcc;
+  color: var(--fg-primary);
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.season-option:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+.season-option:focus-visible {
+  outline: 2px solid var(--season-accent);
+  outline-offset: 2px;
+}
+
+.season-option[aria-checked="true"] {
+  border-color: color-mix(in srgb, var(--season-accent) 45%, transparent);
+  background: color-mix(in srgb, var(--season-accent) 12%, #ffffff);
+  color: var(--season-accent);
+}
+
+.season-option-icon {
+  background: color-mix(in srgb, var(--season-accent) 14%, #ffffff);
+  color: var(--season-accent);
+}
+
+.season-option-check {
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.season-option[aria-checked="true"] .season-option-check {
+  opacity: 1;
+  transform: none;
+}
+
+.season-switch {
+  background: var(--border-strong);
+}
+
+.season-switch[aria-checked="true"] {
+  background: var(--season-accent);
 }

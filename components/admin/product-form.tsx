@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import { deleteProduct, saveProduct } from "@/app/admin/actions";
-import type { Product } from "@/lib/types";
+import { SEASON_NAME } from "@/lib/season";
+import { SEASONS, type Product } from "@/lib/types";
 
 const MAX_SIDE = 1200;
 
@@ -69,6 +70,18 @@ export function ProductForm({ product }: { product: Product | null }) {
             </select>
           </div>
         </div>
+
+        <fieldset>
+          <legend className="label">In season (listed first and badged on the store then)</legend>
+          <div className="flex flex-wrap gap-x-6 gap-y-2">
+            {SEASONS.map((season) => (
+              <label key={season} className="flex items-center gap-2 text-body-sm">
+                <input type="checkbox" name="seasons" value={season} defaultChecked={product?.seasons?.includes(season)} className="size-4 accent-(--bg-brand)" />
+                {SEASON_NAME[season].bn} · {SEASON_NAME[season].en}
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         <div className="flex flex-wrap gap-6">
           <label className="flex items-center gap-2 font-semibold">
