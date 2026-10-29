@@ -66,13 +66,20 @@ export interface DeliveryZone {
   active: boolean;
 }
 
-export const PAYMENT_METHOD_IDS = ["cod", "bkash", "nagad"] as const;
-export type PaymentMethodId = (typeof PAYMENT_METHOD_IDS)[number];
+/** A slug: "cod", "bkash", "nagad" ship with the store; the admin can add more (Rocket, Upay, a bank…). */
+export type PaymentMethodId = string;
+
+/** Cash is paid at the door; a wallet or a bank account is paid first and the shopper enters the transaction ID. */
+export const PAYMENT_KINDS = ["cash", "wallet", "bank"] as const;
+export type PaymentKind = (typeof PAYMENT_KINDS)[number];
 
 export interface PaymentMethod {
   id: PaymentMethodId;
+  kind: PaymentKind;
+  /** What customers and the team see: "bKash" / "বিকাশ". */
+  name: Text;
   enabled: boolean;
-  /** Wallet number customers send money to (bKash / Nagad). */
+  /** Where customers send money: a wallet number, or bank details. Empty for cash. */
   account: string;
   /** "Personal", "Merchant"… shown next to the number. */
   accountType: string;
@@ -153,7 +160,10 @@ export interface Order {
   subtotal: number;
   deliveryFee: number;
   total: number;
-  payment: { method: PaymentMethodId; trxId: string };
+  /** `name` and `kind` are a snapshot, so the order still reads right after the method is renamed or removed. Missing on older orders. */
+  payment: { method: PaymentMethodId; trxId: string; name?: Text; kind?: PaymentKind };
+  /** Where the order came from; missing on orders placed through the store. */
+  source?: "admin";
   /** Missing on orders placed before the timeline existed. */
   history?: OrderEvent[];
   /** For the team only; the customer never sees it. */

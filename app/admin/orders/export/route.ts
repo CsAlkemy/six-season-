@@ -1,6 +1,7 @@
 import { isAdmin } from "@/lib/auth";
 import { loadAllOrders } from "@/lib/data";
 import { STATUS_LABEL } from "@/lib/orders";
+import { paymentName } from "@/lib/payments";
 
 const cell = (value: string | number) => {
   // A leading = + - @ would run as a formula in Excel; the apostrophe stops it.
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
       o.subtotal,
       o.deliveryFee,
       o.total,
-      o.payment.method,
+      paymentName(o.payment, "en"),
       o.payment.trxId,
       o.customer.note,
     ]),

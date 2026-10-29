@@ -17,7 +17,6 @@ export function SiteFooter({ lang, settings }: { lang: Lang; settings: Settings 
         <div className="container-page grid gap-12 pt-8 pb-14 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] md:pt-12">
           <div className="flex flex-col items-start gap-6">
             <img src="/logo-light.svg" alt={STORE_NAME[lang]} width={96} height={64} className="h-16 w-auto" />
-            <p className="max-w-xl font-display text-h3 sm:text-h2">{d.tagline}</p>
             <p className="max-w-xl text-body-lg text-fg-footer-muted">{d.about}</p>
           </div>
           {hasContact && (

@@ -1,4 +1,4 @@
-import type { Lang, PaymentMethodId, Text } from "./types";
+import type { Lang, Text } from "./types";
 
 const dict = {
   bn: {
@@ -259,7 +259,8 @@ export const t = (lang: Lang): Dict => dict[lang];
 
 export const STORE_NAME: Text = { bn: "মাটির টান", en: "Matir Taan" };
 
-export const PAYMENT_LABEL: Record<PaymentMethodId, Text> = {
+/** Names for the methods the store ships with, for orders placed before methods carried their own name. */
+export const PAYMENT_LABEL: Record<string, Text> = {
   cod: { bn: "ক্যাশ অন ডেলিভারি", en: "Cash on delivery" },
   bkash: { bn: "বিকাশ", en: "bKash" },
   nagad: { bn: "নগদ", en: "Nagad" },

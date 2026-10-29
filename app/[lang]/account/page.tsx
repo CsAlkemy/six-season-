@@ -6,7 +6,8 @@ import { ProfileForm } from "@/components/account/profile-form";
 import { CheckIcon } from "@/components/icons";
 import { currentCustomer, listCustomerOrders } from "@/lib/customers";
 import { loadOrder } from "@/lib/data";
-import { type Dict, PAYMENT_LABEL, t, taka } from "@/lib/i18n";
+import { type Dict, t, taka } from "@/lib/i18n";
+import { paymentName } from "@/lib/payments";
 import type { Lang, Order, OrderStatus } from "@/lib/types";
 
 import { logout } from "./actions";
@@ -174,7 +175,7 @@ function OrderDetail({ order, lang, d }: { order: Order; lang: Lang; d: Dict }) 
           <Row label={d.subtotal} value={taka(order.subtotal, lang)} />
           <Row label={d.delivery} value={order.deliveryFee === 0 ? d.free : taka(order.deliveryFee, lang)} />
           <Row label={d.total} value={taka(order.total, lang)} strong />
-          <p className="pt-2 text-body-sm text-fg-tertiary">{PAYMENT_LABEL[order.payment.method][lang]}</p>
+          <p className="pt-2 text-body-sm text-fg-tertiary">{paymentName(order.payment, lang)}</p>
         </div>
       </section>
 

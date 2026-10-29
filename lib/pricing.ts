@@ -1,3 +1,4 @@
+import { isCash } from "./payments";
 import type { DeliveryZone, PaymentMethod } from "./types";
 
 /** Shared by the checkout preview and the server, which recomputes everything itself. */
@@ -6,10 +7,10 @@ export function deliveryFee(zone: DeliveryZone, subtotal: number): number {
   return zone.freeAbove > 0 && subtotal >= zone.freeAbove ? 0 : zone.fee;
 }
 
-/** Switched on, set up (wallets need a number) and within its order limit. */
+/** Switched on, set up (wallets and banks need somewhere to send money) and within its order limit. */
 export function methodAvailable(method: PaymentMethod, total: number): boolean {
   if (!method.enabled) return false;
-  if (method.id !== "cod" && !method.account.trim()) return false;
+  if (!isCash(method) && !method.account.trim()) return false;
   return method.maxAmount === 0 || total <= method.maxAmount;
 }
 

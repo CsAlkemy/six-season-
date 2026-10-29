@@ -5,7 +5,8 @@ import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 
 import { advanceOrder, cancelOrder, saveOrderNote } from "@/app/admin/actions";
-import { PAYMENT_LABEL, taka } from "@/lib/i18n";
+import { taka } from "@/lib/i18n";
+import { paymentIsCash, paymentName } from "@/lib/payments";
 import { canCancel, dhakaTime, itemCount, NEXT_STEP } from "@/lib/orders";
 import type { Order } from "@/lib/types";
 
@@ -47,7 +48,7 @@ export function OrderActionsCard({ order }: { order: Order }) {
   const [busy, start] = useTransition();
   const allowed = canCancel(order.status);
   const items = itemCount(order);
-  const prepaid = order.payment.method !== "cod" && order.status !== "new";
+  const prepaid = !paymentIsCash(order.payment) && order.status !== "new";
 
   return (
     <>
@@ -85,7 +86,7 @@ export function OrderActionsCard({ order }: { order: Order }) {
       >
         <ul className="flex list-disc flex-col gap-2 pl-5 text-body-sm text-fg-secondary">
           {order.stockTaken && <li>Its {items} {items === 1 ? "item goes" : "items go"} back on the shelf.</li>}
-          {prepaid && <li>{taka(order.total, "en")} came in by {PAYMENT_LABEL[order.payment.method].en}. Refund the customer yourself, outside this panel.</li>}
+          {prepaid && <li>{taka(order.total, "en")} came in by {paymentName(order.payment, "en")}. Refund the customer yourself, outside this panel.</li>}
           <li>The customer sees the order as cancelled in their account.</li>
         </ul>
         <div className="grid gap-2">
@@ -128,7 +129,7 @@ export function PackingSlip({ order }: { order: Order }) {
       </div>
       <div className="grid grid-cols-2 gap-6 py-4">
         <div><p className="font-bold">Deliver to</p><p>{order.customer.name}</p><p>{order.customer.phone}</p><p className="whitespace-pre-line">{order.customer.address}</p><p>{order.zone.name}</p></div>
-        <div className="text-right"><p className="font-bold">Collect</p><p className="text-h4">{order.payment.method === "cod" ? taka(order.total, "en") : "Paid"}</p><p>{PAYMENT_LABEL[order.payment.method].en}</p></div>
+        <div className="text-right"><p className="font-bold">Collect</p><p className="text-h4">{paymentIsCash(order.payment) ? taka(order.total, "en") : "Paid"}</p><p>{paymentName(order.payment, "en")}</p></div>
       </div>
       <table className="w-full border-t border-black text-left">
         <thead><tr><th className="py-2">Item</th><th>Size</th><th className="text-right">Qty</th></tr></thead>

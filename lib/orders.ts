@@ -1,3 +1,4 @@
+import { paymentIsCash } from "./payments";
 import type { Order, OrderEvent, OrderStatus } from "./types";
 
 /** The admin's words for each stage. The shopper sees their own (statusNew… in i18n). */
@@ -19,6 +20,17 @@ export const STATUS_TONE: Record<OrderStatus, "success" | "pending" | "failed" |
   delivered: "success",
   cancelled: "neutral",
 };
+
+/**
+ * Money counts once the parcel is at the customer's door (cash is collected then), so revenue is Delivered orders only.
+ * Confirmed, Packing and Shipped are sold but still on the way; New is waiting for a yes; Cancelled is never money.
+ */
+export const IN_PROGRESS_STATUSES: readonly OrderStatus[] = ["confirmed", "packing", "shipped"];
+
+/** When the order reached a stage; orders saved before the timeline fall back to the day they were placed. */
+export function reachedAt(order: Order, status: OrderStatus): string {
+  return [...historyOf(order)].reverse().find((event) => event.status === status && event.at)?.at ?? order.createdAt;
+}
 
 /** The one step forward from each stage, as the button names it. */
 export const NEXT_STEP: Partial<Record<OrderStatus, { to: OrderStatus; label: string }>> = {
@@ -47,7 +59,7 @@ export const withStatus = (order: Order, status: OrderStatus, note?: string): Or
 
 /** Where the money stands, for the payment card and the list. */
 export function paymentState(order: Order): { label: string; tone: "ok" | "wait" | "off" } {
-  if (order.payment.method === "cod") {
+  if (paymentIsCash(order.payment)) {
     if (order.status === "delivered") return { label: "Collected", tone: "ok" };
     if (order.status === "cancelled") return { label: "Not collected", tone: "off" };
     return { label: "Due on delivery", tone: "wait" };

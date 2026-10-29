@@ -12,7 +12,8 @@ import { STORE_NAME, t } from "@/lib/i18n";
 import { SEASON_SCRIPT, seasonAt } from "@/lib/season";
 import { LANGS, type Lang } from "@/lib/types";
 
-export const dynamicParams = false;
+// Only bn and en are prebuilt; the layout itself 404s any other language. (dynamicParams = false here would also stop
+// product pages added after the last build from rendering until the route list catches up.)
 export const generateStaticParams = () => LANGS.map((lang) => ({ lang }));
 
 export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Promise<Metadata> {

@@ -7,8 +7,9 @@ import { useForm, type FieldError } from "react-hook-form";
 
 import { requestCode, verifyCode } from "@/app/[lang]/account/actions";
 import { placeOrder } from "@/app/[lang]/cart/actions";
-import { type Dict, PAYMENT_LABEL, t, taka } from "@/lib/i18n";
+import { type Dict, t, taka } from "@/lib/i18n";
 import { orderFormSchema, type OrderFormInput, type OrderFormValues } from "@/lib/order-schema";
+import { isCash } from "@/lib/payments";
 import { deliveryFee, methodAvailable } from "@/lib/pricing";
 import type { Lang, Product, Settings } from "@/lib/types";
 import { findVariant } from "@/lib/variants";
@@ -44,6 +45,7 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
     handleSubmit,
     setValue,
     setFocus,
+    setError: setFieldError,
     watch,
     formState: { errors },
   } = useForm<OrderFormInput, unknown, OrderFormValues>({
@@ -143,6 +145,11 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
   // Guests get a code on the first submit and place the order once it checks out; signed-in shoppers order straight away.
   const onSubmit = (values: OrderFormValues) => {
     setError("");
+    // Wallets and banks are paid first, so they need the transaction ID before anything else happens.
+    if (selected && !isCash(selected) && !values.trxId) {
+      setFieldError("trxId", { type: "required", message: "errRequired" });
+      return setFocus("trxId");
+    }
     startTransition(async () => {
       if (customer?.phone === values.phone) return place(values);
       if (otpPhone !== values.phone) return sendCode(values.phone);
@@ -224,12 +231,12 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
           <div className="grid gap-3 sm:grid-cols-2">
             {available.map((m) => (
               <Choice key={m.id} name="method" checked={selected?.id === m.id} onChange={() => setValue("method", m.id)}>
-                <span className="font-semibold">{PAYMENT_LABEL[m.id][lang]}</span>
+                <span className="font-semibold">{m.name[lang] || m.name.en}</span>
                 <span className="text-body-md text-fg-secondary">{m.instructions[lang]}</span>
               </Choice>
             ))}
           </div>
-          {selected && selected.id !== "cod" && (
+          {selected && !isCash(selected) && (
             <div className="mt-4 rounded-lg bg-subtle p-4">
               <p className="text-body-md">
                 {d.sendTo} <strong>{taka(total, lang)}</strong> → <strong className="tabular-nums">{selected.account}</strong>

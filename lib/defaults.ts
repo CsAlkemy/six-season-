@@ -104,6 +104,8 @@ export const DEFAULT_SETTINGS: Settings = {
     methods: [
       {
         id: "cod",
+        kind: "cash",
+        name: { bn: "ক্যাশ অন ডেলিভারি", en: "Cash on delivery" },
         enabled: true,
         account: "",
         accountType: "",
@@ -112,6 +114,8 @@ export const DEFAULT_SETTINGS: Settings = {
       },
       {
         id: "bkash",
+        kind: "wallet",
+        name: { bn: "বিকাশ", en: "bKash" },
         enabled: false,
         account: "",
         accountType: "Personal",
@@ -123,6 +127,8 @@ export const DEFAULT_SETTINGS: Settings = {
       },
       {
         id: "nagad",
+        kind: "wallet",
+        name: { bn: "নগদ", en: "Nagad" },
         enabled: false,
         account: "",
         accountType: "Personal",

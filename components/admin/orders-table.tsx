@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { advanceOrder, advanceOrders } from "@/app/admin/actions";
-import { PAYMENT_LABEL, taka } from "@/lib/i18n";
+import { taka } from "@/lib/i18n";
+import { paymentName } from "@/lib/payments";
 import { dhakaTime, itemCount, NEXT_STEP, paymentState, STATUS_LABEL, STATUS_TONE } from "@/lib/orders";
 import type { Order } from "@/lib/types";
 
@@ -68,13 +69,13 @@ export function OrdersTable({ orders, filtered, clearHref }: { orders: Order[]; 
     { key: "customer", header: "Customer", cell: (o) => <><p className="truncate text-label-md text-fg-primary">{o.customer.name}</p><p className="truncate text-caption text-fg-secondary">{o.zone.name}</p></> },
     { key: "items", header: "Items", width: "w-18", cell: (o) => itemCount(o) },
     { key: "total", header: "Total", width: "w-28", cell: (o) => taka(o.total, "en") },
-    { key: "payment", header: "Payment", width: "w-36", cell: (o) => { const pay = paymentState(o); return <><p>{PAYMENT_LABEL[o.payment.method].en}</p><p className={cn("text-caption", PAY_TONE[pay.tone])}>{pay.label}</p></>; } },
+    { key: "payment", header: "Payment", width: "w-36", cell: (o) => { const pay = paymentState(o); return <><p>{paymentName(o.payment, "en")}</p><p className={cn("text-caption", PAY_TONE[pay.tone])}>{pay.label}</p></>; } },
     { key: "status", header: "Status", width: "w-44", cell: (o) => <StatusCell order={o} onMove={move} busy={busy} /> },
   ];
 
   const empty = (
     <EmptyState title={filtered ? "No orders match these filters" : "No orders yet"}>
-      {filtered ? <Link href={clearHref} className="text-fg-brand underline-offset-4 hover:underline">Clear filters</Link> : "They show up here the moment someone checks out."}
+      {filtered ? <Link href={clearHref} className="text-fg-brand underline-offset-4 hover:underline">Clear filters</Link> : <>They show up here the moment someone checks out, or <Link href="/admin/orders/new" className="text-fg-brand underline-offset-4 hover:underline">create one yourself</Link>.</>}
     </EmptyState>
   );
 

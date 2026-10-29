@@ -6,7 +6,8 @@ import { OrderActionsCard, OrderHeaderActions, OrderNoteCard, PackingSlip } from
 import { Avatar, ContentCard, Icon, Labelled, LinkButton, OrderPill, PageBody, PageHeader, StatusPill } from "@/components/admin/ui";
 import { listCustomerOrders } from "@/lib/customers";
 import { loadOrder } from "@/lib/data";
-import { PAYMENT_LABEL, taka } from "@/lib/i18n";
+import { taka } from "@/lib/i18n";
+import { paymentIsCash, paymentName } from "@/lib/payments";
 import { dhakaTime, historyOf, paymentState, STATUS_LABEL } from "@/lib/orders";
 import { ORDER_STATUSES } from "@/lib/types";
 
@@ -51,7 +52,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
         <PageHeader
           crumbs={[{ label: "Orders", href: "/admin/orders" }, { label: `#${order.no}` }]}
           title={`Order #${order.no}`}
-          description={[`Placed ${dhakaTime(order.createdAt)}`, order.lang === "bn" ? "Bangla store" : "English store", PAY_NOTE(order)].join(" · ")}
+          description={[`Placed ${dhakaTime(order.createdAt)}`, order.source === "admin" ? "Created by the team" : order.lang === "bn" ? "Bangla store" : "English store", PAY_NOTE(order)].join(" · ")}
           actions={<OrderHeaderActions order={order} />}
         />
 
@@ -120,7 +121,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
 
             <ContentCard title="Payment">
               <dl className="flex flex-col gap-4">
-                <Row label="Method">{PAYMENT_LABEL[order.payment.method].en}</Row>
+                <Row label="Method">{paymentName(order.payment, "en")}</Row>
                 <Row label="Transaction">{order.payment.trxId ? <span className="font-mono">{order.payment.trxId}</span> : "—"}</Row>
                 <Row label="Status"><StatusPill tone={PAY_PILL[pay.tone]}>{pay.label}</StatusPill></Row>
               </dl>
@@ -139,5 +140,5 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
 
 /** "Cash on delivery" or "bKash · TrxID …", for the line under the title. */
 function PAY_NOTE(order: NonNullable<Awaited<ReturnType<typeof loadOrder>>>) {
-  return order.payment.method === "cod" ? "Cash on delivery" : `${PAYMENT_LABEL[order.payment.method].en}${order.payment.trxId ? ` · ${order.payment.trxId}` : ""}`;
+  return paymentIsCash(order.payment) ? paymentName(order.payment, "en") : `${paymentName(order.payment, "en")}${order.payment.trxId ? ` · ${order.payment.trxId}` : ""}`;
 }

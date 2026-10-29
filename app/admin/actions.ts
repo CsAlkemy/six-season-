@@ -6,12 +6,17 @@ import { redirect } from "next/navigation";
 
 import { requireAdmin } from "@/lib/auth";
 import { deleteImages, putImage } from "@/lib/blob";
+import { listCustomerOrders, loadCustomer } from "@/lib/customers";
 import { loadOrder, loadProducts, loadSettings, refreshStorefront, saveOrder, saveProducts, saveSettings } from "@/lib/data";
 import { DEFAULT_SETTINGS } from "@/lib/defaults";
 import { canCancel, NEXT_STEP, withStatus } from "@/lib/orders";
+import { createOrder } from "@/lib/place-order";
+import { normalizePhone } from "@/lib/pricing";
+import { sendSms } from "@/lib/sms";
 import { createSession, passwordMatches, SESSION_COOKIE, SESSION_DAYS } from "@/lib/session";
 import { moveStock, summarize, withStock } from "@/lib/stock";
-import { MAX_PHOTOS, SEASONS, type HomeSection, type Order, type Product, type Settings, type Text, type Tone, type Variant } from "@/lib/types";
+import { taka } from "@/lib/i18n";
+import { MAX_PHOTOS, SEASONS, type HomeSection, type Order, type PaymentKind, type PaymentMethod, type Product, type Settings, type Text, type Tone, type Variant } from "@/lib/types";
 
 export type Saved = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -119,6 +124,72 @@ export async function saveOrderNote(id: string, note: string): Promise<Saved> {
   }
   revalidatePath(`/admin/orders/${id}`);
   return { ok: true };
+}
+
+/** What the team keys in for a phone or walk-in customer. Prices and totals are never taken from here. */
+export interface AdminOrderInput {
+  lang: "bn" | "en";
+  name: string;
+  phone: string;
+  address: string;
+  note: string;
+  zoneId: string;
+  methodId: string;
+  trxId: string;
+  lines: { id: string; variant?: string; qty: number }[];
+  adminNote: string;
+  startConfirmed: boolean;
+  sendSms: boolean;
+}
+
+/** A returning customer's saved details, so a repeat phone order starts filled in. */
+export async function lookupCustomer(phone: string): Promise<{ name: string; address: string; orders: number } | null> {
+  await requireAdmin();
+  const normal = normalizePhone(String(phone ?? ""));
+  if (!normal) return null;
+  const customer = await loadCustomer(normal);
+  if (!customer) return null;
+  return { name: customer.name, address: customer.address, orders: (await listCustomerOrders(normal).catch(() => [])).length };
+}
+
+export async function createAdminOrder(input: AdminOrderInput): Promise<{ ok: true; id: string; no: string; smsSent: boolean | null } | { ok: false; error: string }> {
+  await requireAdmin();
+  const lang = input?.lang === "en" ? "en" : "bn";
+  const name = String(input?.name ?? "").trim().slice(0, 80);
+  const phone = normalizePhone(String(input?.phone ?? ""));
+  const address = String(input?.address ?? "").trim().slice(0, 400);
+  if (!name) return { ok: false, error: "Add the customer's name." };
+  if (!phone) return { ok: false, error: "Enter a Bangladeshi mobile number, like 01712345678." };
+  if (address.length < 5) return { ok: false, error: "Add the delivery address." };
+  if (!Array.isArray(input.lines) || input.lines.length === 0) return { ok: false, error: "Add at least one product." };
+  if (input.lines.length > 30) return { ok: false, error: "That's too many lines for one order." };
+
+  const result = await createOrder({
+    lang,
+    name,
+    phone,
+    address,
+    note: String(input.note ?? "").trim().slice(0, 300),
+    zoneId: String(input.zoneId ?? ""),
+    methodId: String(input.methodId ?? ""),
+    trxId: String(input.trxId ?? "").trim().toUpperCase().slice(0, 40),
+    lines: input.lines.map((l) => ({ id: String(l.id), variant: l.variant ? String(l.variant) : undefined, qty: Number(l.qty) })),
+    admin: { startConfirmed: Boolean(input.startConfirmed), adminNote: String(input.adminNote ?? "").trim().slice(0, 1000) },
+  });
+  if (!result.ok) {
+    if (result.detail === "cart") return { ok: false, error: "A product is sold out or doesn't have that many left. Check the quantities." };
+    if (result.detail === "payment") return { ok: false, error: "That payment method isn't available for this order. Check it's switched on and the total is within its limit." };
+    return { ok: false, error: "Pick a delivery zone and a payment method." };
+  }
+
+  const { order } = result;
+  let smsSent: boolean | null = null;
+  if (input.sendSms) {
+    const body = lang === "bn" ? `মাটির টান: আপনার অর্ডার ${order.no} পেয়েছি। মোট ${taka(order.total, "bn")}। ধন্যবাদ!` : `Matir Taan: we've got your order ${order.no}. Total ${taka(order.total, "en")}. Thank you!`;
+    smsSent = await sendSms(phone, body).catch(() => false);
+  }
+  revalidatePath("/admin", "layout");
+  return { ok: true, id: order.id, no: order.no, smsSent };
 }
 
 /* Products */
@@ -280,20 +351,34 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
   if (zones.some((z) => !z.name.bn || !z.name.en)) return { ok: false, error: "Every delivery area needs a name in both languages." };
   if (!zones.some((z) => z.active)) return { ok: false, error: "Keep at least one delivery area on." };
 
-  const methods = DEFAULT_SETTINGS.payments.methods.map((fallback) => {
-    const m = raw.payments?.methods?.find((x) => x.id === fallback.id) ?? fallback;
+  // Payment methods are a list the admin builds: cash on delivery is always there, the rest are wallets or banks.
+  const builtin = (id: string) => DEFAULT_SETTINGS.payments.methods.find((d) => d.id === id);
+  const usedIds = new Set<string>();
+  const methods: PaymentMethod[] = (Array.isArray(raw.payments?.methods) ? raw.payments.methods : []).slice(0, 12).map((m, i) => {
+    const cash = m?.id === "cod";
+    const kind: PaymentKind = cash ? "cash" : m?.kind === "bank" ? "bank" : "wallet";
+    const name = text(m?.name, 40);
+    let id = cash ? "cod" : slugify(String(m?.id || name.en || "")) || `method-${i + 1}`;
+    if (!cash && (id === "cod" || usedIds.has(id))) id = `${id}-${i + 1}`;
+    usedIds.add(id);
+    const fallback = builtin(id);
     return {
-      id: fallback.id,
-      enabled: Boolean(m.enabled),
-      account: String(m.account ?? "").replace(/[^\d+]/g, "").slice(0, 20),
-      accountType: String(m.accountType ?? "").trim().slice(0, 30),
-      maxAmount: money(m.maxAmount),
-      instructions: text(m.instructions, 300),
+      id,
+      kind,
+      name: { bn: name.bn || fallback?.name.bn || "", en: name.en || fallback?.name.en || "" },
+      enabled: Boolean(m?.enabled),
+      account: kind === "cash" ? "" : kind === "bank" ? String(m?.account ?? "").trim().slice(0, 120) : String(m?.account ?? "").replace(/[^\d+]/g, "").slice(0, 20),
+      accountType: kind === "cash" ? "" : String(m?.accountType ?? "").trim().slice(0, 30),
+      maxAmount: money(m?.maxAmount),
+      instructions: text(m?.instructions, 300),
     };
   });
+  if (!methods.some((m) => m.id === "cod")) methods.unshift(structuredClone(builtin("cod")!));
+  const unnamed = methods.find((m) => !m.name.bn || !m.name.en);
+  if (unnamed) return { ok: false, error: "Every payment method needs a name in both languages." };
   if (!methods.some((m) => m.enabled)) return { ok: false, error: "Keep at least one payment method on." };
-  const noNumber = methods.find((m) => m.enabled && m.id !== "cod" && !m.account);
-  if (noNumber) return { ok: false, error: `Add the ${noNumber.id} number before switching it on.` };
+  const noAccount = methods.find((m) => m.enabled && m.kind !== "cash" && !m.account);
+  if (noAccount) return { ok: false, error: `Add the ${noAccount.kind === "bank" ? "account details" : "number"} for ${noAccount.name.en} before switching it on.` };
 
   const productIds = new Set((await loadProducts()).map((p) => p.id));
   const hero = raw.home?.hero ?? DEFAULT_SETTINGS.home.hero;

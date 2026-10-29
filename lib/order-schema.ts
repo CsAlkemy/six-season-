@@ -2,7 +2,6 @@ import { z } from "zod";
 
 import type { Dict } from "./i18n";
 import { normalizePhone } from "./pricing";
-import { PAYMENT_METHOD_IDS } from "./types";
 
 /** Messages are dictionary keys so the checkout shows them in the shopper's language. */
 type Message = keyof Dict & `err${string}`;
@@ -21,14 +20,14 @@ export const orderFormSchema = z
     address: z.string().trim().min(1, msg("errRequired")).min(10, msg("errAddress")).max(400, msg("errTooLong")),
     note: z.string().trim().max(300, msg("errTooLong")),
     zoneId: z.string().min(1, msg("errRequired")),
-    method: z.enum(PAYMENT_METHOD_IDS),
+    method: z.string().trim().min(1, msg("errRequired")).max(40),
     trxId: z.string().trim().toUpperCase().max(40, msg("errTooLong")),
     /** Honeypot: people never see it, bots fill it. */
     website: z.string(),
-  })
-  .superRefine((value, ctx) => {
-    if (value.method !== "cod" && !value.trxId) ctx.addIssue({ code: "custom", path: ["trxId"], message: "errRequired" });
   });
+
+// A wallet or bank method also needs a transaction ID. Only the settings know which methods those are, so the
+// checkout form and placeOrder check that part themselves.
 
 export type OrderFormInput = z.input<typeof orderFormSchema>;
 export type OrderFormValues = z.output<typeof orderFormSchema>;

@@ -7,10 +7,10 @@ import { CashIcon, LeafIcon, TruckIcon } from "@/components/icons";
 import { ProductGallery } from "@/components/product-gallery";
 import { ratingLabel, ReviewsSection } from "@/components/reviews";
 import { Stars } from "@/components/stars";
-import { getProducts, getSettings } from "@/lib/data";
+import { getProducts, getSettings, loadProducts } from "@/lib/data";
 import { STORE_NAME, t } from "@/lib/i18n";
 import { getApprovedReviews, summarize } from "@/lib/reviews";
-import type { Lang } from "@/lib/types";
+import type { Lang, Product } from "@/lib/types";
 import { variantsOf } from "@/lib/variants";
 
 /** Products added later render on first visit, then stay static. */
@@ -20,7 +20,10 @@ export async function generateStaticParams() {
 }
 
 async function find(slug: string) {
-  return (await getProducts()).find((p) => p.slug === slug && p.active);
+  const match = (list: Product[]) => list.find((p) => p.slug === slug && p.active);
+  // A product added a moment ago may not be in the cached list yet, and a 404 here would be cached for that URL,
+  // so before giving up look at the catalogue itself.
+  return match(await getProducts()) ?? match(await loadProducts());
 }
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/p/[slug]">): Promise<Metadata> {

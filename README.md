@@ -22,7 +22,7 @@ With no `BLOB_READ_WRITE_TOKEN`, `npm run dev` keeps everything on disk instead:
 
 1. Push this folder to GitHub and import it in Vercel.
 2. **Storage → Create → Blob**, then connect it to the project. This adds `BLOB_READ_WRITE_TOKEN`. Choose **public** access, because product photos are served straight from Blob.
-3. Add the env vars `ADMIN_PASSWORD`, `ADMIN_SECRET` (`openssl rand -hex 32`), and `SMS_API_KEY` + `SMS_SENDER_ID` from BulkSMSBD for OTP codes.
+3. Add the env vars `ADMIN_PASSWORD`, `ADMIN_SECRET` (`openssl rand -hex 32`), and `SMS_API_KEY` + `SMS_SENDER_ID` from BulkSMSBD for OTP codes. For a demo without SMS, set `DEMO_OTP=555555` instead: no SMS goes out and that code verifies any number. Remove it before going live.
 4. Deploy. Then **Settings → Domains**: add your domain and set the DNS records Vercel shows.
 5. Open `/admin`, fill in **Settings** (phone, WhatsApp, delivery areas, payments) and update the products and photos.
 

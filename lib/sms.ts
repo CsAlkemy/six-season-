@@ -1,3 +1,12 @@
+/**
+ * Demo mode: with `DEMO_OTP` set to a 6-digit code (e.g. 555555), no SMS is sent and that code verifies any number.
+ * Opt-in on purpose: leave it unset on a live store, since anyone who knows the code can sign in as any customer.
+ */
+export function demoOtp(): string | null {
+  const code = process.env.DEMO_OTP?.trim();
+  return code && /^\d{6}$/.test(code) ? code : null;
+}
+
 /** BulkSMSBD (bulksmsbd.net). Without keys, development prints the message to the terminal instead. */
 export async function sendSms(phone: string, message: string): Promise<boolean> {
   const apiKey = process.env.SMS_API_KEY;

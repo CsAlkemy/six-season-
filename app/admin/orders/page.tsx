@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 
 import { ListFilters } from "@/components/admin/controls";
 import { OrdersTable } from "@/components/admin/orders-table";
-import { DownloadButton, PageBody, PageHeader, Pagination, Tabs } from "@/components/admin/ui";
-import { loadAllOrders } from "@/lib/data";
-import { PAYMENT_LABEL } from "@/lib/i18n";
+import { DownloadButton, LinkButton, PageBody, PageHeader, Pagination, Tabs } from "@/components/admin/ui";
+import { loadAllOrders, loadSettings } from "@/lib/data";
 import { STATUS_LABEL } from "@/lib/orders";
-import { ORDER_STATUSES, PAYMENT_METHOD_IDS, type OrderStatus } from "@/lib/types";
+import { paymentName } from "@/lib/payments";
+import { ORDER_STATUSES, type OrderStatus } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Orders" };
 
@@ -19,11 +19,14 @@ type Query = { status?: string; q?: string; pay?: string; range?: string; page?:
 export default async function OrdersPage({ searchParams }: PageProps<"/admin/orders">) {
   const query = (await searchParams) as Query;
   const status = ORDER_STATUSES.find((s) => s === query.status);
-  const pay = PAYMENT_METHOD_IDS.find((m) => m === query.pay);
+  const pay = (query.pay ?? "").slice(0, 40) || undefined;
   const range = query.range && query.range in RANGES ? query.range : "all";
   const q = (query.q ?? "").trim().slice(0, 80);
 
-  const everything = await loadAllOrders();
+  const [everything, settings] = await Promise.all([loadAllOrders(), loadSettings()]);
+  // Every method the store has, plus any an older order used that has since been removed.
+  const methodOptions = new Map(settings.payments.methods.map((m) => [m.id, m.name.en]));
+  for (const o of everything) if (!methodOptions.has(o.payment.method)) methodOptions.set(o.payment.method, paymentName(o.payment, "en"));
   const cutoff = RANGES[range] ? Date.now() - RANGES[range] * 86_400_000 : 0;
   const needle = q.toLowerCase().replace(/^#/, "");
   const filtered = everything.filter(
@@ -48,7 +51,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
     <PageBody>
       <PageHeader
         title="Orders"
-        actions={<DownloadButton variant="outline" href={`/admin/orders/export${href({ page: undefined }).slice("/admin/orders".length)}`}>Export CSV</DownloadButton>}
+        actions={<><DownloadButton variant="outline" href={`/admin/orders/export${href({ page: undefined }).slice("/admin/orders".length)}`}>Export CSV</DownloadButton><LinkButton href="/admin/orders/new">+ Create order</LinkButton></>}
       />
       <Tabs
         label="Order status"
@@ -61,7 +64,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
         placeholder="Search by order number, customer or phone"
         clearHref={status ? `/admin/orders?status=${status}` : "/admin/orders"}
         filters={[
-          { param: "pay", label: "Payment", allLabel: "All payments", options: PAYMENT_METHOD_IDS.map((m) => ({ value: m, label: PAYMENT_LABEL[m].en })) },
+          { param: "pay", label: "Payment", allLabel: "All payments", options: [...methodOptions].map(([value, label]) => ({ value, label })) },
           { param: "range", label: "Date range", fallback: "all", options: [{ value: "all", label: "All time" }, { value: "7", label: "Last 7 days" }, { value: "30", label: "Last 30 days" }, { value: "90", label: "Last 90 days" }] },
         ]}
       />

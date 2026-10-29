@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { readAllJson, readJson, writeJson } from "./blob";
 import { loadOrder } from "./data";
 import { createCustomerSession, CUSTOMER_COOKIE, CUSTOMER_DAYS, sign, verifyCustomerSession } from "./session";
-import { sendSms } from "./sms";
+import { demoOtp, sendSms } from "./sms";
 import type { Customer, Lang, Order } from "./types";
 
 const scryptAsync = promisify(scrypt) as (password: string, salt: Buffer, length: number) => Promise<Buffer>;
@@ -62,6 +62,7 @@ const otpHash = (phone: string, code: string) => sign(`otp:${phone}:${code}`);
 export type SendResult = "ok" | "wait" | "sms";
 
 export async function sendOtp(phone: string, lang: Lang): Promise<SendResult> {
+  if (demoOtp()) return "ok";
   const path = await otpPath(phone);
   const now = Date.now();
   const sends = ((await readJson<OtpRecord>(path))?.sends ?? []).filter((at) => now - at < 3_600_000);
@@ -81,6 +82,8 @@ export type CheckResult = "ok" | "wrong" | "expired";
 
 /** A code works once; after too many wrong tries the shopper has to ask for a new one. */
 export async function checkOtp(phone: string, code: string): Promise<CheckResult> {
+  const demo = demoOtp();
+  if (demo) return code.trim() === demo ? "ok" : "wrong";
   const path = await otpPath(phone);
   const record = await readJson<OtpRecord>(path);
   if (!record?.hash || record.expires < Date.now() || record.attempts >= OTP_ATTEMPTS) return "expired";
