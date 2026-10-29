@@ -167,7 +167,7 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
         {unavailable > 0 && <p className="rounded-md bg-mustard-100 p-4 text-body-sm text-soil-700" role="status">{d.cartUnavailable}</p>}
         <section className="card divide-y divide-border">
           {lines.map(({ product, variant, line, qty }) => (
-            <div key={`${product.id}:${variant.id}`} className="flex items-center gap-4 p-4">
+            <div key={`${product.id}:${variant.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-3 p-4 sm:flex-nowrap">
               <ProductMedia product={product} lang={lang} className="size-16! shrink-0 rounded-md [&_svg]:size-6 [&_span]:hidden" />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold">{product.name[lang]}</p>
@@ -175,10 +175,13 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
                   {variant.label[lang]} · {taka(variant.price, lang)}
                 </p>
               </div>
-              <QtyStepper small value={qty} max={Math.min(20, variant.stock ?? 20)} onChange={(n) => cart.setQty(line.id, line.variant, n)} />
-              <button type="button" onClick={() => cart.setQty(line.id, line.variant, 0)} className="grid size-8 place-items-center rounded-full text-fg-tertiary hover:bg-error-soft hover:text-fg-error" aria-label="Remove">
-                <TrashIcon />
-              </button>
+              {/* A phone gets its own row, so the buttons can be a thumb's size without squeezing the name. */}
+              <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-start sm:gap-4">
+                <QtyStepper small value={qty} max={Math.min(20, variant.stock ?? 20)} onChange={(n) => cart.setQty(line.id, line.variant, n)} />
+                <button type="button" onClick={() => cart.setQty(line.id, line.variant, 0)} className="grid size-11 touch-manipulation place-items-center rounded-full text-fg-tertiary hover:bg-error-soft hover:text-fg-error active:bg-error-soft sm:size-8" aria-label="Remove">
+                  <TrashIcon />
+                </button>
+              </div>
             </div>
           ))}
         </section>
