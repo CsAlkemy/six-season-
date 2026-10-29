@@ -11,6 +11,8 @@
 
   /* Fresh green: the brand, the logo's sprout taken just dark enough for white text (4.7:1) */
   --color-fresh-50: #eaf6ef;
+  --color-fresh-100: #d6eee0;
+  --color-fresh-200: #b9e0cd;
   --color-fresh-300: #9fd4b8;
   --color-fresh-500: #168456;
   --color-fresh-600: #12704a;
@@ -44,6 +46,7 @@
   /* Mustard and butter: product placeholder tiles */
   --color-mustard-100: #fbf0cc;
   --color-mustard-500: #d9a21b;
+  --color-mustard-700: #8a5f08;
   --color-butter-100: #fdf5dc;
   --color-butter-400: #f2cf6b;
 
@@ -90,6 +93,9 @@
   --text-label-md: 1rem;
   --text-label-md--line-height: 1.5rem;
   --text-label-md--font-weight: 600;
+  --text-label-button: 1.0625rem;
+  --text-label-button--line-height: 1.5rem;
+  --text-label-button--font-weight: 600;
   --text-caption: 0.875rem;
   --text-caption--line-height: 1.25rem;
   --text-caption--font-weight: 500;
@@ -100,6 +106,7 @@
   --text-overline--font-weight: 600;
 
   --radius-*: initial;
+  --radius-xs: 5px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -119,6 +126,8 @@
   --fg-sage: var(--color-sage-700);
   --fg-inverse: var(--color-neutral-0);
   --fg-error: var(--color-red-600);
+  --fg-success: var(--color-fresh-600);
+  --fg-accent: var(--color-mustard-700);
   --fg-footer: var(--color-mist-50);
   --fg-footer-muted: var(--color-clay-200);
   --fg-footer-accent: var(--color-sage-300);
@@ -130,6 +139,15 @@
   --bg-brand: var(--color-fresh-500);
   --bg-brand-hover: var(--color-fresh-600);
   --bg-brand-soft: var(--color-fresh-50);
+  --bg-brand-soft-hover: var(--color-fresh-100);
+  --bg-brand-subtle: #f6fbf8;
+  --bg-success: var(--color-fresh-500);
+  --bg-success-soft: var(--color-fresh-50);
+  --bg-accent: var(--color-mustard-500);
+  --bg-accent-soft: var(--color-mustard-100);
+  --bg-inverse: var(--color-neutral-900);
+  --bg-inverse-hover: var(--color-neutral-700);
+  --bg-surface-sunken: var(--color-neutral-100);
   --bg-sage: var(--color-sage-500);
   --bg-sage-hover: var(--color-sage-600);
   --bg-sage-soft: var(--color-sage-50);
@@ -154,6 +172,8 @@
   --color-fg-sage: var(--fg-sage);
   --color-fg-inverse: var(--fg-inverse);
   --color-fg-error: var(--fg-error);
+  --color-fg-success: var(--fg-success);
+  --color-fg-accent: var(--fg-accent);
   --color-fg-footer: var(--fg-footer);
   --color-fg-footer-muted: var(--fg-footer-muted);
   --color-fg-footer-accent: var(--fg-footer-accent);
@@ -165,6 +185,15 @@
   --color-brand: var(--bg-brand);
   --color-brand-hover: var(--bg-brand-hover);
   --color-brand-soft: var(--bg-brand-soft);
+  --color-brand-soft-hover: var(--bg-brand-soft-hover);
+  --color-brand-subtle: var(--bg-brand-subtle);
+  --color-success: var(--bg-success);
+  --color-success-soft: var(--bg-success-soft);
+  --color-accent: var(--bg-accent);
+  --color-accent-soft: var(--bg-accent-soft);
+  --color-inverse: var(--bg-inverse);
+  --color-inverse-hover: var(--bg-inverse-hover);
+  --color-surface-sunken: var(--bg-surface-sunken);
   --color-sage: var(--bg-sage);
   --color-sage-hover: var(--bg-sage-hover);
   --color-sage-soft: var(--bg-sage-soft);
@@ -640,4 +669,123 @@ html[data-season="basanta"] [data-in-season~="basanta"] {
 
 .season-switch[aria-checked="true"] {
   background: var(--season-accent);
+}
+
+/*
+ * The back office. Same palette and roles as the store, but Motherhood's admin scale: 14px body, 12px captions,
+ * 32px page titles and 20px card titles (the store's type is a size up), a white page and bordered cards.
+ * <html data-admin> switches it on, so nothing here touches the storefront.
+ */
+[data-admin] {
+  --text-h1: 2.5rem;
+  --text-h1--line-height: 3rem;
+  --text-h2: 2rem;
+  --text-h2--line-height: 2.5rem;
+  --text-h2--letter-spacing: -0.5px;
+  --text-h3: 1.5rem;
+  --text-h3--line-height: 2rem;
+  --text-h4: 1.25rem;
+  --text-h4--line-height: 1.75rem;
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.75rem;
+  --text-body-md: 1rem;
+  --text-body-md--line-height: 1.5rem;
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.25rem;
+  --text-label: 0.9375rem;
+  --text-label--line-height: 1.25rem;
+  --text-label-button: 0.9375rem;
+  --text-label-button--line-height: 1.25rem;
+  --text-label-md: 0.875rem;
+  --text-label-md--line-height: 1.25rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-overline: 0.75rem;
+  --text-overline--line-height: 1rem;
+  --shadow-card: 0 4px 16px 0 #1d1d1b14;
+  --shadow-hover: 0 10px 28px 0 #1d1d1b24;
+}
+
+/* Page titles keep the store's rounded display face; card and section titles use the plain sans. */
+[data-admin] h2,
+[data-admin] h3 {
+  font-family: var(--font-sans);
+}
+
+[data-admin] .field {
+  @apply h-12 text-body-md;
+}
+
+[data-admin] textarea.field {
+  @apply h-auto;
+}
+
+[data-admin] .label {
+  @apply mb-1.5 text-label-md;
+}
+
+/* A native checkbox drawn like Motherhood's: 18px, 5px corners, brand fill with a white tick. */
+.adm-check {
+  appearance: none;
+  display: inline-grid;
+  place-content: center;
+  flex-shrink: 0;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.adm-check:checked,
+.adm-check:indeterminate {
+  border-color: var(--bg-brand);
+  background: var(--bg-brand);
+}
+
+.adm-check:checked::after {
+  content: "";
+  width: 0.65rem;
+  height: 0.35rem;
+  margin-top: -0.1rem;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg);
+}
+
+.adm-check:indeterminate::after {
+  content: "";
+  width: 0.6rem;
+  height: 2px;
+  background: #fff;
+}
+
+.adm-check:focus-visible {
+  outline: 2px solid var(--bg-brand);
+  outline-offset: 2px;
+}
+
+dialog.adm-dialog::backdrop {
+  background: #1d1d1b66;
+}
+
+@keyframes adm-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.adm-pop {
+  animation: adm-in 0.14s ease-out;
+}
+
+/* Printing an order's slip: only the sheet portalled into <body> prints, whatever scroll boxes the page sits in. */
+@media print {
+  [data-admin] body > *:not([data-print-root]) {
+    display: none !important;
+  }
 }

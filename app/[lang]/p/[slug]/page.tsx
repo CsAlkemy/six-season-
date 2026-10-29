@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { BuyBox } from "@/components/buy-box";
 import { CashIcon, LeafIcon, TruckIcon } from "@/components/icons";
-import { ProductMedia } from "@/components/product-media";
+import { ProductGallery } from "@/components/product-gallery";
 import { ratingLabel, ReviewsSection } from "@/components/reviews";
 import { Stars } from "@/components/stars";
 import { getProducts, getSettings } from "@/lib/data";
@@ -75,7 +75,7 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-14">
           {/* Phones: edge-to-edge photo. */}
           <div className="-mx-4 self-start overflow-hidden bg-muted sm:mx-0 sm:rounded-xl lg:sticky lg:top-28">
-            <ProductMedia product={product} lang={lang} className={inStock ? "" : "opacity-55"} />
+            <ProductGallery product={product} lang={lang} dim={!inStock} />
           </div>
 
           <div className="flex flex-col gap-7">

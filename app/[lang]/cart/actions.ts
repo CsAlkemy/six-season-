@@ -1,10 +1,11 @@
 "use server";
 
 import { currentPhone, linkOrder, loadCustomer, newCustomer, saveCustomer } from "@/lib/customers";
-import { loadProducts, loadSettings, saveOrder } from "@/lib/data";
+import { loadProducts, loadSettings, refreshStorefront, saveOrder, saveProducts } from "@/lib/data";
 import { PAYMENT_LABEL } from "@/lib/i18n";
 import { orderFormSchema, type OrderFormInput } from "@/lib/order-schema";
 import { deliveryFee, methodAvailable } from "@/lib/pricing";
+import { moveStock } from "@/lib/stock";
 import type { Lang, Order } from "@/lib/types";
 import { findVariant } from "@/lib/variants";
 
@@ -39,7 +40,7 @@ export async function placeOrder(input: OrderInput): Promise<OrderResult> {
     const product = products.find((p) => p.id === line.id && p.active);
     const variant = product && findVariant(product, typeof line.variant === "string" ? line.variant : undefined);
     const qty = Math.floor(Number(line.qty));
-    if (!product || !variant?.inStock || !(qty >= 1 && qty <= 20)) return [];
+    if (!product || !variant?.inStock || !(qty >= 1 && qty <= 20) || (variant.stock !== undefined && qty > variant.stock)) return [];
     return [{ productId: product.id, variantId: variant.id, name: product.name[lang], unit: variant.label[lang], price: variant.price, qty }];
   });
   if (items.length === 0) return { ok: false, error: "generic", detail: "cart" };
@@ -62,6 +63,18 @@ export async function placeOrder(input: OrderInput): Promise<OrderResult> {
   // Inverted time sorts newest first in Blob listings; the random tail keeps the public URL unguessable.
   const id = `${String(1e13 - now.getTime()).padStart(13, "0")}-${no}-${crypto.randomUUID().slice(0, 12)}`;
 
+  // Take the units before filing the order; a failed save puts them back. (Blob has no transactions: two
+  // checkouts in the same second can still both read the old count.)
+  const taken = moveStock(products, items, -1);
+  if (taken.short.length) return { ok: false, error: "generic", detail: "cart" };
+  const counted = taken.products.some((p, i) => p !== products[i]);
+  try {
+    if (counted) await saveProducts(taken.products);
+  } catch (error) {
+    console.error("placeOrder: stock", error);
+    return { ok: false, error: "generic" };
+  }
+
   const order: Order = {
     id,
     no,
@@ -75,14 +88,19 @@ export async function placeOrder(input: OrderInput): Promise<OrderResult> {
     deliveryFee: fee,
     total,
     payment: { method: method.id, trxId: method.id === "cod" ? "" : trxId },
+    history: [{ status: "new", at: now.toISOString() }],
+    stockTaken: counted,
   };
 
   try {
     await saveOrder(order);
   } catch (error) {
     console.error("placeOrder", error);
+    if (counted) await saveProducts(moveStock(taken.products, items, 1).products).catch(() => {});
     return { ok: false, error: "generic" };
   }
+  // Counts changed: the cached store pages show "Only 3 left" and cap quantities by them, so they refresh now.
+  if (counted) refreshStorefront();
   // The order is in; failing to file it under the account or remember the address shouldn't fail it.
   try {
     const customer = (await loadCustomer(phone)) ?? newCustomer(phone);

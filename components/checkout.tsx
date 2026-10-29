@@ -63,11 +63,14 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
   const method = watch("method");
 
   // A size the store has since removed drops out, as a hidden product does.
-  const lines = cart.lines.flatMap((line) => {
+  const found = cart.lines.flatMap((line) => {
     const product = products.find((p) => p.id === line.id && p.active);
     const variant = product && findVariant(product, line.variant);
-    return product && variant ? [{ product, variant, line, qty: line.qty }] : [];
+    return product && variant ? [{ product, variant, line }] : [];
   });
+  // Sold-out sizes drop out too, and what's left on the shelf caps each quantity.
+  const lines = found.filter((l) => l.variant.inStock).map((l) => ({ ...l, qty: Math.min(l.line.qty, 20, l.variant.stock ?? 20) }));
+  const unavailable = cart.lines.length - lines.length;
   const subtotal = lines.reduce((sum, l) => sum + l.variant.price * l.qty, 0);
   const zone = zones.find((z) => z.id === zoneId);
   const fee = zone ? deliveryFee(zone, subtotal) : 0;
@@ -107,6 +110,7 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
     return (
       <div className="py-16 text-center">
         <p className="text-body-lg text-fg-secondary">{d.emptyCart}</p>
+        {unavailable > 0 && <p className="mt-2 text-body-sm text-soil-700">{d.cartUnavailable}</p>}
         <Link href={`/${lang}#products`} className="btn-primary mt-6">
           {d.continueShopping}
         </Link>
@@ -153,6 +157,7 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid items-start gap-8 lg:grid-cols-[1fr_380px]">
       <div className="space-y-8">
+        {unavailable > 0 && <p className="rounded-md bg-mustard-100 p-4 text-body-sm text-soil-700" role="status">{d.cartUnavailable}</p>}
         <section className="card divide-y divide-border">
           {lines.map(({ product, variant, line, qty }) => (
             <div key={`${product.id}:${variant.id}`} className="flex items-center gap-4 p-4">
@@ -163,7 +168,7 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
                   {variant.label[lang]} · {taka(variant.price, lang)}
                 </p>
               </div>
-              <QtyStepper small value={qty} onChange={(n) => cart.setQty(line.id, line.variant, n)} />
+              <QtyStepper small value={qty} max={Math.min(20, variant.stock ?? 20)} onChange={(n) => cart.setQty(line.id, line.variant, n)} />
               <button type="button" onClick={() => cart.setQty(line.id, line.variant, 0)} className="grid size-8 place-items-center rounded-full text-fg-tertiary hover:bg-error-soft hover:text-fg-error" aria-label="Remove">
                 <TrashIcon />
               </button>

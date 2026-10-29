@@ -1,149 +1,202 @@
 "use client";
 
-import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
 
-import { deleteProduct, saveProduct } from "@/app/admin/actions";
+import { deleteProduct, saveProduct, type ProductDraft } from "@/app/admin/actions";
 import { SEASON_NAME } from "@/lib/season";
-import { SEASONS, type Product } from "@/lib/types";
+import { DEFAULT_LOW_STOCK } from "@/lib/stock";
+import { MAX_PHOTOS, SEASONS, type Product, type Text } from "@/lib/types";
+import { variantsOf } from "@/lib/variants";
 
-const MAX_SIDE = 1200;
+import { Modal, SwitchRow, toast } from "./controls";
+import { uploadPhoto } from "./image-upload";
+import { Button, Callout, ContentCard, FormField, Icon, PageBody, PageHeader, Spinner, StatusPill, Table, Td, Th } from "./ui";
 
-/** Shrinks a photo to 1200px WebP in the browser, so uploads are small and the store stays fast. */
-async function toWebp(file: File): Promise<File> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", 0.82));
-  return blob ? new File([blob], "photo.webp", { type: "image/webp" }) : file;
+type Size = ProductDraft["variants"][number];
+const blank = (): Size => ({ id: "", label: { bn: "", en: "" }, price: 0, compareAt: null, stock: 0 });
+
+function draftOf(product: Product | null): ProductDraft {
+  if (!product) return { id: "", slug: "", name: { bn: "", en: "" }, description: { bn: "", en: "" }, images: [], tone: "soil", seasons: [], active: false, lowStockAt: DEFAULT_LOW_STOCK, variants: [blank()] };
+  return {
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    description: product.description,
+    images: product.images?.length ? product.images : product.image ? [product.image] : [],
+    tone: product.tone,
+    seasons: product.seasons ?? [],
+    active: product.active,
+    lowStockAt: product.lowStockAt ?? DEFAULT_LOW_STOCK,
+    // Sizes saved before stock counts start at 10 when they were in stock, for the admin to correct.
+    variants: variantsOf(product).map((v) => ({ id: v.id, label: v.label, price: v.price, compareAt: v.compareAt, stock: v.stock ?? (v.inStock ? 10 : 0) })),
+  };
 }
 
-export function ProductForm({ product }: { product: Product | null }) {
-  const [error, action, pending] = useActionState(saveProduct, null);
-  const [preview, setPreview] = useState(product?.image ?? "");
+/** A compact input for a table cell. */
+const cellField = "h-10 w-full rounded-md border border-border-strong bg-surface px-3 text-body-sm text-fg-primary outline-none transition-colors placeholder:text-fg-tertiary focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand-soft aria-invalid:border-fg-error";
 
-  const onPick = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const input = event.currentTarget;
-    const file = input.files?.[0];
-    if (!file) return;
-    const small = await toWebp(file);
-    const list = new DataTransfer();
-    list.items.add(small);
-    input.files = list.files;
-    setPreview(URL.createObjectURL(small));
+/** Motherhood's two columns: basic information, photos and sizes on the left; status, season, inventory and search beside them. */
+export function ProductForm({ product }: { product: Product | null }) {
+  const router = useRouter();
+  const [saved, setSaved] = useState(() => draftOf(product));
+  const [draft, setDraft] = useState(saved);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
+  const [pending, start] = useTransition();
+  const [uploading, setUploading] = useState(0);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const set = (patch: Partial<ProductDraft>) => setDraft((d) => ({ ...d, ...patch }));
+  const setSize = (i: number, patch: Partial<Size>) => set({ variants: draft.variants.map((v, j) => (j === i ? { ...v, ...patch } : v)) });
+  const setText = (key: "name" | "description", lang: keyof Text, value: string) => set({ [key]: { ...draft[key], [lang]: value } });
+
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    addEventListener("beforeunload", warn);
+    return () => removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
+  const room = MAX_PHOTOS - draft.images.length - uploading;
+  const addPhotos = async (files: File[]) => {
+    const picked = files.slice(0, Math.max(room, 0));
+    if (files.length > picked.length) toast.info(`Only ${MAX_PHOTOS} photos fit; the rest were skipped`);
+    setUploading(picked.length);
+    const results = await Promise.all(picked.map((file) => uploadPhoto(file, "products")));
+    setUploading(0);
+    const urls = results.flatMap((r) => ("url" in r ? [r.url] : []));
+    results.forEach((r) => "error" in r && toast.error(r.error));
+    if (urls.length) setDraft((d) => ({ ...d, images: [...d.images, ...urls].slice(0, MAX_PHOTOS) }));
   };
 
+  const onSave = () =>
+    start(async () => {
+      const r = await saveProduct(draft);
+      if (!r.ok) return toast.error(r.error);
+      toast.success(product ? "Saved. The store updates within a minute." : "Product added");
+      if (!product) return router.replace(`/admin/products/${r.id}`);
+      setSaved(draft);
+      router.refresh();
+    });
+
+  const onDelete = () =>
+    start(async () => {
+      const r = await deleteProduct(draft.id);
+      if (r.ok) {
+        toast.success(`${draft.name.en} deleted`);
+        router.replace("/admin/products");
+      } else toast.error(r.error);
+    });
+
+  const slug = draft.slug || draft.name.en.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[1fr_300px]">
-      <form action={action} className="card space-y-6 p-6" id="product-form">
-        <input type="hidden" name="id" value={product?.id ?? ""} />
-        <Pair label="Name" name="name" value={product?.name} required />
-        <Pair label="Pack size" name="unit" value={product?.unit} placeholder={{ bn: "৫০০ গ্রাম", en: "500 g" }} />
-        <Pair label="Description" name="description" value={product?.description} multiline />
+    <PageBody>
+      <PageHeader
+        crumbs={[{ label: "Products", href: "/admin/products" }, { label: product ? product.name.en : "New product" }]}
+        title={product ? product.name.en : "New product"}
+        actions={
+          <>
+            <Button variant="outline" disabled={!dirty || pending} onClick={() => setDraft(saved)}>Discard</Button>
+            <Button loading={pending} disabled={uploading > 0 || (!dirty && Boolean(product))} onClick={onSave}>{product ? "Save changes" : "Save product"}</Button>
+          </>
+        }
+      />
+      {dirty && product && <Callout>You have unsaved changes.</Callout>}
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Price (৳)" name="price" type="number" defaultValue={product?.price} required />
-          <Field label="Was price (৳, optional)" name="compareAt" type="number" defaultValue={product?.compareAt ?? ""} />
-          <Field label="URL slug" name="slug" defaultValue={product?.slug} placeholder="gawa-ghee" />
+      <div className="flex items-start gap-4 max-lg:flex-col">
+        <div className="flex min-w-0 flex-1 flex-col gap-4 max-lg:w-full">
+          <ContentCard title="Basic information">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField label="Name · বাংলা" htmlFor="name-bn"><input id="name-bn" value={draft.name.bn} onChange={(e) => setText("name", "bn", e.target.value)} className="field" /></FormField>
+              <FormField label="Name · English" htmlFor="name-en"><input id="name-en" value={draft.name.en} onChange={(e) => setText("name", "en", e.target.value)} className="field" /></FormField>
+              <FormField label="Description · বাংলা" htmlFor="desc-bn"><textarea id="desc-bn" rows={5} value={draft.description.bn} onChange={(e) => setText("description", "bn", e.target.value)} className="field" /></FormField>
+              <FormField label="Description · English" htmlFor="desc-en"><textarea id="desc-en" rows={5} value={draft.description.en} onChange={(e) => setText("description", "en", e.target.value)} className="field" /></FormField>
+            </div>
+          </ContentCard>
+
+          <ContentCard title="Photos" action={<span className="text-caption text-fg-secondary">First photo becomes the cover</span>}>
+            <div className="flex flex-wrap gap-3">
+              {draft.images.map((url, i) => (
+                <div key={url} className="group relative size-28 overflow-hidden rounded-md border border-border">
+                  <img src={url} alt={`Product photo ${i + 1}`} className="size-full object-cover" />
+                  {i === 0 && <StatusPill tone="info" className="absolute top-1.5 left-1.5 px-2 py-0.5">Cover</StatusPill>}
+                  <button type="button" aria-label={`Remove photo ${i + 1}`} onClick={() => set({ images: draft.images.filter((_, j) => j !== i) })} className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full border border-border-strong bg-surface hover:bg-muted"><Icon name="x" className="size-3.5" /></button>
+                  {i > 0 && <button type="button" onClick={() => set({ images: [url, ...draft.images.filter((u) => u !== url)] })} className="absolute inset-x-1.5 bottom-1.5 rounded-full border border-border-strong bg-surface py-1 text-caption text-fg-primary hover:bg-muted">Make cover</button>}
+                </div>
+              ))}
+              {Array.from({ length: uploading }, (_, i) => <div key={i} className="grid size-28 place-items-center rounded-md bg-muted"><Spinner className="size-5 text-fg-tertiary" /></div>)}
+              {room > 0 && (
+                <button type="button" onClick={() => fileInput.current?.click()} className="flex size-28 flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border-brand bg-brand-subtle text-caption text-fg-brand transition-colors hover:bg-brand-soft focus-visible:outline-2 focus-visible:outline-brand"><Icon name="plus" />Add photo</button>
+              )}
+            </div>
+            <input ref={fileInput} type="file" multiple hidden accept="image/*" onChange={(e) => { const files = [...(e.target.files ?? [])]; e.target.value = ""; if (files.length) void addPhotos(files); }} />
+            <p className="text-caption text-fg-tertiary">Up to {MAX_PHOTOS} photos, shrunk to WebP before they upload.</p>
+          </ContentCard>
+
+          <ContentCard title="Sizes & stock" flush action={<span className="pr-6"><Button variant="secondary" disabled={draft.variants.length >= 12} onClick={() => set({ variants: [...draft.variants, blank()] })}>+ Add size</Button></span>}>
+            <Table bare minWidth="min-w-180" widths={["", "", "w-28", "w-28", "w-24", "w-24"]} head={<><Th>Size · বাংলা</Th><Th>Size · English</Th><Th>Price (৳)</Th><Th>Was (৳)</Th><Th>Stock</Th><Th><span className="sr-only">Remove</span></Th></>}>
+              {draft.variants.map((v, i) => (
+                <tr key={i} className="border-y border-border last:border-b-0">
+                  <Td><input aria-label="Size in Bangla" className={cellField} value={v.label.bn} placeholder="৫০০ গ্রাম" onChange={(e) => setSize(i, { label: { ...v.label, bn: e.target.value } })} /></Td>
+                  <Td><input aria-label="Size in English" className={cellField} value={v.label.en} placeholder="500 g" onChange={(e) => setSize(i, { label: { ...v.label, en: e.target.value } })} /></Td>
+                  <Td><input aria-label="Price" type="number" min={0} className={cellField} value={v.price || ""} onChange={(e) => setSize(i, { price: Number(e.target.value) })} /></Td>
+                  <Td><input aria-label="Was price" type="number" min={0} className={cellField} value={v.compareAt ?? ""} onChange={(e) => setSize(i, { compareAt: e.target.value ? Number(e.target.value) : null })} /></Td>
+                  <Td><input aria-label="Stock" type="number" min={0} className={cellField} value={v.stock} onChange={(e) => setSize(i, { stock: Number(e.target.value) })} /></Td>
+                  <Td><button type="button" disabled={draft.variants.length === 1} onClick={() => set({ variants: draft.variants.filter((_, j) => j !== i) })} className="text-label-md text-fg-error underline-offset-4 hover:underline disabled:opacity-30 disabled:hover:no-underline">Remove</button></Td>
+                </tr>
+              ))}
+            </Table>
+            <p className="px-6 pt-3 text-caption text-fg-tertiary">Orders take units off and cancelling puts them back. A size at 0 shows as sold out.</p>
+          </ContentCard>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="image" className="label">Photo</label>
-            <input id="image" name="image" type="file" accept="image/*" onChange={onPick} className="field py-2" />
-            {product?.image && (
-              <label className="mt-2 flex items-center gap-2 text-body-sm">
-                <input type="checkbox" name="removeImage" /> Remove current photo
-              </label>
-            )}
-          </div>
-          <div>
-            <label htmlFor="tone" className="label">Placeholder colour (no photo)</label>
-            <select id="tone" name="tone" defaultValue={product?.tone ?? "soil"} className="field">
-              <option value="butter">Butter</option>
-              <option value="mustard">Mustard</option>
-              <option value="soil">Soil</option>
-              <option value="leaf">Leaf</option>
-            </select>
-          </div>
+        <div className="flex w-85 shrink-0 flex-col gap-4 max-lg:w-full">
+          <ContentCard title="Status">
+            <SwitchRow label="Active" description={draft.active ? "Visible in the store" : "Saved as draft until you turn this on"} checked={draft.active} onCheckedChange={(active) => set({ active })} />
+          </ContentCard>
+
+          <ContentCard title="In season">
+            <p className="text-caption text-fg-secondary">Listed first and badged on the store in these seasons.</p>
+            <div className="flex flex-wrap gap-2">
+              {SEASONS.map((s) => {
+                const on = draft.seasons.includes(s);
+                return (
+                  <button key={s} type="button" aria-pressed={on} onClick={() => set({ seasons: on ? draft.seasons.filter((x) => x !== s) : [...draft.seasons, s] })} className={`rounded-full border px-3.5 py-1.5 text-label-md transition-colors focus-visible:outline-2 focus-visible:outline-brand ${on ? "border-border-brand bg-brand-soft text-fg-brand" : "border-border-strong text-fg-secondary hover:bg-muted"}`}>{SEASON_NAME[s].en}</button>
+                );
+              })}
+            </div>
+          </ContentCard>
+
+          <ContentCard title="Inventory">
+            <FormField label="Low-stock alert at" htmlFor="low" hint="A size at or under this shows as running low."><input id="low" type="number" min={0} value={draft.lowStockAt} onChange={(e) => set({ lowStockAt: Number(e.target.value) })} className="field" /></FormField>
+            <FormField label="Placeholder colour" htmlFor="tone" hint="Shown on the store while a product has no photo.">
+              <select id="tone" value={draft.tone} onChange={(e) => set({ tone: e.target.value as ProductDraft["tone"] })} className="field">
+                {["butter", "mustard", "soil", "leaf"].map((t) => <option key={t} value={t}>{t[0]!.toUpperCase() + t.slice(1)}</option>)}
+              </select>
+            </FormField>
+          </ContentCard>
+
+          <ContentCard title="Search listing">
+            <FormField label="URL" htmlFor="slug"><input id="slug" value={draft.slug} placeholder={slug || "gawa-ghee"} onChange={(e) => set({ slug: e.target.value })} className="field" /></FormField>
+            <div className="flex flex-col gap-0.5 rounded-md bg-muted p-3">
+              <p className="truncate text-caption text-fg-success">matirtaan.com/p/{slug || "…"}</p>
+              <p className="truncate text-label-md text-fg-brand">{draft.name.en || "Product name"}</p>
+              <p className="line-clamp-2 text-caption text-fg-secondary">{draft.description.en || "The description shows here in search results."}</p>
+            </div>
+          </ContentCard>
+
+          {product && <Button variant="outline" className="w-full text-fg-error hover:bg-error-soft" onClick={() => setConfirmDelete(true)}>Delete product</Button>}
         </div>
+      </div>
 
-        <fieldset>
-          <legend className="label">In season (listed first and badged on the store then)</legend>
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            {SEASONS.map((season) => (
-              <label key={season} className="flex items-center gap-2 text-body-sm">
-                <input type="checkbox" name="seasons" value={season} defaultChecked={product?.seasons?.includes(season)} className="size-4 accent-(--bg-brand)" />
-                {SEASON_NAME[season].bn} · {SEASON_NAME[season].en}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        <div className="flex flex-wrap gap-6">
-          <label className="flex items-center gap-2 font-semibold">
-            <input type="checkbox" name="inStock" defaultChecked={product?.inStock ?? true} className="size-4 accent-(--bg-brand)" /> In stock
-          </label>
-          <label className="flex items-center gap-2 font-semibold">
-            <input type="checkbox" name="active" defaultChecked={product?.active ?? true} className="size-4 accent-(--bg-brand)" /> Show on store
-          </label>
-        </div>
-
-        {error && <p className="rounded-md bg-error-soft p-3 text-body-sm text-fg-error" role="alert">{error}</p>}
-        <div className="flex gap-3">
-          <button disabled={pending} className="btn-primary">{pending ? "Saving…" : "Save product"}</button>
-          <Link href="/admin/products" className="btn-secondary">Cancel</Link>
-        </div>
-      </form>
-
-      <aside className="space-y-4">
-        <div className="card overflow-hidden">
-          {preview ? <img src={preview} alt="" className="aspect-square w-full object-cover" /> : <div className="grid aspect-square place-items-center text-fg-tertiary">No photo yet</div>}
-        </div>
-        {product && (
-          <form action={deleteProduct} onSubmit={(e) => !confirm(`Delete ${product.name.en}?`) && e.preventDefault()}>
-            <input type="hidden" name="id" value={product.id} />
-            <button className="btn w-full border border-border-strong text-fg-error hover:bg-error-soft">Delete product</button>
-          </form>
-        )}
-      </aside>
-    </div>
-  );
-}
-
-function Field({ label, name, ...input }: { label: string; name: string } & React.InputHTMLAttributes<HTMLInputElement>) {
-  return (
-    <div>
-      <label htmlFor={name} className="label">{label}</label>
-      <input id={name} name={name} min={input.type === "number" ? 0 : undefined} className="field" {...input} />
-    </div>
-  );
-}
-
-/** A Bangla and an English input side by side. */
-function Pair({ label, name, value, placeholder, multiline, required }: {
-  label: string;
-  name: string;
-  value?: { bn: string; en: string };
-  placeholder?: { bn: string; en: string };
-  multiline?: boolean;
-  required?: boolean;
-}) {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      {(["bn", "en"] as const).map((lang) => {
-        const id = `${name}.${lang}`;
-        const props = { id, name: id, defaultValue: value?.[lang], placeholder: placeholder?.[lang], required, className: "field" };
-        return (
-          <div key={lang}>
-            <label htmlFor={id} className="label">{label} · {lang === "bn" ? "বাংলা" : "English"}</label>
-            {multiline ? <textarea rows={4} {...props} /> : <input {...props} />}
-          </div>
-        );
-      })}
-    </div>
+      <Modal
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title={`Delete ${product?.name.en ?? "product"}?`}
+        description="It leaves the store and its photos are removed. This can't be undone."
+        footer={<><Button variant="outline" onClick={() => setConfirmDelete(false)}>Keep it</Button><Button loading={pending} onClick={onDelete}>Delete product</Button></>}
+      />
+    </PageBody>
   );
 }

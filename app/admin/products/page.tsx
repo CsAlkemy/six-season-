@@ -1,41 +1,59 @@
-import Link from "next/link";
+import type { Metadata } from "next";
 
-import { moveProduct } from "@/app/admin/actions";
-import { ProductMedia } from "@/components/product-media";
+import { ListFilters } from "@/components/admin/controls";
+import { ProductsTable } from "@/components/admin/products-table";
+import { LinkButton, PageBody, PageHeader, Pagination, Tabs } from "@/components/admin/ui";
 import { loadProducts } from "@/lib/data";
-import { taka } from "@/lib/i18n";
+import { SEASON_NAME } from "@/lib/season";
+import { lowVariants, totalStock } from "@/lib/stock";
+import { SEASONS, type Product } from "@/lib/types";
 
-export default async function ProductsPage() {
+export const metadata: Metadata = { title: "Products" };
+
+const PAGE = 20;
+const TABS = ["all", "active", "hidden", "out", "low"] as const;
+const LABEL = { all: "All", active: "Active", hidden: "Hidden", out: "Out of stock", low: "Running low" } as const;
+
+type Query = { tab?: string; q?: string; season?: string; page?: string };
+
+const MATCH: Record<(typeof TABS)[number], (p: Product) => boolean> = {
+  all: () => true,
+  active: (p) => p.active,
+  hidden: (p) => !p.active,
+  out: (p) => totalStock(p) === 0 || !p.inStock,
+  low: (p) => lowVariants(p).length > 0,
+};
+
+export default async function ProductsPage({ searchParams }: PageProps<"/admin/products">) {
+  const query = (await searchParams) as Query;
+  const tab = TABS.find((t) => t === query.tab) ?? "all";
+  const season = SEASONS.find((s) => s === query.season);
+  const q = (query.q ?? "").trim().slice(0, 80).toLowerCase();
   const products = await loadProducts();
+
+  const searched = products.filter((p) => (!q || [p.name.en, p.name.bn, p.slug].some((v) => v.toLowerCase().includes(q))) && (!season || p.seasons?.includes(season)));
+  const rows = searched.filter(MATCH[tab]);
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  const page = Math.min(pages, Math.max(1, Number(query.page) || 1));
+
+  const href = (patch: Partial<Query>) => {
+    const next = { tab: tab === "all" ? undefined : tab, q: q || undefined, season, ...patch };
+    const qs = new URLSearchParams(Object.entries(next).filter(([, v]) => v) as [string, string][]).toString();
+    return `/admin/products${qs ? `?${qs}` : ""}`;
+  };
+  const filtered = Boolean(q || season || tab !== "all");
+
   return (
-    <>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-h2">Products</h1>
-        <Link href="/admin/products/new" className="btn-primary">Add product</Link>
-      </div>
-      <div className="card divide-y divide-border">
-        {products.map((product, i) => (
-          <div key={product.id} className="flex items-center gap-4 p-4">
-            <ProductMedia product={product} lang="en" className="size-16! shrink-0 rounded-md [&_span]:hidden [&_svg]:size-6" />
-            <div className="min-w-0 flex-1">
-              <Link href={`/admin/products/${product.id}`} className="font-semibold hover:text-fg-brand">
-                {product.name.en} <span className="font-normal text-fg-tertiary">· {product.name.bn}</span>
-              </Link>
-              <p className="text-body-sm text-fg-secondary">
-                {product.unit.en} · {taka(product.price, "en")}
-                {!product.inStock && <span className="ml-2 text-fg-error">Out of stock</span>}
-                {!product.active && <span className="ml-2 text-fg-tertiary">Hidden</span>}
-              </p>
-            </div>
-            <form action={moveProduct} className="flex gap-1">
-              <input type="hidden" name="id" value={product.id} />
-              <button name="dir" value="up" disabled={i === 0} className="grid size-8 place-items-center rounded-full hover:bg-muted disabled:opacity-30" aria-label="Move up">↑</button>
-              <button name="dir" value="down" disabled={i === products.length - 1} className="grid size-8 place-items-center rounded-full hover:bg-muted disabled:opacity-30" aria-label="Move down">↓</button>
-            </form>
-            <Link href={`/admin/products/${product.id}`} className="btn-secondary h-9! px-4!">Edit</Link>
-          </div>
-        ))}
-      </div>
-    </>
+    <PageBody>
+      <PageHeader title="Products" description={`${products.length} in the catalogue`} actions={<LinkButton href="/admin/products/new">+ Add product</LinkButton>} />
+      <Tabs label="Product status" items={TABS.map((t) => ({ href: href({ tab: t === "all" ? undefined : t, page: undefined }), label: LABEL[t], count: searched.filter(MATCH[t]).length, active: tab === t }))} />
+      <ListFilters
+        placeholder="Search by name or URL"
+        clearHref={tab === "all" ? "/admin/products" : `/admin/products?tab=${tab}`}
+        filters={[{ param: "season", label: "Season", allLabel: "All seasons", options: SEASONS.map((s) => ({ value: s, label: SEASON_NAME[s].en })) }]}
+      />
+      <ProductsTable products={rows.slice((page - 1) * PAGE, page * PAGE)} reorder={tab === "all" && !q && !season} filtered={filtered} clearHref="/admin/products" />
+      {rows.length > 0 && <Pagination page={page} pageSize={PAGE} total={rows.length} href={(n) => href({ page: String(n) })} noun={["product", "products"]} />}
+    </PageBody>
   );
 }

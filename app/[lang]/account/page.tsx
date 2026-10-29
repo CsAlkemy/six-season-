@@ -15,11 +15,12 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/account">)
   return { title: t((await params).lang as Lang).account, robots: { index: false } };
 }
 
-const STEPS = ["new", "confirmed", "shipped", "delivered"] as const;
+const STEPS = ["new", "confirmed", "packing", "shipped", "delivered"] as const;
 
 const STATUS_LABEL: Record<OrderStatus, keyof Dict> = {
   new: "statusNew",
   confirmed: "statusConfirmed",
+  packing: "statusPacking",
   shipped: "statusShipped",
   delivered: "statusDelivered",
   cancelled: "statusCancelled",
@@ -28,6 +29,7 @@ const STATUS_LABEL: Record<OrderStatus, keyof Dict> = {
 const BADGE: Record<OrderStatus, string> = {
   new: "bg-sage-soft text-fg-sage",
   confirmed: "bg-brand-soft text-fg-brand",
+  packing: "bg-butter-100 text-soil-700",
   shipped: "bg-mustard-100 text-soil-700",
   delivered: "bg-brand text-fg-inverse",
   cancelled: "bg-muted text-fg-tertiary",

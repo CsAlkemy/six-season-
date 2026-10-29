@@ -19,7 +19,10 @@ export interface Variant {
   price: number;
   /** Struck-through "was" price; null hides it. */
   compareAt: number | null;
+  /** Kept in step with stock wherever stock changes, so the storefront only ever reads this. */
   inStock: boolean;
+  /** Units on hand; orders take from it and cancelling puts it back. Missing on older saves (in/out only). */
+  stock?: number;
 }
 
 export interface Product {
@@ -35,7 +38,10 @@ export interface Product {
   compareAt: number | null;
   /** The sizes on sale; missing on older saves, where unit, price and inStock describe the one size. */
   variants?: Variant[];
+  /** The cover photo: images[0], kept separately for older saves and the places that show one. */
   image: string | null;
+  /** Up to MAX_PHOTOS photos, cover first. Missing on older saves. */
+  images?: string[];
   tone: Tone;
   /** Seasons it's at its best in; the storefront lists it first and badges it then. Missing on older saves. */
   seasons?: Season[];
@@ -43,7 +49,11 @@ export interface Product {
   inStock: boolean;
   /** Hidden from the storefront when false. */
   active: boolean;
+  /** The admin flags a size as low at or under this many left. */
+  lowStockAt?: number;
 }
+
+export const MAX_PHOTOS = 6;
 
 export interface DeliveryZone {
   id: string;
@@ -83,10 +93,41 @@ export interface Settings {
   };
   delivery: { zones: DeliveryZone[] };
   payments: { methods: PaymentMethod[] };
+  home: HomeSettings;
 }
 
-export const ORDER_STATUSES = ["new", "confirmed", "shipped", "delivered", "cancelled"] as const;
+/** The storefront's home page: an optional hero, then product sections the admin curates, then everything. */
+export interface HomeSettings {
+  hero: {
+    enabled: boolean;
+    title: Text;
+    subtitle: Text;
+    /** Button text; empty hides the button. It scrolls to the products. */
+    cta: Text;
+    image: string | null;
+  };
+  sections: HomeSection[];
+}
+
+export interface HomeSection {
+  id: string;
+  enabled: boolean;
+  title: Text;
+  subtitle: Text;
+  /** In display order; hidden or deleted products are skipped. */
+  productIds: string[];
+}
+
+export const ORDER_STATUSES = ["new", "confirmed", "packing", "shipped", "delivered", "cancelled"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+/** One step in an order's life, for the admin's timeline. */
+export interface OrderEvent {
+  status: OrderStatus;
+  at: string;
+  /** The cancel reason. */
+  note?: string;
+}
 
 export interface OrderItem {
   productId: string;
@@ -113,6 +154,12 @@ export interface Order {
   deliveryFee: number;
   total: number;
   payment: { method: PaymentMethodId; trxId: string };
+  /** Missing on orders placed before the timeline existed. */
+  history?: OrderEvent[];
+  /** For the team only; the customer never sees it. */
+  adminNote?: string;
+  /** True once the order's units came off stock, so cancelling knows to put them back. */
+  stockTaken?: boolean;
 }
 
 /** A shopper's account, keyed by their verified mobile number. */

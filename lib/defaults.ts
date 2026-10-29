@@ -134,4 +134,15 @@ export const DEFAULT_SETTINGS: Settings = {
       },
     ],
   },
+  // Off until the admin fills it in, so the store opens on the products as before.
+  home: {
+    hero: {
+      enabled: false,
+      title: { bn: "মাটির টানে, খাঁটি খাবার", en: "Pure food, from the soil" },
+      subtitle: { bn: "", en: "" },
+      cta: { bn: "পণ্য দেখুন", en: "Shop now" },
+      image: null,
+    },
+    sections: [],
+  },
 };

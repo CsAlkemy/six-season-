@@ -38,7 +38,7 @@ export function ProductCard({ product, lang }: { product: Product; lang: Lang })
             <span
               key={season}
               data-season-only={season}
-              className="season-badge absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-caption font-semibold shadow-sm"
+              className="season-badge absolute top-3 left-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-caption font-semibold shadow-card"
             >
               <SeasonIcon season={season} className="size-3.5" />
               {d.inSeason}

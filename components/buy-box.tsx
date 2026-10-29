@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { type Dict, taka } from "@/lib/i18n";
 import type { Lang, Product } from "@/lib/types";
+import { DEFAULT_LOW_STOCK } from "@/lib/stock";
 import { defaultVariant, savingPercent, variantsOf } from "@/lib/variants";
 
 import { CardActions, QtyStepper } from "./add-to-cart";
@@ -15,6 +16,8 @@ export function BuyBox({ product, lang, d }: { product: Product; lang: Lang; d: 
   const [qty, setQty] = useState(1);
   const variant = variants.find((v) => v.id === variantId) ?? variants[0]!;
   const saving = savingPercent(variant);
+  const max = Math.min(20, variant.stock ?? 20);
+  const left = variant.stock !== undefined && variant.stock > 0 && variant.stock <= (product.lowStockAt ?? DEFAULT_LOW_STOCK) ? variant.stock : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -54,11 +57,13 @@ export function BuyBox({ product, lang, d }: { product: Product; lang: Lang; d: 
         </fieldset>
       )}
 
+      {left !== null && <p className="-mt-3 font-display text-body-sm font-semibold text-soil-700">{d.onlyLeft.replace("{n}", left.toLocaleString(lang === "bn" ? "bn-BD" : "en"))}</p>}
+
       {variant.inStock ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <QtyStepper value={qty} onChange={setQty} />
+          <QtyStepper value={Math.min(qty, max)} onChange={setQty} max={max} />
           <div className="@container flex-1">
-            <CardActions id={product.id} variant={variant.id} qty={qty} cartHref={`/${lang}/cart`} label={d.addToCart} addedLabel={d.added} buyLabel={d.buyNow} />
+            <CardActions id={product.id} variant={variant.id} qty={Math.min(qty, max)} cartHref={`/${lang}/cart`} label={d.addToCart} addedLabel={d.added} buyLabel={d.buyNow} />
           </div>
         </div>
       ) : (

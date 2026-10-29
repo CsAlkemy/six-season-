@@ -59,7 +59,8 @@ export function CardActions({ id, variant, cartHref, label, addedLabel, buyLabel
   );
 }
 
-export function QtyStepper({ value, onChange, small }: { value: number; onChange: (n: number) => void; small?: boolean }) {
+/** `max` is what's on the shelf (never more than 20 a line). */
+export function QtyStepper({ value, onChange, small, max = 20 }: { value: number; onChange: (n: number) => void; small?: boolean; max?: number }) {
   // Product page: 46px plus the 1px border each side lines up with the 48px pills beside it.
   const size = small ? "size-8" : "size-11.5";
   return (
@@ -68,7 +69,7 @@ export function QtyStepper({ value, onChange, small }: { value: number; onChange
         <MinusIcon />
       </button>
       <span className="min-w-7 text-center font-display font-semibold tabular-nums">{value}</span>
-      <button type="button" className={`${size} grid place-items-center rounded-full hover:bg-muted`} onClick={() => onChange(Math.min(20, value + 1))} aria-label="+">
+      <button type="button" className={`${size} grid place-items-center rounded-full hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent`} disabled={value >= max} onClick={() => onChange(Math.min(max, value + 1))} aria-label="+">
         <PlusIcon />
       </button>
     </div>

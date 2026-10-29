@@ -123,7 +123,7 @@ export function SeasonPicker({ lang, labels }: { lang: Lang; labels: Labels }) {
               onClick={flip}
               className="season-switch relative h-7 w-12 shrink-0 rounded-full transition-colors"
             >
-              <span className={`absolute top-1 left-1 size-5 rounded-full bg-surface shadow-sm transition-transform duration-300 ${motion ? "translate-x-5" : ""}`} />
+              <span className={`absolute top-1 left-1 size-5 rounded-full bg-surface shadow-card transition-transform duration-300 ${motion ? "translate-x-5" : ""}`} />
             </button>
           </div>
         </div>

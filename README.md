@@ -16,7 +16,7 @@ cp .env.example .env.local   # fill in the values
 npm run dev                  # http://localhost:3000
 ```
 
-With no `BLOB_READ_WRITE_TOKEN` the store still shows the starter products from `lib/defaults.ts`, but saving and ordering are off. To use the real store locally, run `vercel env pull .env.local`.
+With no `BLOB_READ_WRITE_TOKEN`, `npm run dev` keeps everything on disk instead: JSON in `.local-blob/` and uploaded photos in `public/local-uploads/` (both git-ignored), so products, settings, orders and the admin all work end to end. Production never does this and needs the Blob token. To use the real store locally, run `vercel env pull .env.local`.
 
 ## Deploy on Vercel (free Hobby plan)
 

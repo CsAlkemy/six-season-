@@ -1,97 +1,136 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
-import { StatusSelect } from "@/components/admin/status-select";
+import { cn, ContentCard, DownloadButton, KpiCard, LinkButton, OrderPill, PageBody, PageHeader, StatusPill, Table, Td, Th, TableMessage } from "@/components/admin/ui";
 import { hasBlob } from "@/lib/blob";
-import { listOrders } from "@/lib/data";
-import { PAYMENT_LABEL, taka } from "@/lib/i18n";
-import { ORDER_STATUSES, type OrderStatus } from "@/lib/types";
+import { loadAllOrders, loadProducts } from "@/lib/data";
+import { taka } from "@/lib/i18n";
+import { dhakaTime } from "@/lib/orders";
+import { DEFAULT_LOW_STOCK, lowVariants } from "@/lib/stock";
 
-const BADGE: Record<OrderStatus, string> = {
-  new: "bg-sage text-fg-inverse",
-  confirmed: "bg-brand-soft text-fg-brand",
-  shipped: "bg-mustard-100 text-soil-700",
-  delivered: "bg-sage-soft text-fg-sage",
-  cancelled: "bg-muted text-fg-tertiary",
-};
+export const metadata: Metadata = { title: "Dashboard" };
 
-export default async function OrdersPage({ searchParams }: PageProps<"/admin">) {
-  const { status, cursor } = (await searchParams) as { status?: OrderStatus; cursor?: string };
-  const { items, cursor: next } = await listOrders(cursor);
-  const orders = status ? items.filter((o) => o.status === status) : items;
-  const count = (s: OrderStatus) => items.filter((o) => o.status === s).length;
+const DAY = 86_400_000;
+const dayKey = (t: number | string) => new Date(t).toLocaleDateString("en-CA", { timeZone: "Asia/Dhaka" });
 
-  return (
-    <>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-h2">Orders</h1>
-        <nav className="flex flex-wrap gap-2">
-          <Tab href="/admin" active={!status} label={`All · ${items.length}`} />
-          {ORDER_STATUSES.map((s) => (
-            <Tab key={s} href={`/admin?status=${s}`} active={status === s} label={`${s} · ${count(s)}`} />
-          ))}
-        </nav>
-      </div>
-
-      {!hasBlob() && (
-        <p className="card mb-6 p-4 text-body-sm">Connect a Vercel Blob store (BLOB_READ_WRITE_TOKEN) to receive orders.</p>
-      )}
-      {orders.length === 0 && <p className="card p-10 text-center text-fg-secondary">No orders here yet.</p>}
-
-      <div className="space-y-4">
-        {orders.map((order) => (
-          <article key={order.id} className="card p-5">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-h4">{order.no}</span>
-              <span className={`rounded-full px-2.5 py-0.5 text-caption capitalize ${BADGE[order.status]}`}>{order.status}</span>
-              <span className="text-body-sm text-fg-tertiary">
-                {new Date(order.createdAt).toLocaleString("en-GB", { timeZone: "Asia/Dhaka", dateStyle: "medium", timeStyle: "short" })}
-              </span>
-              <div className="ml-auto">
-                <StatusSelect id={order.id} status={order.status} />
-              </div>
-            </div>
-            <div className="mt-4 grid gap-4 text-body-sm md:grid-cols-3">
-              <div>
-                <p className="font-semibold">{order.customer.name}</p>
-                <a href={`tel:${order.customer.phone}`} className="text-fg-brand underline">{order.customer.phone}</a>
-                <p className="mt-1 whitespace-pre-line text-fg-secondary">{order.customer.address}</p>
-                <p className="text-fg-tertiary">{order.zone.name}</p>
-                {order.customer.note && <p className="mt-1 italic">“{order.customer.note}”</p>}
-              </div>
-              <ul className="space-y-1">
-                {order.items.map((item, i) => (
-                  <li key={`${item.productId}:${item.variantId ?? i}`} className="flex justify-between gap-2">
-                    <span>{item.name} <span className="text-fg-tertiary">({item.unit}) × {item.qty}</span></span>
-                    <span className="tabular-nums">{taka(item.price * item.qty, "en")}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="space-y-1 md:text-right">
-                <p className="text-fg-secondary">Delivery {taka(order.deliveryFee, "en")}</p>
-                <p className="text-h4">{taka(order.total, "en")}</p>
-                <p>
-                  {PAYMENT_LABEL[order.payment.method].en}
-                  {order.payment.trxId && <> · TrxID <strong className="font-mono">{order.payment.trxId}</strong></>}
-                </p>
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-
-      {next && (
-        <div className="mt-6 text-center">
-          <Link href={`/admin?cursor=${encodeURIComponent(next)}`} className="btn-secondary">Older orders</Link>
-        </div>
-      )}
-    </>
-  );
+/** The change against the 30 days before, as a KpiCard's arrow and percentage. */
+function change(now: number, before: number) {
+  if (!before) return {};
+  const pct = ((now - before) / before) * 100;
+  return { delta: `${Math.abs(pct).toFixed(1)}%`, trend: pct < 0 ? ("down" as const) : ("up" as const) };
 }
 
-function Tab({ href, active, label }: { href: string; active: boolean; label: string }) {
+/** Three gridlines on round taka. */
+function axisTop(max: number) {
+  if (max <= 0) return 3;
+  const rough = max / 3;
+  const mag = 10 ** Math.floor(Math.log10(rough));
+  return ([1, 2, 2.5, 5, 10].find((f) => f * mag >= rough) ?? 10) * mag * 3;
+}
+
+export default async function Dashboard() {
+  const [orders, products] = await Promise.all([loadAllOrders(), loadProducts()]);
+  const now = Date.now();
+  const sold = orders.filter((o) => o.status !== "cancelled");
+  const within = (from: number, to: number) => sold.filter((o) => now - Date.parse(o.createdAt) >= from * DAY && now - Date.parse(o.createdAt) < to * DAY);
+  const [month, before] = [within(0, 30), within(30, 60)];
+  const revenue = (list: typeof sold) => list.reduce((sum, o) => sum + o.total, 0);
+
+  const days = Array.from({ length: 30 }, (_, i) => ({ t: now - (29 - i) * DAY, total: 0 }));
+  for (const o of month) {
+    const day = days.find((d) => dayKey(d.t) === dayKey(o.createdAt));
+    if (day) day.total += o.total;
+  }
+  const top = axisTop(Math.max(...days.map((d) => d.total)));
+  const fmtDay = (t: number) => new Date(t).toLocaleDateString("en-GB", { timeZone: "Asia/Dhaka", day: "numeric", month: "short" });
+
+  const waiting = orders.filter((o) => o.status === "new").length;
+  const low = products.filter((p) => p.active).flatMap((p) => lowVariants(p).map((v) => ({ p, v })));
+  const worst = [...low].sort((a, b) => (a.v.stock ?? 0) - (b.v.stock ?? 0)).slice(0, 6);
+  const recent = orders.slice(0, 6);
+
   return (
-    <Link href={href} className={`rounded-full px-3 py-1.5 text-body-sm font-semibold capitalize ${active ? "bg-brand text-fg-inverse" : "bg-surface hover:bg-brand-soft"}`}>
-      {label}
-    </Link>
+    <PageBody>
+      <PageHeader
+        title="Dashboard"
+        description="How the shop is doing, and what needs you today."
+        actions={<><DownloadButton variant="outline" href="/admin/orders/export">Export orders</DownloadButton><LinkButton href="/admin/products/new">+ Add product</LinkButton></>}
+      />
+      {!hasBlob() && <p className="rounded-lg border border-border bg-surface p-4 text-body-sm text-fg-secondary">Connect a Vercel Blob store (BLOB_READ_WRITE_TOKEN) to receive orders and save changes.</p>}
+
+      <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
+        <KpiCard label="Sales (30 days)" value={taka(revenue(month), "en")} note="vs previous 30 days" {...change(revenue(month), revenue(before))} />
+        <KpiCard label="Orders" value={month.length.toLocaleString("en-IN")} note="vs previous 30 days" {...change(month.length, before.length)} />
+        <KpiCard label="Waiting for you" value={waiting.toLocaleString("en-IN")} note={waiting ? "New orders to confirm" : "All caught up"} valueClassName={waiting ? "text-fg-error" : undefined} />
+        <KpiCard label="Running low" value={low.length.toLocaleString("en-IN")} note={low.length ? "Sizes under their alert level" : "Stock looks fine"} valueClassName={low.length ? "text-fg-error" : undefined} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <ContentCard title="Sales" subtitle="Per day, last 30 days" padding="md" className="min-w-0">
+          <div className="relative h-57.5">
+            <div aria-hidden className="absolute inset-x-0 top-0 h-45">
+              {[0, 1, 2, 3].map((i) => <span key={i} className="absolute inset-x-0 h-px bg-border" style={{ top: `${(i / 3) * 100}%` }} />)}
+            </div>
+            <ol aria-label="Sales by day" className="relative flex">
+              {days.map((d, i) => (
+                <li key={d.t} tabIndex={0} className="group relative flex min-w-0 flex-1 flex-col items-center rounded-sm px-px sm:px-0.5 focus-visible:outline-2 focus-visible:outline-brand">
+                  <span className="sr-only">{fmtDay(d.t)}: {taka(d.total, "en")}</span>
+                  <div aria-hidden className="flex h-45 w-full items-end justify-center">
+                    <span className="w-full max-w-4.5 rounded-t-xs bg-brand transition-[filter] group-hover:brightness-110" style={{ height: `${(d.total / top) * 100}%`, minHeight: d.total ? 3 : 0 }} />
+                  </div>
+                  <span aria-hidden className={cn("mt-3 text-[11px] font-medium text-fg-tertiary", i % 2 === 1 && "max-sm:invisible", i % 3 !== 0 && "max-lg:invisible")}>{new Date(d.t).toLocaleDateString("en", { timeZone: "Asia/Dhaka", day: "numeric" })}</span>
+                  <div aria-hidden className={cn("pointer-events-none invisible absolute top-0 z-10 flex w-max flex-col gap-1 rounded-md border border-border bg-surface px-3 py-2 shadow-hover group-hover:visible group-focus-visible:visible", i < 2 ? "left-0" : i >= 28 ? "right-0" : "left-1/2 -translate-x-1/2")}>
+                    <span className="text-caption text-fg-tertiary">{fmtDay(d.t)}</span>
+                    <span className="text-label-md text-fg-primary">{taka(d.total, "en")}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </ContentCard>
+
+        <ContentCard title="Low stock" subtitle="Under the alert level" padding="md" className="min-w-0" action={low.length ? <StatusPill tone="failed">{low.length} {low.length === 1 ? "item" : "items"}</StatusPill> : null}>
+          {worst.length ? (
+            <ul className="flex flex-col gap-4">
+              {worst.map(({ p, v }) => {
+                const level = p.lowStockAt ?? DEFAULT_LOW_STOCK;
+                const share = Math.min((v.stock ?? 0) / Math.max(level, 1), 1);
+                return (
+                  <li key={`${p.id}:${v.id}`} className="flex flex-col gap-1.5">
+                    <p className="flex items-start justify-between gap-3 text-label-md">
+                      <Link href={`/admin/products/${p.id}`} className="text-fg-primary hover:text-fg-brand">{p.name.en} <span className="font-normal text-fg-tertiary">· {v.label.en}</span></Link>
+                      <span className="shrink-0 text-fg-error">{v.stock ? `${v.stock} left` : "Sold out"}</span>
+                    </p>
+                    <span aria-hidden className="flex h-1.5 overflow-hidden rounded-full bg-muted"><span className={share < 0.25 ? "bg-fg-error" : "bg-accent"} style={{ width: `${share * 100}%`, minWidth: v.stock ? undefined : 6 }} /></span>
+                    <p className="text-caption text-fg-tertiary">Alert at {level}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-body-sm text-fg-secondary">Everything is above its alert level.</p>
+          )}
+          {low.length > 0 && <LinkButton variant="secondary" href="/admin/products?tab=low" className="mt-auto w-full">See all running low</LinkButton>}
+        </ContentCard>
+      </div>
+
+      <ContentCard title="Recent orders" flush className="min-w-0 pb-2" action={<Link href="/admin/orders" className="pr-6 text-label-md text-fg-brand underline-offset-4 hover:underline">View all</Link>}>
+        <div className="border-y border-border md:border-0">
+          <Table minWidth="min-w-140" fixed={false} bare head={<><Th className="w-36">Order</Th><Th>Customer</Th><Th className="w-40">Date</Th><Th className="w-28">Total</Th><Th className="w-36">Status</Th></>}>
+            {recent.length === 0 ? (
+              <TableMessage colSpan={5}><p className="text-body-sm text-fg-secondary">No orders yet. They show up here the moment someone checks out.</p></TableMessage>
+            ) : recent.map((o) => (
+              <tr key={o.id} className="border-b border-border transition-colors last:border-b last:border-border hover:bg-page">
+                <Td><Link href={`/admin/orders/${o.id}`} className="text-label-md text-fg-brand underline-offset-4 hover:underline">#{o.no}</Link></Td>
+                <Td className="truncate">{o.customer.name}</Td>
+                <Td className="text-fg-secondary">{dhakaTime(o.createdAt)}</Td>
+                <Td>{taka(o.total, "en")}</Td>
+                <Td><OrderPill status={o.status} /></Td>
+              </tr>
+            ))}
+          </Table>
+        </div>
+      </ContentCard>
+    </PageBody>
   );
 }
