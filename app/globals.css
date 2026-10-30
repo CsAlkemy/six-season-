@@ -447,14 +447,19 @@ html:not([data-season="basanta"]) [data-season-only="basanta"] {
 
 /*
  * The season across the whole page: lib/season-scene.ts draws the sky and what drifts through it on two fixed
- * canvases, one behind the content and one in front of it under the header. The same sky as a CSS gradient on
- * <body> shows until three.js has loaded, or for good without WebGL.
+ * canvases, one behind the content and one in front of it under the header. The same sky as a CSS gradient shows
+ * until three.js has loaded, or for good without WebGL.
+ *
+ * Both are as tall as the large viewport (100lvh, not 100%) so that nothing about them changes when a phone's
+ * toolbars slide away and back mid-scroll: a resize there would clear the canvas and shift the whole sky.
  */
 .season-canvas {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 100%;
+  height: 100vh;
+  height: 100lvh;
   pointer-events: none;
   opacity: 0;
   transition: opacity 1.2s ease;
@@ -472,8 +477,18 @@ html:not([data-season="basanta"]) [data-season-only="basanta"] {
   opacity: 1;
 }
 
-html[data-season] body {
-  background: linear-gradient(var(--sky-top), var(--sky-bottom)) fixed;
+/* A fixed layer rather than `background-attachment: fixed`, which phones can't scroll without repainting it. */
+html[data-season]::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100lvh;
+  z-index: -2;
+  pointer-events: none;
+  background: linear-gradient(var(--sky-top), var(--sky-bottom));
 }
 
 /*
@@ -564,11 +579,15 @@ html[data-season] body {
     border-color 0.8s ease;
 }
 
-.season-card:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    0 2px 4px #0000000d,
-    0 26px 50px -22px var(--season-glow);
+/* Only where there's a pointer to hover with: on a touch screen :hover sticks to the card the finger landed on, so
+   a swipe that starts on one would lift it mid-scroll. */
+@media (hover: hover) {
+  .season-card:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 2px 4px #0000000d,
+      0 26px 50px -22px var(--season-glow);
+  }
 }
 
 .season-card-body {
@@ -629,9 +648,11 @@ html[data-season="basanta"] [data-in-season~="basanta"] {
     transform 0.2s ease;
 }
 
-.season-option:hover {
-  background: #ffffff;
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .season-option:hover {
+    background: #ffffff;
+    transform: translateY(-1px);
+  }
 }
 
 .season-option:focus-visible {

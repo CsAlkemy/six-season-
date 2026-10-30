@@ -37,7 +37,8 @@ export default async function StoreLayout({ children, params }: LayoutProps<"/[l
 
   return (
     // The head script sets the visitor's season and data-motion before paint (no JS: today's season, still); the DOM wins on hydration.
-    <html lang={lang} className={fontVars} data-season={seasonAt(Date.now())} suppressHydrationWarning>
+    // data-scroll-behavior: with smooth scrolling on <html>, Next 16 only jumps to the top of a new page, rather than gliding there over it, when told to.
+    <html lang={lang} className={fontVars} data-season={seasonAt(Date.now())} data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         {/* text/plain on the client: React warns about rendering scripts, and <html> already holds the result. */}
         <script

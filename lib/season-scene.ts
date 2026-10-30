@@ -253,8 +253,6 @@ const SKY_FRAG = /* glsl */ `
   }
 `;
 
-const area = () => (innerWidth * innerHeight) / (1440 * 900);
-
 interface Layer {
   points: THREE.Points;
   material: THREE.ShaderMaterial;
@@ -323,7 +321,8 @@ export function createStage(canvas: HTMLCanvasElement, front: boolean): Stage {
   let sky: Sky = skyTarget;
 
   function build(drift: Drift): Layer | null {
-    const count = Math.round((front ? drift.front : drift.count) * (front ? 1 : Math.min(1.4, Math.max(0.35, area()))));
+    const area = (res.x * res.y) / (1440 * 900);
+    const count = Math.round((front ? drift.front : drift.count) * (front ? 1 : Math.min(1.4, Math.max(0.35, area))));
     if (!count) return null;
     const seeds = new Float32Array(count * 4);
     const depth = new Float32Array(count);
@@ -372,12 +371,21 @@ export function createStage(canvas: HTMLCanvasElement, front: boolean): Stage {
     layer.material.dispose();
   }
 
+  // Sizing a canvas's buffer clears it and moves the sky and every drift to a new aspect, so it only happens when the
+  // canvas box really changes. That box (100% × 100lvh) holds still as a phone's toolbars slide away and back while
+  // you scroll, which window "resize" doesn't: it fires for each of those.
+  let size = "";
   function resize() {
+    const w = canvas.clientWidth || innerWidth;
+    const h = canvas.clientHeight || innerHeight;
     const dpr = Math.min(devicePixelRatio || 1, 2);
-    renderer.setPixelRatio(dpr);
-    renderer.setSize(innerWidth, innerHeight, false);
-    res.set(innerWidth, innerHeight);
+    if (size === `${w}x${h}@${dpr}`) return false;
+    size = `${w}x${h}@${dpr}`;
+    if (renderer.getPixelRatio() !== dpr) renderer.setPixelRatio(dpr);
+    renderer.setSize(w, h, false);
+    res.set(w, h);
     shared.uDpr.value = dpr;
+    return true;
   }
   resize();
 
@@ -389,7 +397,6 @@ export function createStage(canvas: HTMLCanvasElement, front: boolean): Stage {
     lastX = e.clientX;
   };
   const onScroll = () => (shared.uScroll.value = scrollY);
-  addEventListener("resize", resize);
   addEventListener("pointermove", onMove, { passive: true });
   addEventListener("scroll", onScroll, { passive: true });
   onScroll();
@@ -454,8 +461,13 @@ export function createStage(canvas: HTMLCanvasElement, front: boolean): Stage {
     }
   };
   document.addEventListener("visibilitychange", onVisible);
-  const onResizeStill = () => !motion && still();
-  addEventListener("resize", onResizeStill);
+  // Observers run after the frame's animation callbacks, so draw again here or the cleared canvas would be shown once.
+  const observer = new ResizeObserver(() => {
+    if (!resize()) return;
+    if (motion) renderer.render(scene, camera);
+    else still();
+  });
+  observer.observe(canvas);
 
   return {
     setSeason(season, instant) {
@@ -494,8 +506,7 @@ export function createStage(canvas: HTMLCanvasElement, front: boolean): Stage {
     },
     dispose() {
       cancelAnimationFrame(raf);
-      removeEventListener("resize", resize);
-      removeEventListener("resize", onResizeStill);
+      observer.disconnect();
       removeEventListener("pointermove", onMove);
       removeEventListener("scroll", onScroll);
       document.removeEventListener("visibilitychange", onVisible);

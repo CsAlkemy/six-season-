@@ -15,7 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const signedIn = await isAdmin();
   const fresh = signedIn ? (await loadAllOrders(100).catch(() => [])).filter((o) => o.status === "new").length : 0;
   return (
-    <html lang="en" className={fontVars} data-admin>
+    <html lang="en" className={fontVars} data-admin data-scroll-behavior="smooth">
       <body className="min-h-dvh bg-page">
         {signedIn ? <AdminShell newOrders={fresh} logout={logout}>{children}</AdminShell> : children}
         <Toaster />
