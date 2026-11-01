@@ -42,6 +42,8 @@ export interface Product {
   image: string | null;
   /** Up to MAX_PHOTOS photos, cover first. Missing on older saves. */
   images?: string[];
+  /** Tiny blurred stand-ins for the photos above, by URL, shown while they load. Added when the storefront reads products; never saved. */
+  blur?: Record<string, string>;
   tone: Tone;
   /** Seasons it's at its best in; the storefront lists it first and badges it then. Missing on older saves. */
   seasons?: Season[];

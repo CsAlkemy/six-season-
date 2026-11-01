@@ -1,6 +1,7 @@
 import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 
 import { readAllJson, readJson, writeJson } from "./blob";
+import { withBlur } from "./blur";
 import { DEFAULT_PRODUCTS, DEFAULT_SETTINGS } from "./defaults";
 import { kindOf } from "./payments";
 import type { Order, PaymentMethod, Product, Settings } from "./types";
@@ -54,7 +55,9 @@ export async function loadSettings(): Promise<Settings> {
 }
 
 /** Cached reads for the storefront. */
-export const getProducts = unstable_cache(loadProducts, ["products"], { tags: [CATALOG_TAG], revalidate: 3600 });
+const cachedProducts = unstable_cache(loadProducts, ["products"], { tags: [CATALOG_TAG], revalidate: 3600 });
+/** Each photo's placeholder has its own cache entry (lib/blur.ts), so a catalogue refresh only renders new photos. */
+export const getProducts = async () => withBlur(await cachedProducts());
 const cachedSettings = unstable_cache(loadSettings, ["settings"], { tags: [CATALOG_TAG], revalidate: 3600 });
 /** The cache can hold settings saved before a section existed (it outlives a deploy), so fill the gaps on every read. */
 export const getSettings = async () => withDefaults(await cachedSettings());

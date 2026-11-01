@@ -1,4 +1,6 @@
 import { ProductCard } from "@/components/product-card";
+import { blurOf } from "@/lib/blur";
+import { blurStyle } from "@/lib/blur-style";
 import { getProducts, getSettings } from "@/lib/data";
 import { t } from "@/lib/i18n";
 import type { Lang, Product } from "@/lib/types";
@@ -21,13 +23,14 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
     .filter((s) => s.products.length > 0);
   const { hero } = home;
   const showHero = hero.enabled && hero.title[lang];
+  const heroBlur = showHero && hero.image ? await blurOf(hero.image) : null;
 
   return (
     <>
       {showHero && (
         <section className="container-page pt-6 sm:pt-8">
           <div className="relative isolate flex min-h-72 items-end overflow-hidden rounded-xl bg-footer text-fg-footer sm:min-h-96">
-            {hero.image && <img src={hero.image} alt="" className="absolute inset-0 -z-20 size-full object-cover" />}
+            {hero.image && <img src={hero.image} alt="" style={blurStyle(heroBlur)} className="absolute inset-0 -z-20 size-full object-cover" />}
             <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
             <div className="flex max-w-3xl flex-col items-start gap-4 p-6 sm:p-12">
               <h1 className="text-h2 sm:text-h1">{hero.title[lang]}</h1>

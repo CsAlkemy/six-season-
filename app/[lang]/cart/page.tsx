@@ -19,7 +19,7 @@ export default async function CartPage({ params }: PageProps<"/[lang]/cart">) {
       <h1 className="mb-8 text-h2 sm:text-h1">{t(lang).checkout}</h1>
       <Checkout
         lang={lang}
-        products={products}
+        products={products.map(({ blur: _blur, ...product }) => product)}
         delivery={settings.delivery}
         methods={settings.payments.methods}
         customer={customer && { name: customer.name, phone: customer.phone, address: customer.address }}

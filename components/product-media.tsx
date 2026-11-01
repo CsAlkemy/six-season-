@@ -1,3 +1,4 @@
+import { blurStyle } from "@/lib/blur-style";
 import type { Lang, Product, Tone } from "@/lib/types";
 
 import { LeafIcon } from "./icons";
@@ -13,7 +14,13 @@ const TONE: Record<Tone, string> = {
 export function ProductMedia({ product, lang, className = "" }: { product: Product; lang: Lang; className?: string }) {
   if (product.image) {
     return (
-      <img src={product.image} alt={product.name[lang]} loading="lazy" className={`aspect-square w-full bg-muted object-cover ${className}`} />
+      <img
+        src={product.image}
+        alt={product.name[lang]}
+        loading="lazy"
+        style={blurStyle(product.blur?.[product.image])}
+        className={`aspect-square w-full bg-muted object-cover ${className}`}
+      />
     );
   }
   return (
