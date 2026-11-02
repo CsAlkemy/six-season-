@@ -254,8 +254,9 @@
  * full-width rounded photos. The editor shows it with the same class, so the admin sees what readers will.
  */
 @layer components {
+  /* break-words: a long web address or unbroken word wraps inside the column instead of widening the page on phones. */
   .post-body {
-    @apply text-body-lg text-fg-secondary;
+    @apply text-body-lg break-words text-fg-secondary;
   }
   .post-body > * + * {
     @apply mt-5;
@@ -281,7 +282,8 @@
   .post-body ol {
     @apply list-decimal pl-6 marker:font-semibold marker:text-fg-brand;
   }
-  .post-body li + li {
+  .post-body li + li,
+  .post-body li > * + * {
     @apply mt-2;
   }
   .post-body blockquote {

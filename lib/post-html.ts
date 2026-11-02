@@ -9,14 +9,17 @@ import { isOwnPhoto } from "./blog";
 export function cleanPostHtml(html: string): string {
   return sanitizeHtml(html, {
     allowedTags: ["p", "h2", "h3", "strong", "em", "u", "s", "a", "ul", "ol", "li", "blockquote", "img", "hr", "br"],
-    allowedAttributes: { a: ["href", "target", "rel"], img: ["src", "alt", "width", "height", "loading", "decoding"] },
+    // ol's start keeps "3." steps numbered 3 when the list carries on after a paragraph.
+    allowedAttributes: { a: ["href", "target", "rel"], ol: ["start"], img: ["src", "alt", "width", "height", "loading", "decoding"] },
     allowedSchemes: ["https", "http", "mailto", "tel"],
     allowedSchemesByTag: { img: ["https"] },
     allowProtocolRelative: false,
     transformTags: {
-      // The page's own title is the only h1, so a pasted h1 becomes a section heading.
+      // The page's own title is the only h1, so a pasted h1 becomes a section heading; the deeper ones, a smaller one.
       h1: "h2",
       h4: "h3",
+      h5: "h3",
+      h6: "h3",
       b: "strong",
       i: "em",
       a: (tagName, { href = "" }) => {

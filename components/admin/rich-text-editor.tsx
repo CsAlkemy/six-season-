@@ -47,12 +47,18 @@ export function RichTextEditor({ value, onChange, placeholder, label }: { value:
     content: value,
     editorProps: {
       attributes: { class: "post-body min-h-96 px-5 py-4 outline-none sm:px-7 sm:py-6", "aria-label": label },
-      // Pasted pages often carry other sites' pictures; only uploads may go in a post.
+      // Pasted pages often carry other sites' pictures; only uploads may go in a post. The editor has two heading sizes,
+      // so another document's h1 and h4–h6 become the nearest of them (as when saved) instead of pasting as plain text.
       transformPastedHTML(html) {
         const doc = new DOMParser().parseFromString(html, "text/html");
         const foreign = [...doc.querySelectorAll("img")].filter((img) => !isOwnPhoto(img.getAttribute("src") ?? ""));
         foreign.forEach((img) => img.remove());
         if (foreign.length) toast.info("Pictures from other sites were left out. Save them and use the photo button to add them.");
+        doc.querySelectorAll("h1, h4, h5, h6").forEach((heading) => {
+          const level = doc.createElement(heading.tagName === "H1" ? "h2" : "h3");
+          level.append(...heading.childNodes);
+          heading.replaceWith(level);
+        });
         return doc.body.innerHTML;
       },
       handlePaste(_, event) {
