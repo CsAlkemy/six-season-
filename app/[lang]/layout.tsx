@@ -10,23 +10,30 @@ import { getSettings } from "@/lib/data";
 import { fontVars } from "@/lib/fonts";
 import { STORE_NAME, t } from "@/lib/i18n";
 import { SEASON_SCRIPT, seasonAt } from "@/lib/season";
+import { openGraph, SITE_URL } from "@/lib/site";
 import { LANGS, type Lang } from "@/lib/types";
 
 // Only bn and en are prebuilt; the layout itself 404s any other language. (dynamicParams = false here would also stop
 // product pages added after the last build from rendering until the route list catches up.)
 export const generateStaticParams = () => LANGS.map((lang) => ({ lang }));
 
+/**
+ * What every storefront page starts from. Canonical links and hreflang are set by each page that search should
+ * list (home, products); cart and account opt out of search. Share images come from the opengraph-image routes.
+ */
 export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Promise<Metadata> {
   const lang = (await params).lang as Lang;
   const d = t(lang);
+  const google = process.env.GOOGLE_SITE_VERIFICATION;
+  const bing = process.env.BING_SITE_VERIFICATION;
   return {
-    metadataBase: new URL(
-      process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000",
-    ),
+    metadataBase: new URL(SITE_URL),
     title: { default: `${STORE_NAME[lang]} · ${d.tagline}`, template: `%s · ${STORE_NAME[lang]}` },
     description: d.about,
-    alternates: { languages: { bn: "/bn", en: "/en" } },
-    openGraph: { siteName: STORE_NAME[lang], images: ["/logo.svg"] },
+    applicationName: STORE_NAME[lang],
+    openGraph: openGraph(lang, { url: `/${lang}` }),
+    twitter: { card: "summary_large_image" },
+    verification: { google, other: bing ? { "msvalidate.01": bing } : undefined },
   };
 }
 

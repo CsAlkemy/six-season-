@@ -7,10 +7,13 @@ import { CashIcon, LeafIcon, TruckIcon } from "@/components/icons";
 import { ProductGallery } from "@/components/product-gallery";
 import { ratingLabel, ReviewsSection } from "@/components/reviews";
 import { Stars } from "@/components/stars";
-import { getProducts, getSettings, loadProducts } from "@/lib/data";
+import { JsonLd } from "@/components/json-ld";
+import { findProduct, getProducts, getSettings } from "@/lib/data";
 import { STORE_NAME, t } from "@/lib/i18n";
 import { getApprovedReviews, summarize } from "@/lib/reviews";
-import type { Lang, Product } from "@/lib/types";
+import { alternates, openGraph, snippet } from "@/lib/site";
+import { productJsonLd } from "@/lib/structured-data";
+import type { Lang } from "@/lib/types";
 import { variantsOf } from "@/lib/variants";
 
 /** Products added later render on first visit, then stay static. */
@@ -19,29 +22,25 @@ export async function generateStaticParams() {
   return (await getProducts()).filter((p) => p.active).map((p) => ({ slug: p.slug }));
 }
 
-async function find(slug: string) {
-  const match = (list: Product[]) => list.find((p) => p.slug === slug && p.active);
-  // A product added a moment ago may not be in the cached list yet, and a 404 here would be cached for that URL,
-  // so before giving up look at the catalogue itself.
-  return match(await getProducts()) ?? match(await loadProducts());
-}
-
 export async function generateMetadata({ params }: PageProps<"/[lang]/p/[slug]">): Promise<Metadata> {
-  const { lang, slug } = await params;
-  const product = await find(slug);
+  const { lang: l, slug } = await params;
+  const lang = l as Lang;
+  const product = await findProduct(slug);
   if (!product) return {};
-  const l = lang as Lang;
+  const path = (to: Lang) => `/${to}/p/${product.slug}`;
+  const description = snippet(product.description[lang] || t(lang).about);
   return {
-    title: product.name[l],
-    description: product.description[l],
-    openGraph: product.image ? { images: [product.image] } : undefined,
+    title: product.name[lang],
+    description,
+    alternates: alternates(lang, path),
+    openGraph: openGraph(lang, { url: path(lang), title: `${product.name[lang]} · ${STORE_NAME[lang]}`, description }),
   };
 }
 
 export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug]">) {
   const { lang: l, slug } = await params;
   const lang = l as Lang;
-  const product = await find(slug);
+  const product = await findProduct(slug);
   if (!product) notFound();
   const d = t(lang);
   const [settings, reviews] = await Promise.all([getSettings(), getApprovedReviews(product.id).catch(() => [])]);
@@ -61,6 +60,7 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug
 
   return (
     <div className="container-page flex flex-col gap-12 sm:gap-16 sm:pt-5">
+      <JsonLd data={productJsonLd(product, lang, reviews, summary)} />
       <div className="flex flex-col gap-4 sm:gap-6">
         <nav aria-label="Breadcrumb" className="max-sm:hidden">
           <ol className="flex flex-wrap items-center gap-2 text-caption text-fg-tertiary">

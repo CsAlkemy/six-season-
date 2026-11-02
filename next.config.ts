@@ -5,6 +5,8 @@ const config: NextConfig = {
   async redirects() {
     return [{ source: "/", destination: "/bn", permanent: false }];
   },
+  // HarfBuzz (share-image text, lib/og.ts) finds its .wasm beside itself; bundled, that path would point at a browser asset.
+  serverExternalPackages: ["harfbuzzjs"],
   experimental: {
     // Product photos are resized to WebP in the browser before upload, so 4 MB is plenty.
     serverActions: { bodySizeLimit: "4mb" },

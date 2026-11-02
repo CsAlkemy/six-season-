@@ -6,8 +6,10 @@ import { redirect } from "next/navigation";
 
 import { requireAdmin } from "@/lib/auth";
 import { deleteImages, putImage } from "@/lib/blob";
+import { htmlText, type Post, type PostText, today } from "@/lib/blog";
 import { listCustomerOrders, loadCustomer } from "@/lib/customers";
-import { loadOrder, loadProducts, loadSettings, refreshStorefront, saveOrder, saveProducts, saveSettings } from "@/lib/data";
+import { loadOrder, loadPosts, loadProducts, loadSettings, refreshStorefront, saveOrder, savePosts, saveProducts, saveSettings } from "@/lib/data";
+import { cleanPostHtml, htmlImages } from "@/lib/post-html";
 import { DEFAULT_SETTINGS } from "@/lib/defaults";
 import { canCancel, NEXT_STEP, withStatus } from "@/lib/orders";
 import { createOrder } from "@/lib/place-order";
@@ -16,7 +18,7 @@ import { sendSms } from "@/lib/sms";
 import { createSession, passwordMatches, SESSION_COOKIE, SESSION_DAYS } from "@/lib/session";
 import { moveStock, summarize, withStock } from "@/lib/stock";
 import { taka } from "@/lib/i18n";
-import { MAX_PHOTOS, SEASONS, type HomeSection, type Order, type PaymentKind, type PaymentMethod, type Product, type Settings, type Text, type Tone, type Variant } from "@/lib/types";
+import { LANGS, MAX_PHOTOS, SEASONS, SOCIALS, type HomeSection, type Lang, type Order, type PaymentKind, type PaymentMethod, type Product, type Settings, type Text, type Tone, type Variant } from "@/lib/types";
 
 export type Saved = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -32,7 +34,20 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 60);
-/** Our own uploads (Blob, or the local folder in development) or the bundled stand-in photos; nothing else goes into a product or the hero. */
+/** A social page as an https link ("facebook.com/matirtaan" gains the scheme), or "" when it isn't a web address. */
+function pageUrl(raw: unknown): string {
+  const value = String(raw ?? "").trim().slice(0, 200);
+  if (!value) return "";
+  try {
+    const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+    url.protocol = "https:";
+    return url.hostname.includes(".") ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+/** Our own uploads (Blob, or the local folder in development) or the bundled stand-in photos; nothing else goes into a product, the hero or a post. */
 const isImage = (url: unknown): url is string => typeof url === "string" && /^(https:\/\/[^\s"]+|\/(images|local-uploads)\/[\w./-]+)$/.test(url);
 const dropUploads = deleteImages;
 const failed = (error: unknown): Saved => ({ ok: false, error: error instanceof Error ? error.message : "Couldn't save." });
@@ -198,7 +213,7 @@ export async function createAdminOrder(input: AdminOrderInput): Promise<{ ok: tr
 export async function uploadImage(form: FormData): Promise<{ url: string } | { error: string }> {
   await requireAdmin();
   const file = form.get("file");
-  const folder = str(form, "folder") === "home" ? "home" : "products";
+  const folder = (["home", "blog"] as const).find((f) => f === str(form, "folder")) ?? "products";
   if (!(file instanceof File) || !file.type.startsWith("image/") || file.size > 4 * 1024 * 1024) return { error: "Upload an image under 4 MB." };
   try {
     return { url: await putImage(folder, file) };
@@ -402,6 +417,8 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
       email: String(store.email ?? "").trim().slice(0, 120),
       address: text(store.address, 240),
       announcement: text(store.announcement, 120),
+      social: Object.fromEntries(SOCIALS.map((s) => [s, pageUrl(store.social?.[s])])) as Settings["store"]["social"],
+      seo: { title: text(store.seo?.title, 70), description: text(store.seo?.description, 200) },
     },
     delivery: { zones },
     payments: { methods },
@@ -424,5 +441,85 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
   const oldHero = previous.home.hero.image;
   if (oldHero && oldHero !== settings.home.hero.image) await dropUploads([oldHero]);
   refreshStorefront();
+  return { ok: true };
+}
+
+export interface PostDraft {
+  id: string;
+  slug: string;
+  active: boolean;
+  image: string | null;
+  products: string[];
+  text: Record<Lang, PostText>;
+}
+
+/** A post's banner and the photos in its text, so a save or delete can clear out the uploads it no longer uses. */
+const postImages = (post: Pick<Post, "image" | "text">) => [post.image ?? "", ...LANGS.flatMap((lang) => htmlImages(post.text[lang].html))].filter(Boolean);
+
+/** Saves a post from the editor; a new one gets its id. It's dated the day it first goes out on the blog. */
+export async function savePost(draft: PostDraft): Promise<Saved> {
+  await requireAdmin();
+  const [posts, products] = await Promise.all([loadPosts(), loadProducts()]);
+  const existing = posts.find((p) => p.id === draft?.id);
+
+  const postText = Object.fromEntries(
+    LANGS.map((lang) => {
+      const raw = draft?.text?.[lang];
+      return [lang, { title: String(raw?.title ?? "").trim().slice(0, 160), description: String(raw?.description ?? "").trim().slice(0, 300), html: cleanPostHtml(String(raw?.html ?? "").slice(0, 300_000)) }];
+    }),
+  ) as Post["text"];
+  const written = LANGS.filter((lang) => postText[lang].title || htmlText(postText[lang].html));
+  if (!written.length) return { ok: false, error: "Write a title and some text first." };
+  const half = written.find((lang) => !postText[lang].title || !htmlText(postText[lang].html));
+  if (half) return { ok: false, error: `Add both a title and text in ${half === "bn" ? "Bangla" : "English"}, or leave that language empty.` };
+
+  const slug = slugify(String(draft.slug ?? "") || postText.en.title) || existing?.slug || `post-${crypto.randomUUID().slice(0, 6)}`;
+  if (posts.some((p) => p.slug === slug && p.id !== existing?.id)) return { ok: false, error: `Another post already uses "${slug}".` };
+
+  const active = Boolean(draft.active);
+  const day = today();
+  const published = existing?.active ? existing.published : active ? day : (existing?.published ?? day);
+  // Google is told a published post changed when its text does, from the day after it went out.
+  const edited = existing?.active && active && day !== published && JSON.stringify(existing.text) !== JSON.stringify(postText);
+  const updated = edited ? day : existing?.updated;
+  const post: Post = {
+    id: existing?.id ?? `${slug}-${crypto.randomUUID().slice(0, 4)}`,
+    slug,
+    published,
+    ...(updated && { updated }),
+    active,
+    image: isImage(draft.image) ? draft.image : null,
+    products: [...new Set((Array.isArray(draft.products) ? draft.products : []).map(String))].filter((id) => products.some((p) => p.id === id)).slice(0, 12),
+    text: postText,
+  };
+
+  try {
+    await savePosts(existing ? posts.map((p) => (p.id === post.id ? post : p)) : [post, ...posts]);
+  } catch (error) {
+    return failed(error);
+  }
+  if (existing) {
+    const kept = new Set(postImages(post));
+    await dropUploads(postImages(existing).filter((url) => !kept.has(url)));
+  }
+  refreshStorefront();
+  revalidatePath("/admin", "layout");
+  return { ok: true, id: post.id };
+}
+
+/** Takes a post off the blog for good, with its banner and photos. */
+export async function deletePost(id: string): Promise<Saved> {
+  await requireAdmin();
+  const posts = await loadPosts();
+  const post = posts.find((p) => p.id === id);
+  if (!post) return { ok: false, error: "That post is already gone." };
+  try {
+    await savePosts(posts.filter((p) => p.id !== id));
+  } catch (error) {
+    return failed(error);
+  }
+  await dropUploads(postImages(post));
+  refreshStorefront();
+  revalidatePath("/admin", "layout");
   return { ok: true };
 }

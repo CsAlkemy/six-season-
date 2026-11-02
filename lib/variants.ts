@@ -6,6 +6,9 @@ export function variantsOf(product: Product): Variant[] {
   return [{ id: "default", label: product.unit, price: product.price, compareAt: product.compareAt, inStock: product.inStock }];
 }
 
+/** The product's photos, cover first; an older product has only its cover. */
+export const photosOf = (product: Product): string[] => (product.images?.length ? product.images : product.image ? [product.image] : []);
+
 /** The size a cart line points at. Lines saved before sizes existed have none and take the first. */
 export function findVariant(product: Product, variantId?: string): Variant | undefined {
   const variants = variantsOf(product);

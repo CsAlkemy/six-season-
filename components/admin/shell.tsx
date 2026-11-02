@@ -9,6 +9,7 @@ import { Avatar, cn, Icon, type IconName } from "./ui";
 const GROUPS: { group: string; items: { href: string; label: string; icon: IconName }[] }[] = [
   { group: "Main", items: [{ href: "/admin", label: "Dashboard", icon: "dashboard" }, { href: "/admin/orders", label: "Orders", icon: "orders" }] },
   { group: "Catalog", items: [{ href: "/admin/products", label: "Products", icon: "products" }] },
+  { group: "Content", items: [{ href: "/admin/blog", label: "Blog", icon: "blog" }] },
 ];
 const ALL = [...GROUPS.flatMap((g) => g.items), { href: "/admin/settings", label: "Settings", icon: "settings" as IconName }];
 
@@ -100,7 +101,7 @@ export function AdminShell({ newOrders, logout, children }: { newOrders: number;
         <main className="flex-1 overflow-y-auto max-lg:pb-20">{children}</main>
       </div>
 
-      <nav aria-label="Admin" className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav aria-label="Admin" className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden">
         {ALL.map((item) => (
           <Link key={item.href} href={item.href} aria-current={item.href === active ? "page" : undefined} className={cn("flex flex-col items-center gap-1 py-2.5 text-caption", item.href === active ? "text-fg-brand" : "text-fg-secondary")}>
             <Icon name={item.icon} className="size-5" />{item.label}

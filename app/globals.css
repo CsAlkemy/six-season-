@@ -50,6 +50,11 @@
   --color-butter-100: #fdf5dc;
   --color-butter-400: #f2cf6b;
 
+  /* WhatsApp's green and its dark ink (9:1 on the green; white would be 2:1), for its button only */
+  --color-whatsapp-500: #25d366;
+  --color-whatsapp-600: #1fb855;
+  --color-whatsapp-ink: #111b21;
+
   /* Near-neutral greys and charcoal */
   --color-neutral-0: #ffffff;
   --color-neutral-50: #f6f6f5;
@@ -152,6 +157,9 @@
   --bg-sage-hover: var(--color-sage-600);
   --bg-sage-soft: var(--color-sage-50);
   --bg-error-soft: var(--color-red-50);
+  --bg-whatsapp: var(--color-whatsapp-500);
+  --bg-whatsapp-hover: var(--color-whatsapp-600);
+  --fg-on-whatsapp: var(--color-whatsapp-ink);
   /* The footer is the clay the grass grows from. */
   --bg-footer: var(--color-clay-700);
 
@@ -198,6 +206,9 @@
   --color-sage-hover: var(--bg-sage-hover);
   --color-sage-soft: var(--bg-sage-soft);
   --color-error-soft: var(--bg-error-soft);
+  --color-whatsapp: var(--bg-whatsapp);
+  --color-whatsapp-hover: var(--bg-whatsapp-hover);
+  --color-fg-on-whatsapp: var(--fg-on-whatsapp);
   --color-footer: var(--bg-footer);
 
   --color-border: var(--border-default);
@@ -235,6 +246,66 @@
 
   button:disabled {
     cursor: not-allowed;
+  }
+}
+
+/*
+ * A blog post's text, written in the admin's editor: the store's type scale, quotes as the green note box, and
+ * full-width rounded photos. The editor shows it with the same class, so the admin sees what readers will.
+ */
+@layer components {
+  .post-body {
+    @apply text-body-lg text-fg-secondary;
+  }
+  .post-body > * + * {
+    @apply mt-5;
+  }
+  .post-body > :first-child {
+    margin-top: 0;
+  }
+  .post-body h2 {
+    @apply mt-12 text-h3 text-fg-primary;
+  }
+  .post-body h3 {
+    @apply mt-8 text-h4 text-fg-primary;
+  }
+  .post-body strong {
+    @apply font-semibold text-fg-primary;
+  }
+  .post-body a {
+    @apply font-medium text-fg-brand underline underline-offset-4 hover:text-fg-primary;
+  }
+  .post-body ul {
+    @apply list-disc pl-6 marker:text-fg-brand;
+  }
+  .post-body ol {
+    @apply list-decimal pl-6 marker:font-semibold marker:text-fg-brand;
+  }
+  .post-body li + li {
+    @apply mt-2;
+  }
+  .post-body blockquote {
+    @apply rounded-xl bg-brand-soft p-5 text-fg-primary;
+  }
+  .post-body blockquote > * + * {
+    @apply mt-3;
+  }
+  .post-body img {
+    @apply my-8 h-auto w-full rounded-xl bg-muted;
+  }
+  .post-body hr {
+    @apply my-10 border-border;
+  }
+  /* The editor only: its placeholder, and the photo picked to move or delete. */
+  .post-body p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+    color: var(--fg-tertiary);
+  }
+  .post-body img.ProseMirror-selectednode {
+    outline: 3px solid var(--border-brand);
   }
 }
 

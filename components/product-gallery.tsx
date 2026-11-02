@@ -4,19 +4,21 @@ import { useState } from "react";
 
 import { blurStyle } from "@/lib/blur-style";
 import type { Lang, Product } from "@/lib/types";
+import { photosOf } from "@/lib/variants";
 
 import { ProductMedia } from "./product-media";
 
 /** The product page's photo: the cover large, with a row of thumbnails to switch when there are several. */
 export function ProductGallery({ product, lang, dim }: { product: Product; lang: Lang; dim: boolean }) {
-  const photos = product.images?.length ? product.images : product.image ? [product.image] : [];
+  const photos = photosOf(product);
   const [current, setCurrent] = useState(0);
-  if (photos.length < 2) return <ProductMedia product={product} lang={lang} className={dim ? "opacity-55" : ""} />;
+  if (photos.length < 2) return <ProductMedia product={product} lang={lang} className={dim ? "opacity-55" : ""} priority />;
   return (
     <div>
       <img
         src={photos[current]}
         alt={product.name[lang]}
+        fetchPriority="high"
         style={blurStyle(product.blur?.[photos[current]!])}
         className={`aspect-square w-full bg-muted object-cover ${dim ? "opacity-55" : ""}`}
       />

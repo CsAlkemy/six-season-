@@ -3,21 +3,25 @@ import type { Lang, Product, Tone } from "@/lib/types";
 
 import { LeafIcon } from "./icons";
 
-const TONE: Record<Tone, string> = {
+export const TONE: Record<Tone, string> = {
   butter: "bg-butter-100 text-butter-400",
   mustard: "bg-mustard-100 text-mustard-500",
   soil: "bg-soil-100 text-soil-400",
   leaf: "bg-leaf-50 text-leaf-400",
 };
 
-/** The product photo, or a tinted tile with its name until one is uploaded. */
-export function ProductMedia({ product, lang, className = "" }: { product: Product; lang: Lang; className?: string }) {
+/**
+ * The product photo, or a tinted tile with its name until one is uploaded. `priority` is for the page's main photo
+ * (the largest paint Google times): fetched first instead of waiting until it scrolls near.
+ */
+export function ProductMedia({ product, lang, className = "", priority = false }: { product: Product; lang: Lang; className?: string; priority?: boolean }) {
   if (product.image) {
     return (
       <img
         src={product.image}
         alt={product.name[lang]}
-        loading="lazy"
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : undefined}
         style={blurStyle(product.blur?.[product.image])}
         className={`aspect-square w-full bg-muted object-cover ${className}`}
       />

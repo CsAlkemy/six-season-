@@ -32,11 +32,55 @@ With no `BLOB_READ_WRITE_TOKEN`, `npm run dev` keeps everything on disk instead:
 | --- | --- |
 | Orders | Newest first, filter by status, change status inline |
 | Products | Add, edit, reorder, hide, mark out of stock. Photos are resized to 1200px WebP in the browser before upload |
-| Settings | Store contact info and announcement bar, delivery areas (fee, free-above, time), payment methods |
+| Blog | Write and publish posts for মাটির কথা with a rich text editor (see **Blog** below) |
+| Settings | Store contact info, social pages, the home page's Google title and description, announcement bar, delivery areas (fee, free-above, time), payment methods |
 
 **Payments.** Cash on delivery is on by default, with an optional max order amount. bKash and Nagad (manual Send Money + TrxID) can be switched on once their wallet number is added. To add a method, extend `PaymentMethodId` in `lib/types.ts`, give it a default in `lib/defaults.ts` and a label in `lib/i18n.ts`.
 
 Saving products or settings refreshes the static pages immediately.
+
+## Search and sharing
+
+Everything points at `https://www.matirtaan.com.bd` (`lib/site.ts`; set `SITE_URL` to move it), so Vercel previews and the bare domain never compete with it.
+
+| What | Where |
+| --- | --- |
+| Canonical URL, and hreflang linking each page's Bangla and English versions (Bangla for everyone else) | `generateMetadata` on the home and product pages |
+| Share images (1200×630 JPEG) for the home page and each product, with the photo, Bangla name and price | `app/[lang]/opengraph-image.ts`, `app/[lang]/p/[slug]/opengraph-image.ts`, drawn by `lib/og.ts` |
+| Structured data: the store and site on the home page; each product's sizes, prices, stock, ratings, reviews and breadcrumb on its page | `lib/structured-data.ts` |
+| The blog (মাটির কথা): each post's share image, `BlogPosting` data and breadcrumb, hreflang only for the languages it's written in | `app/[lang]/blog/`, see **Blog** below |
+| `sitemap.xml` (both languages, with photos, posts dated) and `robots.txt` (everything but `/admin`) | `app/sitemap.ts`, `app/robots.ts` |
+| App icons and `manifest.webmanifest` for "Add to Home screen" | `app/apple-icon.png`, `public/icon-*.png`, `app/manifest.ts` |
+
+Cart and account pages are `noindex`. The admin's **Settings › Store details** feeds Google too: contact details and address, social pages (also linked in the footer), and an optional title and description for the home page.
+
+**Share images and Bangla.** `next/og` can't shape Bangla (vowel signs land after their consonant, conjuncts come apart), so `lib/og.ts` shapes text with HarfBuzz (`harfbuzzjs`) into SVG paths and `sharp` rasterises the card. The fonts are in `assets/fonts/` (SIL Open Font License). `harfbuzzjs` is in `serverExternalPackages` so it can find its `.wasm` at runtime.
+
+**After a deploy that changes the domain or launches the store:**
+
+1. [Google Search Console](https://search.google.com/search-console): add a **Domain** property for `matirtaan.com.bd` (a TXT record at the DNS host), or a URL-prefix one verified with `GOOGLE_SITE_VERIFICATION`. Submit `https://www.matirtaan.com.bd/sitemap.xml`.
+2. [Bing Webmaster Tools](https://www.bing.com/webmasters): import the site from Search Console, or verify with `BING_SITE_VERIFICATION`.
+3. Check a product URL in Google's [Rich Results Test](https://search.google.com/test/rich-results), and a shared link in Facebook's [Sharing Debugger](https://developers.facebook.com/tools/debug/) (use **Scrape Again** after changing a product).
+4. Create a [Google Business Profile](https://business.google.com) for the store with the website, and link the Facebook page back to the site.
+
+## Blog: মাটির কথা
+
+`/bn/blog` and `/en/blog` (Notes from the soil), linked from the footer. Posts answer what people search for about the products ("খাঁটি ঘি চেনার উপায়"), and each ends with the cards of the products it's about, so a reader can order from the post.
+
+**Writing a post:** Admin › Blog › New post.
+
+| Part | What it does |
+| --- | --- |
+| Banner | Atop the post, on its card and in its share image. Without one, the first product's photo is used |
+| Title, summary, text | Per language (বাংলা / English tabs). English is optional: a post with no English shows on the Bangla blog only |
+| Text editor | Section and smaller headings, bold, italic, underline, lists, notes (the green box), divider, links and photos. Photos upload as they go in (button, paste or drop), shrunk to WebP; "Describe photo" sets the alt text Google Images reads |
+| Products in this post | Their cards follow the post |
+| Published | Off keeps it a draft only the admin sees. It's dated the day it first goes out; later edits mark it updated for Google |
+| URL | English letters; empty uses the English title. Give Bangla-only posts one (e.g. `ilish-fry`) |
+
+Posts are saved in `data/posts.json` beside the products, so a new post goes live without a deploy. The four in `content/blog/` show until the first save; after that the saved list is the blog. The editor is Tiptap (`components/admin/rich-text-editor.tsx`) and shows text with the storefront's own `.post-body` styles (`app/globals.css`), so it looks as it will on the blog. On save the HTML is cleaned on the server (`lib/post-html.ts`): only the editor's tags, safe links, and photos uploaded to the store (pasted pictures from other sites are dropped, so nothing is hotlinked). Photos a save or delete leaves unused are deleted from Blob.
+
+Avoid health claims you can't source, and say where a home test isn't proof. Google ranks careful pages higher, and readers trust them more.
 
 ## Notes
 

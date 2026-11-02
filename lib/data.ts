@@ -1,6 +1,9 @@
 import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 
+import { DEFAULT_POSTS } from "@/content/blog";
+
 import { readAllJson, readJson, writeJson } from "./blob";
+import type { Post } from "./blog";
 import { withBlur } from "./blur";
 import { DEFAULT_PRODUCTS, DEFAULT_SETTINGS } from "./defaults";
 import { kindOf } from "./payments";
@@ -8,6 +11,7 @@ import type { Order, PaymentMethod, Product, Settings } from "./types";
 
 const PRODUCTS = "data/products.json";
 const SETTINGS = "data/settings.json";
+const POSTS = "data/posts.json";
 
 /** Storefront pages are static; admin saves expire this tag. */
 export const CATALOG_TAG = "catalog";
@@ -25,7 +29,12 @@ function withDefaults(saved: Partial<Settings> | null): Settings {
     return { ...fallback, ...method, kind: kindOf(method), name: method.name ?? fallback?.name ?? { bn: method.id, en: method.id } } as PaymentMethod;
   });
   return {
-    store: { ...DEFAULT_SETTINGS.store, ...s.store },
+    store: {
+      ...DEFAULT_SETTINGS.store,
+      ...s.store,
+      social: { ...DEFAULT_SETTINGS.store.social, ...s.store?.social },
+      seo: { ...DEFAULT_SETTINGS.store.seo, ...s.store?.seo },
+    },
     delivery: { ...DEFAULT_SETTINGS.delivery, ...s.delivery },
     payments: { methods },
     home: {
@@ -62,8 +71,32 @@ const cachedSettings = unstable_cache(loadSettings, ["settings"], { tags: [CATAL
 /** The cache can hold settings saved before a section existed (it outlives a deploy), so fill the gaps on every read. */
 export const getSettings = async () => withDefaults(await cachedSettings());
 
+/** A product the storefront shows, by its slug. */
+export async function findProduct(slug: string): Promise<Product | undefined> {
+  const match = (list: Product[]) => list.find((p) => p.slug === slug && p.active);
+  // A product added a moment ago may not be in the cached list yet, and a 404 here would be cached for that URL,
+  // so before giving up look at the catalogue itself.
+  return match(await getProducts()) ?? match(await loadProducts());
+}
+
 export const saveProducts = (products: Product[]) => writeJson(PRODUCTS, products);
 export const saveSettings = (settings: Settings) => writeJson(SETTINGS, settings);
+
+/** The blog's posts, drafts included: the admin's, or the first ones in content/blog/ until it saves any. */
+export async function loadPosts(): Promise<Post[]> {
+  return (await readJson<Post[]>(POSTS)) ?? DEFAULT_POSTS;
+}
+
+/** Cached for the storefront; saving a post expires it with the rest of the catalogue. */
+export const getPosts = unstable_cache(loadPosts, ["posts"], { tags: [CATALOG_TAG], revalidate: 3600 });
+
+/** A post by its slug, drafts included (the page decides what to show), with the same fresh look as findProduct. */
+export async function findPost(slug: string): Promise<Post | undefined> {
+  const match = (list: Post[]) => list.find((p) => p.slug === slug);
+  return match(await getPosts()) ?? match(await loadPosts());
+}
+
+export const savePosts = (posts: Post[]) => writeJson(POSTS, posts);
 
 const orderPath = (id: string) => `orders/${id}.json`;
 

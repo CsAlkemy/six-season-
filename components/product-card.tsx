@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { type Dict, t, taka } from "@/lib/i18n";
+import { fromPrice, t, taka } from "@/lib/i18n";
 import type { Lang, Product } from "@/lib/types";
 import { defaultVariant, variantsOf } from "@/lib/variants";
 
@@ -8,15 +8,12 @@ import { CardActions } from "./add-to-cart";
 import { SeasonIcon } from "./icons";
 import { ProductMedia } from "./product-media";
 
-/** "৳৪৮০ থেকে" / "From ৳480". */
-const fromPrice = (amount: number, lang: Lang, d: Dict) => (lang === "bn" ? `${taka(amount, lang)} ${d.from}` : `${d.from} ${taka(amount, lang)}`);
-
 /**
  * Momcozy's card: one soft panel, the photo across its top, a bold name and the price. One size buys
  * straight from here; with several the card shows the lowest price and sends the shopper to pick one.
  * The panel takes the season's colours, and the badge and highlight follow whichever season <html> shows.
  */
-export function ProductCard({ product, lang }: { product: Product; lang: Lang }) {
+export function ProductCard({ product, lang, priority = false }: { product: Product; lang: Lang; priority?: boolean }) {
   const d = t(lang);
   const href = `/${lang}/p/${product.slug}`;
   const variants = variantsOf(product);
@@ -29,7 +26,7 @@ export function ProductCard({ product, lang }: { product: Product; lang: Lang })
       <div className="relative aspect-square overflow-hidden">
         {/* The title carries the link for keyboards and screen readers; this is the mouse target. */}
         <Link href={href} tabIndex={-1} aria-hidden className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-[1.04]">
-          <ProductMedia product={product} lang={lang} className={`h-full ${inStock ? "" : "opacity-60"}`} />
+          <ProductMedia product={product} lang={lang} priority={priority} className={`h-full ${inStock ? "" : "opacity-60"}`} />
         </Link>
         {!inStock ? (
           <span className="absolute top-3 left-3 rounded-full bg-surface px-3 py-1 text-caption font-semibold text-fg-secondary">{d.outOfStock}</span>
@@ -55,7 +52,7 @@ export function ProductCard({ product, lang }: { product: Product; lang: Lang })
         </h3>
         {sizes > 1 ? (
           <p className="flex flex-wrap items-baseline gap-x-2.5">
-            <span className="font-display text-h4 font-bold">{fromPrice(variant.price, lang, d)}</span>
+            <span className="font-display text-h4 font-bold">{fromPrice(variant.price, lang)}</span>
             <span className="font-display text-body-md font-medium text-fg-secondary">
               · {sizes.toLocaleString(lang === "bn" ? "bn-BD" : "en")} {d.sizes}
             </span>

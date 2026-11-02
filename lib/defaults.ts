@@ -79,6 +79,8 @@ export const DEFAULT_SETTINGS: Settings = {
     email: "",
     address: { bn: "", en: "" },
     announcement: { bn: "সারা দেশে ক্যাশ অন ডেলিভারি", en: "Cash on delivery across Bangladesh" },
+    social: { facebook: "", instagram: "", youtube: "", tiktok: "" },
+    seo: { title: { bn: "", en: "" }, description: { bn: "", en: "" } },
   },
   delivery: {
     zones: [

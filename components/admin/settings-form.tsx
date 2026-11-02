@@ -3,8 +3,10 @@
 import { useEffect, useState, useTransition } from "react";
 
 import { saveStoreSettings } from "@/app/admin/actions";
+import { DEFAULT_SETTINGS } from "@/lib/defaults";
 import { taka } from "@/lib/i18n";
-import type { DeliveryZone, Settings } from "@/lib/types";
+import { homeSeo } from "@/lib/site";
+import { type DeliveryZone, type Settings, SOCIAL_NAME, SOCIALS } from "@/lib/types";
 
 import { Modal, Switch, SwitchRow, toast } from "./controls";
 import { digits, Input, TextPair } from "./fields";
@@ -21,6 +23,13 @@ const TABS = [
   { id: "payments", label: "Payments" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
+
+/** What the home page uses while the title and description are left empty, shown as their placeholders. */
+const seoDefault = (field: "title" | "description") => ({
+  bn: homeSeo("bn", DEFAULT_SETTINGS.store.seo)[field],
+  en: homeSeo("en", DEFAULT_SETTINGS.store.seo)[field],
+});
+const SEO_DEFAULT = { title: seoDefault("title"), description: seoDefault("description") };
 
 /** Motherhood's layout: a tab list beside the cards (a scroller on phones), one draft across every tab, Save only when something changed. */
 export function SettingsForm({ initial, products, initialTab }: { initial: Settings; products: PickerProduct[]; initialTab?: string }) {
@@ -81,7 +90,7 @@ export function SettingsForm({ initial, products, initialTab }: { initial: Setti
         <div className="min-w-0">
           {tab === "store" && (
             <div className="flex flex-col gap-4">
-              <ContentCard padding="md" title="Contact" subtitle="Shown in the footer">
+              <ContentCard padding="md" title="Contact" subtitle="Shown in the footer, and given to Google with the store's details">
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Input label="Phone" value={settings.store.phone} onChange={(phone) => setStore({ phone })} placeholder="01XXXXXXXXX" />
                   <Input label="WhatsApp (with 880)" value={settings.store.whatsapp} onChange={(whatsapp) => setStore({ whatsapp: digits(whatsapp) })} placeholder="8801XXXXXXXXX" />
@@ -91,6 +100,17 @@ export function SettingsForm({ initial, products, initialTab }: { initial: Setti
               </ContentCard>
               <ContentCard padding="md" title="Announcement bar" subtitle="The thin bar above the header. Leave it empty to hide it.">
                 <TextPair label="Message" value={settings.store.announcement} onChange={(announcement) => setStore({ announcement })} />
+              </ContentCard>
+              <ContentCard padding="md" title="Social pages" subtitle="Linked from the footer, and told to Google so it knows these pages are the store's. Leave empty to hide.">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {SOCIALS.map((s) => (
+                    <Input key={s} label={SOCIAL_NAME[s]} value={settings.store.social[s]} onChange={(url) => setStore({ social: { ...settings.store.social, [s]: url } })} placeholder={`https://${s}.com/…`} />
+                  ))}
+                </div>
+              </ContentCard>
+              <ContentCard padding="md" title="Google and shared links" subtitle="The home page's title and description in search results and link previews. Leave empty to use the ones shown greyed out.">
+                <TextPair label="Title" value={settings.store.seo.title} onChange={(title) => setStore({ seo: { ...settings.store.seo, title } })} placeholder={SEO_DEFAULT.title} />
+                <TextPair label="Description" value={settings.store.seo.description} onChange={(description) => setStore({ seo: { ...settings.store.seo, description } })} placeholder={SEO_DEFAULT.description} />
               </ContentCard>
             </div>
           )}

@@ -1,24 +1,8 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-
 import { unstable_cache } from "next/cache";
 import sharp from "sharp";
 
+import { readPhoto } from "./photo";
 import type { Product } from "./types";
-
-const PUBLIC_DIR = path.join(process.cwd(), "public");
-
-/** The photo's bytes: from public/ for the bundled stand-ins and dev uploads, over HTTP for the Blob store. */
-async function readPhoto(src: string): Promise<Buffer> {
-  if (src.startsWith("/")) {
-    const file = path.join(PUBLIC_DIR, src);
-    if (!file.startsWith(PUBLIC_DIR + path.sep)) throw new Error("Not a public file");
-    return readFile(file);
-  }
-  const res = await fetch(src, { signal: AbortSignal.timeout(8000) });
-  if (!res.ok) throw new Error(`Photo answered ${res.status}`);
-  return Buffer.from(await res.arrayBuffer());
-}
 
 /** A 24px WebP of the photo as a data URI, a few hundred bytes. Scaled up by CSS it reads as the photo, blurred. */
 async function makeBlur(src: string): Promise<string> {

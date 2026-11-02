@@ -90,6 +90,10 @@ export interface PaymentMethod {
   instructions: Text;
 }
 
+export const SOCIALS = ["facebook", "instagram", "youtube", "tiktok"] as const;
+export type Social = (typeof SOCIALS)[number];
+export const SOCIAL_NAME: Record<Social, string> = { facebook: "Facebook", instagram: "Instagram", youtube: "YouTube", tiktok: "TikTok" };
+
 export interface Settings {
   store: {
     phone: string;
@@ -99,6 +103,10 @@ export interface Settings {
     address: Text;
     /** Thin bar above the header; empty hides it. */
     announcement: Text;
+    /** Full links to the store's pages; empty ones are left out. Shown in the footer and given to search engines. */
+    social: Record<Social, string>;
+    /** The home page's title and description in Google and in shared links; empty uses the name and tagline. */
+    seo: { title: Text; description: Text };
   };
   delivery: { zones: DeliveryZone[] };
   payments: { methods: PaymentMethod[] };

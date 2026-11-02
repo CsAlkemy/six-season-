@@ -4,6 +4,13 @@ const dict = {
   bn: {
     tagline: "মাটির টানে, খাঁটি খাবার",
     about: "নিজেদের খামার আর চেনা কৃষকদের কাছ থেকে আনা ঘি, সরিষার তেল, গুড় আর দেশি ডিম। কোনো ভেজাল নেই, কোনো মধ্যস্বত্বভোগী নেই।",
+    /** Under the logo in the footer; the line break is kept. */
+    footerTagline: "ছোটবেলার সেই হারানো স্বাদ,\nফিরে পান মাটির টানে।",
+    blog: "মাটির কথা",
+    blogLead: "ঘি, সরিষার তেল, খেজুরের গুড় আর দেশি ডিম নিয়ে আমরা যা জানি: খাঁটিটা কীভাবে চিনবেন, কীভাবে রাখবেন, কীভাবে রাঁধবেন।",
+    minRead: "{n} মিনিটে পড়ুন",
+    inThisPost: "এই লেখার পণ্য",
+    morePosts: "আরও পড়ুন",
     ourProducts: "আমাদের পণ্য",
     productsLead: "অল্প কিছু পণ্য, কিন্তু প্রতিটি যত্ন করে বাছাই করা।",
     addToCart: "কার্টে যোগ করুন",
@@ -130,6 +137,12 @@ const dict = {
   en: {
     tagline: "Pure food, from the soil",
     about: "Ghee, mustard oil, jaggery and deshi eggs from our own farm and farmers we know by name. No adulteration, no middlemen.",
+    footerTagline: "The lost taste of childhood,\nfound again at Matir Taan.",
+    blog: "Notes from the soil",
+    blogLead: "What we know about ghee, mustard oil, date-palm jaggery and deshi eggs: how to tell the real thing, and how to keep and cook it.",
+    minRead: "{n} min read",
+    inThisPost: "In this post",
+    morePosts: "Keep reading",
     ourProducts: "Our products",
     productsLead: "Only a few products, each one chosen with care.",
     addToCart: "Add to cart",
@@ -270,5 +283,8 @@ export const PAYMENT_LABEL: Record<string, Text> = {
 export function taka(amount: number, lang: Lang): string {
   return `৳${new Intl.NumberFormat(lang === "bn" ? "bn-BD" : "en-IN").format(amount)}`;
 }
+
+/** "৳৪৮০ থেকে" / "From ৳480". */
+export const fromPrice = (amount: number, lang: Lang) => (lang === "bn" ? `${taka(amount, lang)} ${dict.bn.from}` : `${dict.en.from} ${taka(amount, lang)}`);
 
 export const otherLang = (lang: Lang): Lang => (lang === "bn" ? "en" : "bn");
