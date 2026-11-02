@@ -62,8 +62,8 @@ export default async function PostPage({ params }: PageProps<"/[lang]/blog/[slug
   return (
     <div className="container-page flex flex-col gap-16 pt-8 sm:gap-20 sm:pt-12">
       <JsonLd data={postJsonLd(post, lang, products, cover)} />
-      <article>
-        <header className="mx-auto flex max-w-180 flex-col gap-4">
+      <article className="mx-auto w-full max-w-180">
+        <header className="flex flex-col gap-4">
           <nav aria-label="Breadcrumb">
             <ol className="flex flex-wrap items-center gap-2 text-caption text-fg-tertiary">
               <li>
@@ -84,12 +84,12 @@ export default async function PostPage({ params }: PageProps<"/[lang]/blog/[slug
           <PostMeta post={post} lang={lang} />
         </header>
         {cover && (
-          <div className="mx-auto mt-8 max-w-240 overflow-hidden rounded-xl bg-muted sm:mt-10">
+          <div className="mt-8 overflow-hidden rounded-xl bg-muted sm:mt-10">
             <PostCover src={cover} alt={post.image ? post.text[lang].title : (products[0]?.name[lang] ?? "")} priority className="aspect-[16/9]" />
           </div>
         )}
         {/* Cleaned when it was saved (lib/post-html.ts). */}
-        <div className="post-body mx-auto mt-8 max-w-180 sm:mt-10" dangerouslySetInnerHTML={{ __html: post.text[lang].html }} />
+        <div className="post-body mt-8 sm:mt-10" dangerouslySetInnerHTML={{ __html: post.text[lang].html }} />
       </article>
 
       {products.length > 0 && (
