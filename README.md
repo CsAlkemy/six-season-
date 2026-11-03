@@ -30,10 +30,10 @@ With no `BLOB_READ_WRITE_TOKEN`, `npm run dev` keeps everything on disk instead:
 
 | Page | What it does |
 | --- | --- |
-| Orders | Newest first, filter by status, change status inline |
-| Products | Add, edit, reorder, hide, mark out of stock. Photos are resized to 1200px WebP in the browser before upload |
+| Orders | Newest first, filter by status, change status inline. A delivered order has an **Ask for a review** button: a WhatsApp message (in the customer's language) with a link to review each product |
+| Products | Add, edit, reorder, hide, mark out of stock. Photos are resized to 1200px WebP in the browser before upload. Also a **Category**, **More about this product** (a rich-text section under the buy box: where it's from, how to use and keep it, FAQs) and the product's own search title and description |
 | Blog | Write and publish posts for মাটির কথা with a rich text editor (see **Blog** below) |
-| Settings | Store contact info, social pages, the home page's Google title and description, announcement bar, delivery areas (fee, free-above, time), payment methods |
+| Settings | Store contact info, social pages, the home page's Google title and description, announcement bar, delivery areas (fee, free-above, time), **days to report a problem** (the returns promise), payment methods |
 
 **Payments.** Cash on delivery is on by default, with an optional max order amount. bKash and Nagad (manual Send Money + TrxID) can be switched on once their wallet number is added. To add a method, extend `PaymentMethodId` in `lib/types.ts`, give it a default in `lib/defaults.ts` and a label in `lib/i18n.ts`.
 
@@ -49,6 +49,11 @@ Everything points at `https://www.matirtaan.com.bd` (`lib/site.ts`; set `SITE_UR
 | Share images (1200×630 JPEG) for the home page and each product, with the photo, Bangla name and price | `app/[lang]/opengraph-image.ts`, `app/[lang]/p/[slug]/opengraph-image.ts`, drawn by `lib/og.ts` |
 | Structured data: the store and site on the home page; each product's sizes, prices, stock, ratings, reviews and breadcrumb on its page | `lib/structured-data.ts` |
 | The blog (মাটির কথা): each post's share image, `BlogPosting` data and breadcrumb, hreflang only for the languages it's written in | `app/[lang]/blog/`, see **Blog** below |
+| Category pages (`/bn/c/ghee`, `/mustard-oil`, `/khejur-gur`, `/deshi-eggs`): intro text, the products, the posts about them. A category with nothing to buy is a 404 and is left out of the sitemap | `lib/categories.ts` (the wording; add a category here), `app/[lang]/c/[slug]/page.tsx`. A product joins one in the admin; the four starter products are in theirs by id |
+| About, Contact, Delivery & returns, Privacy (`/bn/about` …), linked from the footer. Delivery fees and times, payment methods, contact details and the return window come from the admin's Settings, so they never go stale | `content/pages.tsx` (the wording: **read it once and change what isn't how the store works**), `app/[lang]/[page]/page.tsx` |
+| The product's return policy for Google (`hasMerchantReturnPolicy`), only once Settings has a number of days above 0. Delivery isn't marked up: its charges depend on "inside Dhaka city", which schema.org can't say | `lib/structured-data.ts` |
+| A Google Merchant Center product feed, one item per size: `/feeds/google` (English) or `/feeds/google?lang=bn` | `app/feeds/google/route.ts` |
+| Each product's breadcrumb through its category, the posts that name it, and its own search title and description | `app/[lang]/p/[slug]/page.tsx` |
 | `sitemap.xml` (both languages, with photos, posts dated) and `robots.txt` (everything but `/admin`) | `app/sitemap.ts`, `app/robots.ts` |
 | App icons and `manifest.webmanifest` for "Add to Home screen" | `app/apple-icon.png`, `public/icon-*.png`, `app/manifest.ts` |
 
@@ -62,6 +67,23 @@ Cart and account pages are `noindex`. The admin's **Settings › Store details**
 2. [Bing Webmaster Tools](https://www.bing.com/webmasters): import the site from Search Console, or verify with `BING_SITE_VERIFICATION`.
 3. Check a product URL in Google's [Rich Results Test](https://search.google.com/test/rich-results), and a shared link in Facebook's [Sharing Debugger](https://developers.facebook.com/tools/debug/) (use **Scrape Again** after changing a product).
 4. Create a [Google Business Profile](https://business.google.com) for the store with the website, and link the Facebook page back to the site.
+5. [Google Merchant Center](https://merchants.google.com) (free listings in Google Shopping): confirm Bangladesh is offered when you sign up, claim the website, then **Products › Add › Scheduled fetch** with `https://www.matirtaan.com.bd/feeds/google` and set delivery charges for Dhaka and outside under **Shipping and returns**. Set **Days to report a problem** in the admin first so the return policy is on the product pages.
+
+## Analytics and ads
+
+Google Analytics 4 and the Meta (Facebook) Pixel, off until their IDs are set: `GA_MEASUREMENT_ID` (`G-…`) and `META_PIXEL_ID` (digits) in Vercel's environment variables, then redeploy. With neither set, no tag loads and nothing is sent. The admin is never tracked (it has its own layout).
+
+| Shopper does | GA4 event | Pixel event | Fired from |
+| --- | --- | --- | --- |
+| Opens any page | `page_view` (GA4's own, on history changes) | `PageView` | `components/analytics.tsx`, `components/pixel-page-views.tsx` |
+| Opens a product | `view_item` | `ViewContent` | `components/track-product-view.tsx` |
+| Add to cart or Buy now | `add_to_cart` | `AddToCart` | `components/add-to-cart.tsx` |
+| Opens checkout with items in the cart | `begin_checkout` | `InitiateCheckout` | `components/checkout.tsx` |
+| Places an order | `purchase` | `Purchase` | `components/checkout.tsx` |
+
+All events are in `lib/analytics.ts`: prices in BDT, product ids and sizes, and the order number (also the Pixel's event ID). No name, phone number or address is ever sent. The tags' small inline parts run before the page hydrates, so the first event of a visit isn't lost; the Google library loads after.
+
+In GA4 keep **Enhanced measurement › Page changes based on browser history events** on (it is by default): the store changes pages without reloading. Mark `purchase` as a key event (**Admin › Events**), and add your own office or home IP under **Data filters** so your visits aren't counted. Check events live in GA4 **DebugView** and Meta's **Test events** tab (Events Manager) before running ads.
 
 ## Blog: মাটির কথা
 

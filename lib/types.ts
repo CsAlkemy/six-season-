@@ -47,6 +47,12 @@ export interface Product {
   tone: Tone;
   /** Seasons it's at its best in; the storefront lists it first and badges it then. Missing on older saves. */
   seasons?: Season[];
+  /** One of lib/categories.ts, for its category page and the links to it; "" for none. Missing on older saves, where the starter products' ids stand in. */
+  category?: string;
+  /** Longer text under the buy box (where it's from, how to use and keep it, what people ask): HTML from the editor, cleaned like a post's but with no photos. */
+  details?: Text;
+  /** The product's title and description in Google and shared links; empty uses its name and the start of its description. */
+  seo?: { title: Text; description: Text };
   /** With sizes, true while any size is in stock. */
   inStock: boolean;
   /** Hidden from the storefront when false. */
@@ -110,6 +116,11 @@ export interface Settings {
   };
   delivery: { zones: DeliveryZone[] };
   payments: { methods: PaymentMethod[] };
+  /** What the delivery and returns page and Google's product data promise. */
+  returns: {
+    /** Days after delivery a shopper can report a damaged, spoiled or wrong item for a replacement or refund; 0 means none is promised yet. */
+    days: number;
+  };
   home: HomeSettings;
 }
 

@@ -63,7 +63,16 @@ export function BuyBox({ product, lang, d }: { product: Product; lang: Lang; d: 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <QtyStepper value={Math.min(qty, max)} onChange={setQty} max={max} />
           <div className="@container flex-1">
-            <CardActions id={product.id} variant={variant.id} qty={Math.min(qty, max)} cartHref={`/${lang}/cart`} label={d.addToCart} addedLabel={d.added} buyLabel={d.buyNow} />
+            <CardActions
+              id={product.id}
+              variant={variant.id}
+              qty={Math.min(qty, max)}
+              item={{ id: product.id, name: product.name[lang], variant: variant.label[lang], price: variant.price }}
+              cartHref={`/${lang}/cart`}
+              label={d.addToCart}
+              addedLabel={d.added}
+              buyLabel={d.buyNow}
+            />
           </div>
         </div>
       ) : (

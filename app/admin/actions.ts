@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { deleteImages, putImage } from "@/lib/blob";
 import { htmlText, type Post, type PostText, today } from "@/lib/blog";
+import { CATEGORIES } from "@/lib/categories";
 import { listCustomerOrders, loadCustomer } from "@/lib/customers";
 import { loadOrder, loadPosts, loadProducts, loadSettings, refreshStorefront, saveOrder, savePosts, saveProducts, saveSettings } from "@/lib/data";
 import { cleanPostHtml, htmlImages } from "@/lib/post-html";
@@ -222,6 +223,9 @@ export async function uploadImage(form: FormData): Promise<{ url: string } | { e
   }
 }
 
+/** A product's "more about it" text: the editor's HTML, cleaned like a post's but with no photos (those go in the gallery). */
+const productHtml = (raw: unknown) => cleanPostHtml(String(raw ?? "").slice(0, 20_000), { photos: false });
+
 /** What the product form posts; every field is checked again here. */
 export interface ProductDraft {
   id: string;
@@ -231,6 +235,11 @@ export interface ProductDraft {
   images: string[];
   tone: Tone;
   seasons: string[];
+  /** A lib/categories.ts id, or "" for none. */
+  category: string;
+  /** HTML from the editor, one per language. */
+  details: Text;
+  seo: { title: Text; description: Text };
   active: boolean;
   lowStockAt: number;
   variants: { id: string; label: Text; price: number; compareAt: number | null; stock: number }[];
@@ -262,6 +271,7 @@ export async function saveProduct(draft: ProductDraft): Promise<Saved> {
   if (variants.some((v) => v.price <= 0)) return { ok: false, error: "Give every size a price." };
 
   const images = (Array.isArray(draft.images) ? draft.images : []).filter(isImage).slice(0, MAX_PHOTOS);
+  const details: Text = { bn: productHtml(draft.details?.bn), en: productHtml(draft.details?.en) };
   const id = existing?.id ?? `${slug}-${crypto.randomUUID().slice(0, 4)}`;
   const product = summarize({
     id,
@@ -276,6 +286,10 @@ export async function saveProduct(draft: ProductDraft): Promise<Saved> {
     images,
     tone: (["butter", "mustard", "soil", "leaf"].includes(draft.tone) ? draft.tone : "soil") as Tone,
     seasons: SEASONS.filter((s) => draft.seasons?.includes(s)),
+    // "" rather than missing when none is chosen, so a starter product can be taken out of its category too.
+    category: CATEGORIES.some((c) => c.id === draft.category) ? draft.category : "",
+    details,
+    seo: { title: text(draft.seo?.title, 70), description: text(draft.seo?.description, 200) },
     inStock: true,
     active: Boolean(draft.active),
     lowStockAt: Math.min(money(draft.lowStockAt), 9999),
@@ -422,6 +436,7 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
     },
     delivery: { zones },
     payments: { methods },
+    returns: { days: Math.min(money(raw.returns?.days), 30) },
     home: {
       hero: {
         enabled: Boolean(hero.enabled),

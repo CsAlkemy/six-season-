@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 
+import { PAGE_SLUGS } from "@/content/pages";
 import { liveLangs, newestFirst, postCover } from "@/lib/blog";
+import { shopCategories } from "@/lib/categories";
 import { getPosts, getProducts } from "@/lib/data";
 import { absolute } from "@/lib/site";
 import { type Lang, LANGS } from "@/lib/types";
@@ -11,7 +13,8 @@ export const revalidate = 3600;
 
 /**
  * Every page search should list, in each language it exists in, naming its other-language twin: the home page,
- * products with their photos, and the blog with its published posts (dated, so a change brings crawlers back).
+ * the categories that have something to buy, products with their photos, the store's own pages (about, contact,
+ * delivery, privacy), and the blog with its published posts (dated, so a change brings crawlers back).
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [all, saved] = await Promise.all([getProducts(), getPosts()]);
@@ -26,7 +29,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
   return [
     ...page((lang) => `/${lang}`),
+    ...shopCategories(all).flatMap((c) => page((lang) => `/${lang}/c/${c.slug}`)),
     ...products.flatMap((p) => page((lang) => `/${lang}/p/${p.slug}`, { images: photosOf(p).map(absolute) })),
+    ...PAGE_SLUGS.flatMap((slug) => page((lang) => `/${lang}/${slug}`)),
     ...page((lang) => `/${lang}/blog`, { lastModified: posts[0]?.published }),
     ...posts.flatMap((post) => {
       const cover = postCover(post, products);

@@ -37,6 +37,7 @@ function withDefaults(saved: Partial<Settings> | null): Settings {
     },
     delivery: { ...DEFAULT_SETTINGS.delivery, ...s.delivery },
     payments: { methods },
+    returns: { ...DEFAULT_SETTINGS.returns, ...s.returns },
     home: {
       hero: { ...DEFAULT_SETTINGS.home.hero, ...s.home?.hero },
       sections: s.home?.sections ?? DEFAULT_SETTINGS.home.sections,

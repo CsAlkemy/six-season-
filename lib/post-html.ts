@@ -5,10 +5,11 @@ import { isOwnPhoto } from "./blog";
 /**
  * Cleans a post body from the admin's editor before it's saved: only the tags the editor makes, links to the web,
  * mail and phone (or this site), and photos uploaded to the store. The storefront then renders it as is.
+ * A product's details take no photos (`photos: false`): its pictures go in the gallery.
  */
-export function cleanPostHtml(html: string): string {
+export function cleanPostHtml(html: string, { photos = true }: { photos?: boolean } = {}): string {
   return sanitizeHtml(html, {
-    allowedTags: ["p", "h2", "h3", "strong", "em", "u", "s", "a", "ul", "ol", "li", "blockquote", "img", "hr", "br"],
+    allowedTags: ["p", "h2", "h3", "strong", "em", "u", "s", "a", "ul", "ol", "li", "blockquote", "img", "hr", "br"].filter((tag) => photos || tag !== "img"),
     // ol's start keeps "3." steps numbered 3 when the list carries on after a paragraph.
     allowedAttributes: { a: ["href", "target", "rel"], ol: ["start"], img: ["src", "alt", "width", "height", "loading", "decoding"] },
     allowedSchemes: ["https", "http", "mailto", "tel"],

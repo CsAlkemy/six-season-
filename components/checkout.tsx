@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useForm, type FieldError } from "react-hook-form";
 
 import { requestCode, verifyCode } from "@/app/[lang]/account/actions";
 import { placeOrder } from "@/app/[lang]/cart/actions";
+import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
 import { type Dict, t, taka } from "@/lib/i18n";
 import { orderFormSchema, type OrderFormInput, type OrderFormValues } from "@/lib/order-schema";
 import { isCash } from "@/lib/payments";
@@ -77,6 +78,7 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
   const zone = zones.find((z) => z.id === zoneId);
   const fee = zone ? deliveryFee(zone, subtotal) : 0;
   const total = subtotal + fee;
+  const tracked = lines.map((l) => ({ id: l.product.id, name: l.product.name[lang], variant: l.variant.label[lang], price: l.variant.price, qty: l.qty }));
   const available = methods.filter((m) => methodAvailable(m, total));
   const selected = available.find((m) => m.id === method) ?? available[0];
 
@@ -84,6 +86,14 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
   useEffect(() => {
     if (selected && selected.id !== method) setValue("method", selected.id);
   }, [selected, method, setValue]);
+
+  // Checking out has started once there's something in the cart to pay for (the cart loads from the browser a moment after the page).
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current || tracked.length === 0) return;
+    started.current = true;
+    trackBeginCheckout(tracked);
+  }, [tracked]);
 
   if (placed) {
     return (
@@ -123,6 +133,7 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
   const place = async (values: OrderFormValues) => {
     const result = await placeOrder({ ...values, lang, lines: lines.map((l) => ({ id: l.product.id, variant: l.variant.id, qty: l.qty })) }).catch(() => null);
     if (result?.ok) {
+      trackPurchase({ no: result.no, items: tracked, shipping: fee });
       cart.clear();
       setPlaced({ no: result.no, id: result.id });
       window.scrollTo({ top: 0 });

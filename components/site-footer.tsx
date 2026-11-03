@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import type { Category } from "@/lib/categories";
 import { STORE_NAME, t } from "@/lib/i18n";
 import { type Lang, type Settings, SOCIAL_NAME, SOCIALS } from "@/lib/types";
 
@@ -9,7 +10,7 @@ import { WhatsAppIcon } from "./icons";
 const LINK = "underline-offset-4 hover:text-fg-footer-accent hover:underline";
 
 /** The page ends in the field: grass and mustard flowers growing out of soil, the brand and contact on it. */
-export function SiteFooter({ lang, settings }: { lang: Lang; settings: Settings }) {
+export function SiteFooter({ lang, settings, categories }: { lang: Lang; settings: Settings; categories: Category[] }) {
   const d = t(lang);
   const { phone, whatsapp, email, address, social } = settings.store;
   const socials = SOCIALS.filter((s) => social[s]);
@@ -24,10 +25,43 @@ export function SiteFooter({ lang, settings }: { lang: Lang; settings: Settings 
           <div className="flex flex-col items-start gap-6">
             <img src="/logo-light.svg" alt={STORE_NAME[lang]} width={96} height={64} className="h-16 w-auto" />
             <p className="max-w-xl text-body-lg whitespace-pre-line text-fg-footer-muted">{d.footerTagline}</p>
+            {categories.length > 0 && (
+              <nav aria-label={d.shop}>
+                <ul className="flex flex-wrap gap-x-6 gap-y-2 text-label-md">
+                  {categories.map((c) => (
+                    <li key={c.id}>
+                      <Link href={`/${lang}/c/${c.slug}`} className={LINK}>
+                        {c.name[lang]}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            )}
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-label-md">
               <li>
                 <Link href={`/${lang}/blog`} className={LINK}>
                   {d.blog}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${lang}/about`} className={LINK}>
+                  {d.aboutUs}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${lang}/contact`} className={LINK}>
+                  {d.contact}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${lang}/delivery`} className={LINK}>
+                  {d.deliveryReturns}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${lang}/privacy`} className={LINK}>
+                  {d.privacyPolicy}
                 </Link>
               </li>
               {socials.map((s) => (

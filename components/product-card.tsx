@@ -72,7 +72,15 @@ export function ProductCard({ product, lang, priority = false }: { product: Prod
                 {d.chooseSize}
               </Link>
             ) : (
-              <CardActions id={product.id} variant={variant.id} cartHref={`/${lang}/cart`} label={d.addShort} addedLabel={d.added} buyLabel={d.buyNow} />
+              <CardActions
+                id={product.id}
+                variant={variant.id}
+                item={{ id: product.id, name: product.name[lang], variant: variant.label[lang], price: variant.price }}
+                cartHref={`/${lang}/cart`}
+                label={d.addShort}
+                addedLabel={d.added}
+                buyLabel={d.buyNow}
+              />
             )}
           </div>
         )}

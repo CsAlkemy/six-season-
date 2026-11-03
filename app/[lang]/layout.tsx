@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import "../globals.css";
+import { Analytics } from "@/components/analytics";
 import { CartProvider } from "@/components/cart-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SeasonScene } from "@/components/season-scene";
 import { SiteHeader } from "@/components/site-header";
-import { getSettings } from "@/lib/data";
+import { shopCategories } from "@/lib/categories";
+import { getProducts, getSettings } from "@/lib/data";
 import { fontVars } from "@/lib/fonts";
 import { STORE_NAME, t } from "@/lib/i18n";
 import { SEASON_SCRIPT, seasonAt } from "@/lib/season";
@@ -40,7 +42,7 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
 export default async function StoreLayout({ children, params }: LayoutProps<"/[lang]">) {
   const lang = (await params).lang as Lang;
   if (!LANGS.includes(lang)) notFound();
-  const settings = await getSettings();
+  const [settings, products] = await Promise.all([getSettings(), getProducts()]);
 
   return (
     // The head script sets the visitor's season and data-motion before paint (no JS: today's season, still); the DOM wins on hydration.
@@ -59,8 +61,9 @@ export default async function StoreLayout({ children, params }: LayoutProps<"/[l
         <CartProvider>
           <SiteHeader lang={lang} />
           <main className="flex-1">{children}</main>
-          <SiteFooter lang={lang} settings={settings} />
+          <SiteFooter lang={lang} settings={settings} categories={shopCategories(products)} />
         </CartProvider>
+        <Analytics />
       </body>
     </html>
   );

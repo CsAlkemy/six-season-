@@ -4,17 +4,21 @@ import { notFound } from "next/navigation";
 
 import { BuyBox } from "@/components/buy-box";
 import { CashIcon, LeafIcon, TruckIcon } from "@/components/icons";
+import { PostCard } from "@/components/post-card";
 import { ProductGallery } from "@/components/product-gallery";
 import { ratingLabel, ReviewsSection } from "@/components/reviews";
 import { Stars } from "@/components/stars";
 import { JsonLd } from "@/components/json-ld";
-import { findProduct, getProducts, getSettings } from "@/lib/data";
+import { TrackProductView } from "@/components/track-product-view";
+import { isLive, newestFirst, postCover } from "@/lib/blog";
+import { categoryOf } from "@/lib/categories";
+import { findProduct, getPosts, getProducts, getSettings } from "@/lib/data";
 import { STORE_NAME, t } from "@/lib/i18n";
 import { getApprovedReviews, summarize } from "@/lib/reviews";
 import { alternates, openGraph, snippet } from "@/lib/site";
 import { productJsonLd } from "@/lib/structured-data";
 import type { Lang } from "@/lib/types";
-import { variantsOf } from "@/lib/variants";
+import { defaultVariant, variantsOf } from "@/lib/variants";
 
 /** Products added later render on first visit, then stay static. */
 export const dynamicParams = true;
@@ -28,12 +32,14 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/p/[slug]">
   const product = await findProduct(slug);
   if (!product) return {};
   const path = (to: Lang) => `/${to}/p/${product.slug}`;
-  const description = snippet(product.description[lang] || t(lang).about);
+  // The admin's own title and description (Products › Search listing), else the name and the start of the description.
+  const title = product.seo?.title[lang] || product.name[lang];
+  const description = product.seo?.description[lang] || snippet(product.description[lang] || t(lang).about);
   return {
-    title: product.name[lang],
+    title,
     description,
     alternates: alternates(lang, path),
-    openGraph: openGraph(lang, { url: path(lang), title: `${product.name[lang]} · ${STORE_NAME[lang]}`, description }),
+    openGraph: openGraph(lang, { url: path(lang), title: `${title} · ${STORE_NAME[lang]}`, description }),
   };
 }
 
@@ -43,8 +49,11 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug
   const product = await findProduct(slug);
   if (!product) notFound();
   const d = t(lang);
-  const [settings, reviews] = await Promise.all([getSettings(), getApprovedReviews(product.id).catch(() => [])]);
+  const [settings, reviews, posts, all] = await Promise.all([getSettings(), getApprovedReviews(product.id).catch(() => []), getPosts(), getProducts()]);
   const summary = summarize(reviews);
+  const category = categoryOf(product);
+  // Posts that name this product: the guides a reader might want before buying, and a link in for those posts' readers.
+  const guides = newestFirst(posts.filter((post) => isLive(post, lang) && post.products.includes(product.id))).slice(0, 3);
   const inStock = variantsOf(product).some((v) => v.inStock);
 
   // "Inside Dhaka 1–2 days · Outside Dhaka 2–4 days", straight from the delivery settings.
@@ -60,7 +69,8 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug
 
   return (
     <div className="container-page flex flex-col gap-12 sm:gap-16 sm:pt-5">
-      <JsonLd data={productJsonLd(product, lang, reviews, summary)} />
+      <JsonLd data={productJsonLd(product, lang, reviews, summary, settings)} />
+      <TrackProductView item={{ id: product.id, name: product.name[lang], variant: defaultVariant(product).label[lang], price: defaultVariant(product).price }} />
       <div className="flex flex-col gap-4 sm:gap-6">
         <nav aria-label="Breadcrumb" className="max-sm:hidden">
           <ol className="flex flex-wrap items-center gap-2 text-caption text-fg-tertiary">
@@ -70,6 +80,16 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug
               </Link>
             </li>
             <li aria-hidden>/</li>
+            {category && (
+              <>
+                <li>
+                  <Link href={`/${lang}/c/${category.slug}`} className="transition-colors hover:text-fg-primary">
+                    {category.name[lang]}
+                  </Link>
+                </li>
+                <li aria-hidden>/</li>
+              </>
+            )}
             <li aria-current="page">{product.name[lang]}</li>
           </ol>
         </nav>
@@ -117,6 +137,24 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug
           </div>
         </div>
       </div>
+
+      {/* Cleaned when the product was saved (lib/post-html.ts), and with no photos: those go in the gallery. */}
+      {product.details?.[lang] && (
+        <section aria-label={d.aboutProduct} className="mx-auto w-full max-w-180">
+          <div className="post-body" dangerouslySetInnerHTML={{ __html: product.details[lang] }} />
+        </section>
+      )}
+
+      {guides.length > 0 && (
+        <section className="flex flex-col gap-6">
+          <h2 className="text-h3 sm:text-h2">{d.productGuides}</h2>
+          <div className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8">
+            {guides.map((post) => (
+              <PostCard key={post.id} post={post} cover={postCover(post, all)} lang={lang} heading="h3" />
+            ))}
+          </div>
+        </section>
+      )}
 
       <ReviewsSection productId={product.id} reviews={reviews} summary={summary} lang={lang} d={d} />
     </div>

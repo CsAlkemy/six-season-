@@ -142,6 +142,8 @@ export const DEFAULT_SETTINGS: Settings = {
       },
     ],
   },
+  // No number promised until the owner sets one (Settings › Delivery & zones).
+  returns: { days: 0 },
   // Off until the admin fills it in, so the store opens on the products as before.
   home: {
     hero: {

@@ -118,6 +118,7 @@ export function SettingsForm({ initial, products, initialTab }: { initial: Setti
           {tab === "home" && <HomeTab home={settings.home} products={products} onChange={(home) => setSettings((s) => ({ ...s, home }))} />}
 
           {tab === "delivery" && (
+            <div className="flex flex-col gap-4">
             <ContentCard title="Delivery zones" subtitle="Areas customers pick at checkout. “Free above” 0 means delivery is never free." flush action={<span className="pr-6"><Button variant="secondary" onClick={addZone}>+ Add zone</Button></span>}>
               <Table bare minWidth="min-w-160" widths={["", "w-28", "w-32", "w-32", "w-20", "w-24"]} head={<><Th>Zone</Th><Th>Fee</Th><Th>Free above</Th><Th>Time</Th><Th>Status</Th><Th><span className="sr-only">Edit</span></Th></>}>
                 {settings.delivery.zones.map((z, i) => (
@@ -132,6 +133,16 @@ export function SettingsForm({ initial, products, initialTab }: { initial: Setti
                 ))}
               </Table>
             </ContentCard>
+            <ContentCard padding="md" title="Returns and refunds" subtitle="Shown on the Delivery & returns page, and given to Google as the store's return policy.">
+              <Input
+                label="Days to report a problem"
+                type="number"
+                value={settings.returns.days}
+                onChange={(v) => setSettings((s) => ({ ...s, returns: { days: Math.min(Number(v) || 0, 30) } }))}
+                hint="How many days after delivery a customer can report a damaged, spoiled or wrong item for a replacement or refund. 0 promises no number: the page just says to tell you as soon as possible, and Google gets no return policy."
+              />
+            </ContentCard>
+            </div>
           )}
 
           {tab === "payments" && <PaymentsTab methods={settings.payments.methods} onChange={(methods) => setSettings((s) => ({ ...s, payments: { methods } }))} />}

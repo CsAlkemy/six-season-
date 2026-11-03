@@ -17,7 +17,7 @@ import { Button, cn, FormField, Icon, type IconName, Spinner } from "./ui";
  * headings, notes and photos look here as they will on the blog. Photos upload as they go in (picked, pasted or
  * dropped), shrunk to WebP like product photos. The HTML is cleaned again on the server when the post is saved.
  */
-export function RichTextEditor({ value, onChange, placeholder, label }: { value: string; onChange: (html: string) => void; placeholder: string; label: string }) {
+export function RichTextEditor({ value, onChange, placeholder, label, photos = true }: { value: string; onChange: (html: string) => void; placeholder: string; label: string; photos?: boolean }) {
   const [uploading, setUploading] = useState(0);
   const files = useRef<HTMLInputElement>(null);
   /** For the paste and drop handlers, which are set up before the editor exists. */
@@ -41,7 +41,7 @@ export function RichTextEditor({ value, onChange, placeholder, label }: { value:
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({ heading: { levels: [2, 3] }, code: false, codeBlock: false, link: { openOnClick: false, autolink: true, defaultProtocol: "https" } }),
-      Image.configure({ inline: false, allowBase64: false }),
+      ...(photos ? [Image.configure({ inline: false, allowBase64: false })] : []),
       Placeholder.configure({ placeholder }),
     ],
     content: value,
@@ -63,13 +63,13 @@ export function RichTextEditor({ value, onChange, placeholder, label }: { value:
       },
       handlePaste(_, event) {
         const pasted = [...(event.clipboardData?.files ?? [])];
-        if (!pasted.some((f) => f.type.startsWith("image/")) || !editorRef.current) return false;
+        if (!photos || !pasted.some((f) => f.type.startsWith("image/")) || !editorRef.current) return false;
         void insertPhotos(editorRef.current, pasted);
         return true;
       },
       handleDrop(_, event) {
         const dropped = [...((event as DragEvent).dataTransfer?.files ?? [])];
-        if (!dropped.some((f) => f.type.startsWith("image/")) || !editorRef.current) return false;
+        if (!photos || !dropped.some((f) => f.type.startsWith("image/")) || !editorRef.current) return false;
         event.preventDefault();
         void insertPhotos(editorRef.current, dropped);
         return true;
@@ -90,7 +90,7 @@ export function RichTextEditor({ value, onChange, placeholder, label }: { value:
 
   return (
     <div className="rounded-md border border-border-strong bg-surface focus-within:border-brand focus-within:ring-3 focus-within:ring-brand-soft">
-      <Toolbar editor={editor} onPhoto={() => files.current?.click()} uploading={uploading} />
+      <Toolbar editor={editor} onPhoto={photos ? () => files.current?.click() : undefined} uploading={uploading} />
       <EditorContent editor={editor} />
       <input
         ref={files}
@@ -108,7 +108,8 @@ export function RichTextEditor({ value, onChange, placeholder, label }: { value:
   );
 }
 
-function Toolbar({ editor, onPhoto, uploading }: { editor: Editor; onPhoto: () => void; uploading: number }) {
+/** `onPhoto` left out means no photos: no button for them, and no "Describe photo". */
+function Toolbar({ editor, onPhoto, uploading }: { editor: Editor; onPhoto?: () => void; uploading: number }) {
   const [linking, setLinking] = useState<string | null>(null);
   const [describing, setDescribing] = useState<string | null>(null);
   const state = useEditorState({
@@ -123,7 +124,8 @@ function Toolbar({ editor, onPhoto, uploading }: { editor: Editor; onPhoto: () =
       numbers: e.isActive("orderedList"),
       quote: e.isActive("blockquote"),
       link: e.isActive("link"),
-      image: e.isActive("image"),
+      // Without photos the editor has no image node, and asking about an unknown one throws.
+      image: Boolean(onPhoto) && e.isActive("image"),
       undo: e.can().undo(),
       redo: e.can().redo(),
     }),
@@ -168,8 +170,8 @@ function Toolbar({ editor, onPhoto, uploading }: { editor: Editor; onPhoto: () =
       {tool("divider", "Divider line", false, () => chain().setHorizontalRule().run())}
       {gap}
       {tool("link", "Link", state.link, () => setLinking(editor.getAttributes("link").href ?? ""))}
-      {tool("image", "Add photos", false, onPhoto, uploading > 0)}
-      {state.image && (
+      {onPhoto && tool("image", "Add photos", false, onPhoto, uploading > 0)}
+      {onPhoto && state.image && (
         <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setDescribing(editor.getAttributes("image").alt ?? "")} className="rounded-md px-2.5 py-1.5 text-label-md text-fg-brand hover:bg-brand-soft">
           Describe photo
         </button>

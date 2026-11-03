@@ -4,20 +4,24 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { deleteProduct, saveProduct, type ProductDraft } from "@/app/admin/actions";
+import { CATEGORIES, categoryOf } from "@/lib/categories";
 import { SEASON_NAME } from "@/lib/season";
 import { DEFAULT_LOW_STOCK } from "@/lib/stock";
-import { MAX_PHOTOS, SEASONS, type Product, type Text } from "@/lib/types";
+import { LANGS, type Lang, MAX_PHOTOS, SEASONS, type Product, type Text } from "@/lib/types";
 import { variantsOf } from "@/lib/variants";
 
 import { Modal, SwitchRow, toast } from "./controls";
 import { uploadPhoto } from "./image-upload";
-import { Button, Callout, ContentCard, FormField, Icon, PageBody, PageHeader, Spinner, StatusPill, Table, Td, Th } from "./ui";
+import { RichTextEditor } from "./rich-text-editor";
+import { Button, Callout, cn, ContentCard, FormField, Icon, PageBody, PageHeader, Spinner, StatusPill, Table, Td, Th } from "./ui";
 
 type Size = ProductDraft["variants"][number];
 const blank = (): Size => ({ id: "", label: { bn: "", en: "" }, price: 0, compareAt: null, stock: 0 });
+const blankText = (): Text => ({ bn: "", en: "" });
+const LANG_NAME: Record<Lang, string> = { bn: "বাংলা", en: "English" };
 
 function draftOf(product: Product | null): ProductDraft {
-  if (!product) return { id: "", slug: "", name: { bn: "", en: "" }, description: { bn: "", en: "" }, images: [], tone: "soil", seasons: [], active: false, lowStockAt: DEFAULT_LOW_STOCK, variants: [blank()] };
+  if (!product) return { id: "", slug: "", name: blankText(), description: blankText(), images: [], tone: "soil", seasons: [], category: "", details: blankText(), seo: { title: blankText(), description: blankText() }, active: false, lowStockAt: DEFAULT_LOW_STOCK, variants: [blank()] };
   return {
     id: product.id,
     slug: product.slug,
@@ -26,6 +30,10 @@ function draftOf(product: Product | null): ProductDraft {
     images: product.images?.length ? product.images : product.image ? [product.image] : [],
     tone: product.tone,
     seasons: product.seasons ?? [],
+    // The starter products are in their category before anyone saves them; saving writes it down.
+    category: product.category ?? categoryOf(product)?.id ?? "",
+    details: product.details ?? blankText(),
+    seo: product.seo ?? { title: blankText(), description: blankText() },
     active: product.active,
     lowStockAt: product.lowStockAt ?? DEFAULT_LOW_STOCK,
     // Sizes saved before stock counts start at 10 when they were in stock, for the admin to correct.
@@ -45,8 +53,10 @@ export function ProductForm({ product }: { product: Product | null }) {
   const [pending, start] = useTransition();
   const [uploading, setUploading] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [detailsLang, setDetailsLang] = useState<Lang>("bn");
   const fileInput = useRef<HTMLInputElement>(null);
   const set = (patch: Partial<ProductDraft>) => setDraft((d) => ({ ...d, ...patch }));
+  const setSeo = (key: "title" | "description", lang: Lang, value: string) => set({ seo: { ...draft.seo, [key]: { ...draft.seo[key], [lang]: value } } });
   const setSize = (i: number, patch: Partial<Size>) => set({ variants: draft.variants.map((v, j) => (j === i ? { ...v, ...patch } : v)) });
   const setText = (key: "name" | "description", lang: keyof Text, value: string) => set({ [key]: { ...draft[key], [lang]: value } });
 
@@ -115,6 +125,34 @@ export function ProductForm({ product }: { product: Product | null }) {
             </div>
           </ContentCard>
 
+          <ContentCard
+            title="More about this product"
+            action={
+              <div role="tablist" aria-label="Language" className="flex rounded-full bg-muted p-1">
+                {LANGS.map((l) => (
+                  <button key={l} type="button" role="tab" aria-selected={detailsLang === l} onClick={() => setDetailsLang(l)} className={cn("flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-label-md transition-colors focus-visible:outline-2 focus-visible:outline-brand", detailsLang === l ? "bg-surface text-fg-primary shadow-card" : "text-fg-secondary hover:text-fg-primary")}>
+                    {LANG_NAME[l]}
+                    {draft.details[l] && <span aria-label="written" className="size-1.5 rounded-full bg-brand" />}
+                  </button>
+                ))}
+              </div>
+            }
+          >
+            <p className="text-caption text-fg-secondary">Shown under the buy box. Useful things people ask before buying: where it comes from, how to use it, how to keep it. Use headings; each question or topic can be one. Photos go in the gallery below.</p>
+            {/* Both stay mounted so each keeps its own undo history; the other language waits hidden. */}
+            {LANGS.map((l) => (
+              <div key={l} hidden={l !== detailsLang}>
+                <RichTextEditor
+                  photos={false}
+                  value={draft.details[l]}
+                  onChange={(html) => set({ details: { ...draft.details, [l]: html } })}
+                  label={`More about this product in ${l === "bn" ? "Bangla" : "English"}`}
+                  placeholder={l === "bn" ? "যেমন: কোথা থেকে আসে, কীভাবে ব্যবহার করবেন, কীভাবে রাখবেন…" : "e.g. where it comes from, how to use it, how to keep it…"}
+                />
+              </div>
+            ))}
+          </ContentCard>
+
           <ContentCard title="Photos" action={<span className="text-caption text-fg-secondary">First photo becomes the cover</span>}>
             <div className="flex flex-wrap gap-3">
               {draft.images.map((url, i) => (
@@ -156,6 +194,15 @@ export function ProductForm({ product }: { product: Product | null }) {
             <SwitchRow label="Active" description={draft.active ? "Visible in the store" : "Saved as draft until you turn this on"} checked={draft.active} onCheckedChange={(active) => set({ active })} />
           </ContentCard>
 
+          <ContentCard title="Category">
+            <FormField label="Shown on" htmlFor="category" hint="Puts the product on that category's page and links to it from the product page.">
+              <select id="category" value={draft.category} onChange={(e) => set({ category: e.target.value })} className="field">
+                <option value="">No category</option>
+                {CATEGORIES.map((c) => <option key={c.id} value={c.id}>{c.name.en} · {c.name.bn}</option>)}
+              </select>
+            </FormField>
+          </ContentCard>
+
           <ContentCard title="In season">
             <p className="text-caption text-fg-secondary">Listed first and badged on the store in these seasons.</p>
             <div className="flex flex-wrap gap-2">
@@ -180,10 +227,14 @@ export function ProductForm({ product }: { product: Product | null }) {
           <ContentCard title="Search listing">
             <FormField label="URL" htmlFor="slug"><input id="slug" value={draft.slug} placeholder={slug || "gawa-ghee"} onChange={(e) => set({ slug: e.target.value })} className="field" /></FormField>
             <div className="flex flex-col gap-0.5 rounded-md bg-muted p-3">
-              <p className="truncate text-caption text-fg-success">matirtaan.com/p/{slug || "…"}</p>
-              <p className="truncate text-label-md text-fg-brand">{draft.name.en || "Product name"}</p>
-              <p className="line-clamp-2 text-caption text-fg-secondary">{draft.description.en || "The description shows here in search results."}</p>
+              <p className="truncate text-caption text-fg-success">matirtaan.com.bd/en/p/{slug || "…"}</p>
+              <p className="truncate text-label-md text-fg-brand">{draft.seo.title.en || draft.name.en || "Product name"}</p>
+              <p className="line-clamp-2 text-caption text-fg-secondary">{draft.seo.description.en || draft.description.en || "The description shows here in search results."}</p>
             </div>
+            <FormField label="Title · বাংলা" htmlFor="seo-title-bn" hint="Up to 70 characters. Empty uses the product name."><input id="seo-title-bn" maxLength={70} value={draft.seo.title.bn} placeholder={draft.name.bn} onChange={(e) => setSeo("title", "bn", e.target.value)} className="field" /></FormField>
+            <FormField label="Title · English" htmlFor="seo-title-en"><input id="seo-title-en" maxLength={70} value={draft.seo.title.en} placeholder={draft.name.en} onChange={(e) => setSeo("title", "en", e.target.value)} className="field" /></FormField>
+            <FormField label="Description · বাংলা" htmlFor="seo-desc-bn" hint="Up to 200 characters; Google shows about 155. Empty uses the start of the product description."><textarea id="seo-desc-bn" rows={3} maxLength={200} value={draft.seo.description.bn} placeholder={draft.description.bn} onChange={(e) => setSeo("description", "bn", e.target.value)} className="field" /></FormField>
+            <FormField label="Description · English" htmlFor="seo-desc-en"><textarea id="seo-desc-en" rows={3} maxLength={200} value={draft.seo.description.en} placeholder={draft.description.en} onChange={(e) => setSeo("description", "en", e.target.value)} className="field" /></FormField>
           </ContentCard>
 
           {product && <Button variant="outline" className="w-full text-fg-error hover:bg-error-soft" onClick={() => setConfirmDelete(true)}>Delete product</Button>}

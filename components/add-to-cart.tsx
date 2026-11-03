@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { trackAddToCart, type TrackedItem } from "@/lib/analytics";
+
 import { useCart } from "./cart-provider";
 import { CheckIcon, MinusIcon, PlusIcon } from "./icons";
 
@@ -27,19 +29,25 @@ interface ActionsProps {
   buyLabel: string;
   /** Product page: a quantity stepper ahead of the buttons. */
   qty?: number;
+  /** What Google Analytics and the Pixel are told when it's added; left out, nothing is. */
+  item?: Omit<TrackedItem, "qty">;
 }
 
 /** Add to cart in outline and Buy now filled, which adds it and goes straight to checkout. */
-export function CardActions({ id, variant, cartHref, label, addedLabel, buyLabel, qty = 1 }: ActionsProps) {
+export function CardActions({ id, variant, cartHref, label, addedLabel, buyLabel, qty = 1, item }: ActionsProps) {
   const router = useRouter();
   const { added, addNow, add } = useAdd();
+  const counted = () => item && trackAddToCart({ ...item, qty });
 
   // Side by side when the card has room (a container query on the card body), stacked in narrow columns.
   return (
     <div className="grid gap-2 @[14rem]:grid-cols-2">
       <button
         type="button"
-        onClick={() => addNow(id, variant, qty)}
+        onClick={() => {
+          addNow(id, variant, qty);
+          counted();
+        }}
         className="btn h-12 border border-fg-primary px-3 text-label-md text-fg-primary hover:bg-surface sm:px-3"
       >
         {added ? <CheckIcon className="size-4.5" /> : null}
@@ -49,6 +57,7 @@ export function CardActions({ id, variant, cartHref, label, addedLabel, buyLabel
         type="button"
         onClick={() => {
           add(id, variant, qty);
+          counted();
           router.push(cartHref);
         }}
         className="btn-primary h-12 px-3 text-label-md sm:px-3"

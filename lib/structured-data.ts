@@ -4,6 +4,7 @@
  * the blog and its posts.
  */
 import { type Post, postDescription } from "./blog";
+import { type Category, categoryOf } from "./categories";
 import { otherLang, STORE_NAME, t } from "./i18n";
 import type { RatingSummary } from "./reviews";
 import { absolute, homeSeo, intlPhone, SITE_URL } from "./site";
@@ -58,8 +59,27 @@ export function storeJsonLd(lang: Lang, settings: Settings) {
   };
 }
 
-export function productJsonLd(product: Product, lang: Lang, reviews: Review[], summary: RatingSummary) {
+/**
+ * Google's merchant return policy for the days the store promises to take a damaged, spoiled or wrong item back
+ * (Settings › Delivery & zones). Left out while that's 0: no promise, no markup. Delivery isn't marked up: its
+ * charges depend on "inside Dhaka city", which schema.org can't say, so they belong in the Merchant Center account.
+ */
+const returnPolicy = (lang: Lang, days: number) =>
+  days > 0
+    ? {
+        hasMerchantReturnPolicy: {
+          "@type": "MerchantReturnPolicy",
+          applicableCountry: "BD",
+          returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+          merchantReturnDays: days,
+          merchantReturnLink: absolute(`/${lang}/delivery`),
+        },
+      }
+    : {};
+
+export function productJsonLd(product: Product, lang: Lang, reviews: Review[], summary: RatingSummary, settings: Settings) {
   const url = absolute(`/${lang}/p/${product.slug}`);
+  const category = categoryOf(product);
   const offers = variantsOf(product).map((v) => ({
     "@type": "Offer",
     url,
@@ -70,6 +90,7 @@ export function productJsonLd(product: Product, lang: Lang, reviews: Review[], s
     availability: `https://schema.org/${v.inStock ? "InStock" : "OutOfStock"}`,
     itemCondition: "https://schema.org/NewCondition",
     seller: { "@id": STORE_ID },
+    ...returnPolicy(lang, settings.returns.days),
   }));
   return {
     "@context": "https://schema.org",
@@ -101,13 +122,49 @@ export function productJsonLd(product: Product, lang: Lang, reviews: Review[], s
           })),
         }),
       },
+      breadcrumb(lang, [...(category ? [{ name: category.name[lang], url: absolute(`/${lang}/c/${category.slug}`) }] : []), { name: product.name[lang], url }]),
+    ],
+  };
+}
+
+/** store › …trail, as Google's breadcrumb data. */
+const breadcrumb = (lang: Lang, trail: { name: string; url: string }[]) => ({
+  "@type": "BreadcrumbList",
+  itemListElement: [{ name: STORE_NAME[lang], url: absolute(`/${lang}`) }, ...trail].map((crumb, i) => ({ "@type": "ListItem", position: i + 1, name: crumb.name, item: crumb.url })),
+});
+
+/** A plain page (about, contact, delivery, privacy): what kind it is and where it sits, store › page. */
+export function pageJsonLd(kind: string, slug: string, title: string, description: string, lang: Lang) {
+  const url = absolute(`/${lang}/${slug}`);
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": kind, "@id": `${url}#page`, name: title, description, url, inLanguage: lang, isPartOf: { "@id": WEBSITE_ID }, ...(kind === "AboutPage" && { about: { "@id": STORE_ID } }) },
+      breadcrumb(lang, [{ name: title, url }]),
+    ],
+  };
+}
+
+/** A category page: the products on it as a list, and store › category. */
+export function categoryJsonLd(category: Category, products: Product[], lang: Lang) {
+  const url = absolute(`/${lang}/c/${category.slug}`);
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
       {
-        "@type": "BreadcrumbList",
-        itemListElement: [
-          { "@type": "ListItem", position: 1, name: STORE_NAME[lang], item: absolute(`/${lang}`) },
-          { "@type": "ListItem", position: 2, name: product.name[lang], item: url },
-        ],
+        "@type": "CollectionPage",
+        "@id": `${url}#page`,
+        name: category.title[lang],
+        description: category.description[lang],
+        url,
+        inLanguage: lang,
+        isPartOf: { "@id": WEBSITE_ID },
+        mainEntity: {
+          "@type": "ItemList",
+          itemListElement: products.map((p, i) => ({ "@type": "ListItem", position: i + 1, url: absolute(`/${lang}/p/${p.slug}`), name: p.name[lang] })),
+        },
       },
+      breadcrumb(lang, [{ name: category.name[lang], url }]),
     ],
   };
 }

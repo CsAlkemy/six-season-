@@ -3,12 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { OrderActionsCard, OrderHeaderActions, OrderNoteCard, PackingSlip } from "@/components/admin/order-actions";
-import { Avatar, ContentCard, Icon, Labelled, LinkButton, OrderPill, PageBody, PageHeader, StatusPill } from "@/components/admin/ui";
+import { Avatar, buttonClass, ContentCard, Icon, Labelled, LinkButton, OrderPill, PageBody, PageHeader, StatusPill } from "@/components/admin/ui";
 import { listCustomerOrders } from "@/lib/customers";
-import { loadOrder } from "@/lib/data";
+import { loadOrder, loadProducts } from "@/lib/data";
 import { taka } from "@/lib/i18n";
 import { paymentIsCash, paymentName } from "@/lib/payments";
 import { dhakaTime, historyOf, paymentState, STATUS_LABEL } from "@/lib/orders";
+import { reviewRequest } from "@/lib/review-request";
 import { ORDER_STATUSES } from "@/lib/types";
 
 const FLOW = ORDER_STATUSES.filter((s) => s !== "cancelled");
@@ -42,6 +43,8 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
   const pay = paymentState(order);
   const orderCount = (await listCustomerOrders(order.customer.phone).catch(() => [])).length;
   const cancelled = order.status === "cancelled";
+  // A delivered order is the moment to ask for a review: the message is ready to send on WhatsApp.
+  const review = order.status === "delivered" ? reviewRequest(order, await loadProducts()) : null;
   const cancelEvent = history.findLast((h) => h.status === "cancelled");
   const reached = new Set(history.map((h) => h.status));
   const steps = (cancelled ? history.filter((h) => h.status !== "cancelled") : FLOW.map((s) => history.find((h) => h.status === s) ?? { status: s, at: "" }));
@@ -127,6 +130,12 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
               </dl>
             </ContentCard>
 
+            {review && (
+              <ContentCard title="Ask for a review" subtitle="Delivered. A WhatsApp message with a link to review each product.">
+                <a href={review.url} target="_blank" rel="noopener" className={buttonClass("outline")}>Open in WhatsApp</a>
+                <p className="text-caption whitespace-pre-line text-fg-tertiary">{review.text}</p>
+              </ContentCard>
+            )}
             <OrderNoteCard id={order.id} note={order.adminNote ?? ""} />
             <OrderActionsCard order={order} />
             <Link href="/admin/orders" className="self-center text-label-md text-fg-secondary underline-offset-4 hover:text-fg-primary hover:underline">← All orders</Link>
