@@ -68,7 +68,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
 
       <div className="container-page flex flex-col gap-12 pt-10 sm:gap-16 sm:pt-16">
         {/* Every page has one h1: the hero's, the heading over the grid below, or (curated sections and no hero) this one, for search and screen readers. */}
-        {!showHero && sections.length > 0 && <h1 className="sr-only">{d.homeHeading}</h1>}
+        {!showHero && sections.length > 0 && <h1 className="sr-only">{d.ourProducts}</h1>}
         {sections.map((section, i) => (
           <section key={section.id} id={`section-${i}`} className="flex scroll-mt-28 flex-col gap-6">
             <header className="flex max-w-180 flex-col gap-1">
@@ -85,7 +85,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
 
         <section id="products" className="flex scroll-mt-28 flex-col gap-10">
           <header className="flex max-w-180 flex-col gap-3">
-            {sections.length > 0 || showHero ? <h2 className="text-h3 sm:text-h2">{d.allProducts}</h2> : <h1 className="text-h2 sm:text-h1">{d.homeHeading}</h1>}
+            {sections.length > 0 || showHero ? <h2 className="text-h3 sm:text-h2">{d.allProducts}</h2> : <h1 className="text-h2 sm:text-h1">{d.ourProducts}</h1>}
             <p className="text-body-lg text-fg-secondary">{d.productsLead}</p>
           </header>
           {/* One card per row on phones, two then three on tablets, four on desktop; cards in a row share one height. */}

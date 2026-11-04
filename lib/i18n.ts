@@ -12,8 +12,6 @@ const dict = {
     inThisPost: "এই লেখার পণ্য",
     morePosts: "আরও পড়ুন",
     ourProducts: "আমাদের পণ্য",
-    /** The home page's heading: the brand and what it sells, which is what the page is about for search. */
-    homeHeading: "মাটির টান: খাঁটি ঘি, সরিষার তেল, গুড় ও দেশি ডিম",
     productsLead: "অল্প কিছু পণ্য, কিন্তু প্রতিটি যত্ন করে বাছাই করা।",
     shop: "কেনাকাটা",
     aboutUs: "আমাদের কথা",
@@ -151,7 +149,6 @@ const dict = {
     inThisPost: "In this post",
     morePosts: "Keep reading",
     ourProducts: "Our products",
-    homeHeading: "Matir Taan: pure ghee, mustard oil, jaggery and deshi eggs",
     productsLead: "Only a few products, each one chosen with care.",
     shop: "Shop",
     aboutUs: "About us",
