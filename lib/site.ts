@@ -51,6 +51,14 @@ export function intlPhone(phone: string): string {
   return phone.trim();
 }
 
+/** What wa.me wants: digits with the country code first, no "+" and no leading 0. "01712345678", "+880 1712-345678" and "8801712345678" all give "8801712345678". */
+export function waNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, "").replace(/^00/, "");
+  if (/^01\d{9}$/.test(digits)) return `88${digits}`;
+  if (/^1\d{9}$/.test(digits)) return `880${digits}`;
+  return digits;
+}
+
 /** Cuts text for a meta description at a word, near Google's ~155-character snippet. */
 export function snippet(text: string, max = 155): string {
   const flat = text.replace(/\s+/g, " ").trim();

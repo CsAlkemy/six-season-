@@ -93,7 +93,7 @@ export function SettingsForm({ initial, products, initialTab }: { initial: Setti
               <ContentCard padding="md" title="Contact" subtitle="Shown in the footer, and given to Google with the store's details">
                 <div className="grid gap-4 sm:grid-cols-3">
                   <Input label="Phone" value={settings.store.phone} onChange={(phone) => setStore({ phone })} placeholder="01XXXXXXXXX" />
-                  <Input label="WhatsApp (with 880)" value={settings.store.whatsapp} onChange={(whatsapp) => setStore({ whatsapp: digits(whatsapp) })} placeholder="8801XXXXXXXXX" />
+                  <Input label="WhatsApp number" value={settings.store.whatsapp} onChange={(whatsapp) => setStore({ whatsapp: digits(whatsapp) })} placeholder="01XXXXXXXXX" />
                   <Input label="Email" value={settings.store.email} onChange={(email) => setStore({ email })} />
                 </div>
                 <TextPair label="Address" value={settings.store.address} onChange={(address) => setStore({ address })} />

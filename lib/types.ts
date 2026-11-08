@@ -103,7 +103,7 @@ export const SOCIAL_NAME: Record<Social, string> = { facebook: "Facebook", insta
 export interface Settings {
   store: {
     phone: string;
-    /** Digits only with country code, e.g. 8801XXXXXXXXX. Empty hides the WhatsApp button. */
+    /** Digits with the country code, e.g. 8801XXXXXXXXX (saving turns 01XXXXXXXXX into that; `waNumber` does the same for older saves). Empty hides the WhatsApp button. */
     whatsapp: string;
     email: string;
     address: Text;

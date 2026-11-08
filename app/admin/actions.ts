@@ -17,6 +17,7 @@ import { createOrder } from "@/lib/place-order";
 import { normalizePhone } from "@/lib/pricing";
 import { sendSms } from "@/lib/sms";
 import { createSession, passwordMatches, SESSION_COOKIE, SESSION_DAYS } from "@/lib/session";
+import { waNumber } from "@/lib/site";
 import { moveStock, summarize, withStock } from "@/lib/stock";
 import { taka } from "@/lib/i18n";
 import { LANGS, MAX_PHOTOS, SEASONS, SOCIALS, type HomeSection, type Lang, type Order, type PaymentKind, type PaymentMethod, type Product, type Settings, type Text, type Tone, type Variant } from "@/lib/types";
@@ -427,7 +428,7 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
   const settings: Settings = {
     store: {
       phone: String(store.phone ?? "").trim().slice(0, 30),
-      whatsapp: String(store.whatsapp ?? "").replace(/\D/g, "").slice(0, 15),
+      whatsapp: waNumber(String(store.whatsapp ?? "")).slice(0, 15),
       email: String(store.email ?? "").trim().slice(0, 120),
       address: text(store.address, 240),
       announcement: text(store.announcement, 120),

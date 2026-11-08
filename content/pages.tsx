@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { postDate } from "@/lib/blog";
 import { shopCategories } from "@/lib/categories";
-import { intlPhone } from "@/lib/site";
+import { intlPhone, waNumber } from "@/lib/site";
 import { t, taka } from "@/lib/i18n";
 import { type DeliveryZone, type Lang, type Product, type Settings, SOCIAL_NAME, SOCIALS, type Text } from "@/lib/types";
 
@@ -57,7 +57,7 @@ function contactItems({ lang, settings }: PageContext) {
     whatsapp && (
       <li key="whatsapp">
         <strong>{bn ? "হোয়াটসঅ্যাপ" : "WhatsApp"}:</strong>{" "}
-        <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener">
+        <a href={`https://wa.me/${waNumber(whatsapp)}`} target="_blank" rel="noopener">
           {bn ? "মেসেজ দিন" : "Send a message"}
         </a>
       </li>

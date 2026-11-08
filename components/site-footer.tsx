@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import type { Category } from "@/lib/categories";
 import { STORE_NAME, t } from "@/lib/i18n";
+import { waNumber } from "@/lib/site";
 import { type Lang, type Settings, SOCIAL_NAME, SOCIALS } from "@/lib/types";
 
 import { Grass } from "./grass";
@@ -80,7 +81,7 @@ export function SiteFooter({ lang, settings, categories }: { lang: Lang; setting
               {phone && <a href={`tel:${phone}`} className="font-display text-h3 hover:text-fg-footer-accent">{phone}</a>}
               {email && <a href={`mailto:${email}`} className="hover:text-fg-footer-accent">{email}</a>}
               {whatsapp && (
-                <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener" className="btn mt-2 bg-whatsapp text-fg-on-whatsapp hover:bg-whatsapp-hover">
+                <a href={`https://wa.me/${waNumber(whatsapp)}`} target="_blank" rel="noopener" className="btn mt-2 bg-whatsapp text-fg-on-whatsapp hover:bg-whatsapp-hover">
                   <WhatsAppIcon className="size-5" />
                   {d.whatsapp}
                 </a>

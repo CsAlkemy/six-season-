@@ -1,5 +1,5 @@
 import { STORE_NAME } from "./i18n";
-import { absolute, intlPhone } from "./site";
+import { absolute, waNumber } from "./site";
 import type { Order, Product } from "./types";
 
 /**
@@ -9,7 +9,7 @@ import type { Order, Product } from "./types";
  * or none of the products is still on sale.
  */
 export function reviewRequest(order: Order, products: Product[]): { url: string; text: string } | null {
-  const phone = intlPhone(order.customer.phone).replace(/\D/g, "");
+  const phone = waNumber(order.customer.phone);
   if (!/^8801\d{9}$/.test(phone)) return null;
   const { lang } = order;
   const links = [...new Set(order.items.map((item) => item.productId))].flatMap((id) => {
