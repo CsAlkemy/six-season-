@@ -1,8 +1,9 @@
 import { linkOrder, loadCustomer, newCustomer, saveCustomer } from "./customers";
 import { loadProducts, loadSettings, orderIdsByNo, refreshStorefront, saveOrder, saveProducts } from "./data";
+import { notifyNewOrder } from "./notify";
 import { isCash, kindOf } from "./payments";
 import { deliveryFee, methodAvailable } from "./pricing";
-import { moveStock } from "./stock";
+import { moveStock, stockAlerts } from "./stock";
 import type { Lang, Order } from "./types";
 import { findVariant } from "./variants";
 
@@ -112,6 +113,8 @@ export async function createOrder(input: NewOrder): Promise<PlaceResult> {
   }
   // Counts changed: the cached store pages show "Only 3 left" and cap quantities by them, so they refresh now.
   if (counted) refreshStorefront();
+  // The team's email, sent once the response is out.
+  notifyNewOrder(order, counted ? stockAlerts(products, taken.products) : []);
   // The order is in; failing to file it under the number or remember the address shouldn't fail it.
   try {
     const saved = await loadCustomer(input.phone);

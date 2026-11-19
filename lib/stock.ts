@@ -43,6 +43,31 @@ export function moveStock(products: Product[], items: OrderItem[], sign: 1 | -1)
   return { products: next, short };
 }
 
+export interface StockAlert {
+  product: string;
+  size: string;
+  left: number;
+  productId: string;
+}
+
+/**
+ * Sizes an order just took to or under their alert level, or sold out. Only the crossing counts, so the team hears
+ * once, not with every order after it.
+ */
+export function stockAlerts(before: Product[], after: Product[]): StockAlert[] {
+  return after.flatMap((product) => {
+    const old = before.find((p) => p.id === product.id);
+    const level = product.lowStockAt ?? DEFAULT_LOW_STOCK;
+    return (product.variants ?? []).flatMap((variant) => {
+      const was = old?.variants?.find((v) => v.id === variant.id)?.stock;
+      const now = variant.stock;
+      if (was === undefined || now === undefined || now >= was) return [];
+      const crossed = (was > level && now <= level) || (was > 0 && now === 0);
+      return crossed ? [{ product: product.name.en, size: variant.label.en, left: now, productId: product.id }] : [];
+    });
+  });
+}
+
 /**
  * Fills the product's own price, unit and stock fields from its sizes: the cheapest in stock (else the cheapest)
  * leads, as the storefront card and older code read those fields.

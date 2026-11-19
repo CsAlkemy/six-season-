@@ -2,6 +2,7 @@
 
 import { accessibleOrders, currentPhone, loadCustomer } from "@/lib/customers";
 import { loadProducts } from "@/lib/data";
+import { notifyReview } from "@/lib/notify";
 import { loadReview, phoneHint, reviewId, saveReview } from "@/lib/reviews";
 import { smsEnabled } from "@/lib/sms";
 import type { Order, Review, ReviewStatus } from "@/lib/types";
@@ -87,5 +88,6 @@ export async function submitReview(input: { productId: string; rating: number; t
     console.error("submitReview", error);
     return { ok: false, error: "errSave" };
   }
+  notifyReview(review, product.name.en);
   return { ok: true };
 }

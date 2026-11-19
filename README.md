@@ -36,6 +36,10 @@ With no `BLOB_READ_WRITE_TOKEN`, `npm run dev` keeps everything on disk instead:
 | Blog | Write and publish posts for মাটির কথা with a rich text editor (see **Blog** below) |
 | Settings | Store contact info, social pages, the home page's Google title and description, announcement bar, delivery areas (fee, free-above, time), **days to report a problem** (the returns promise), payment methods |
 
+**Email alerts** (Settings › Notifications). New orders (from the store and the ones the team creates, with the transaction ID to check for wallet and bank payments), stock running low or selling out, and new reviews, emailed to up to 5 addresses through [Resend](https://resend.com) (free: 3,000 emails a month, 100 a day). Paste a Resend API key, add where alerts go, and press **Send a test email**. Until your domain is verified at resend.com/domains, the sender is `onboarding@resend.dev`, and Resend then only delivers to the address you signed up with. The tab shows the last email sent and the last failure. Emails go out after the customer's page has answered (`after()` in `lib/notify.ts`), so a slow or broken mail service never holds up a checkout.
+
+**Keys and private settings** (the Resend key, alert addresses, courier keys) aren't in `settings.json`, which anyone can read in the public Blob store. `lib/vault.ts` encrypts each one (AES-256-GCM, key derived from `ADMIN_SECRET`) into `private/`, and the admin only ever sees the last characters of a key. Changing `ADMIN_SECRET` makes them unreadable: the admin then says so, and the keys need entering again.
+
 **Payments.** Cash on delivery is on by default, with an optional max order amount. bKash and Nagad (manual Send Money + TrxID) can be switched on once their wallet number is added. To add a method, extend `PaymentMethodId` in `lib/types.ts`, give it a default in `lib/defaults.ts` and a label in `lib/i18n.ts`.
 
 Saving products or settings refreshes the static pages immediately.

@@ -12,6 +12,9 @@ import { listCustomerOrders, loadCustomer } from "@/lib/customers";
 import { loadOrder, loadPosts, loadProducts, loadSettings, refreshStorefront, saveOrder, savePosts, saveProducts, saveSettings } from "@/lib/data";
 import { cleanPostHtml, htmlImages } from "@/lib/post-html";
 import { DEFAULT_SETTINGS } from "@/lib/defaults";
+import { DEFAULT_FROM, EMAIL_ADDRESS, EMAIL_EVENTS, type EmailConfig, type EmailEvent, type EmailView, emailView, MAX_RECIPIENTS, saveEmailConfig, sendEmail, validFrom } from "@/lib/email";
+import { testEmail } from "@/lib/notify";
+import { readVault } from "@/lib/vault";
 import { canCancel, NEXT_STEP, withStatus } from "@/lib/orders";
 import { createOrder } from "@/lib/place-order";
 import { normalizePhone } from "@/lib/pricing";
@@ -461,6 +464,55 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
   if (oldHero && oldHero !== settings.home.hero.image) await dropUploads([oldHero]);
   refreshStorefront();
   return { ok: true };
+}
+
+/* Notifications */
+
+export interface EmailSettingsInput {
+  /** A new Resend key; empty keeps the saved one. */
+  apiKey: string;
+  removeKey: boolean;
+  from: string;
+  /** Addresses separated by commas, spaces or new lines. */
+  to: string;
+  events: Record<EmailEvent, boolean>;
+}
+
+export type EmailSaved = { ok: true; view: EmailView } | { ok: false; error: string };
+
+/** Email alerts' setup. The key never comes back to the page: it's kept in the vault and shown masked. */
+export async function saveEmailSettings(input: EmailSettingsInput): Promise<EmailSaved> {
+  await requireAdmin();
+  const current = await readVault<EmailConfig>("email").catch(() => null);
+  const typed = String(input?.apiKey ?? "").trim();
+  if (typed && !/^re_[\w-]{8,200}$/.test(typed)) return { ok: false, error: "That doesn't look like a Resend API key. They start with re_." };
+  const apiKey = input?.removeKey ? "" : typed || current?.apiKey || "";
+
+  const from = String(input?.from ?? "").trim().slice(0, 120) || DEFAULT_FROM;
+  if (!validFrom(from)) return { ok: false, error: "Write the sender as an email address, or as Name <email@domain>." };
+  const to = [...new Set(String(input?.to ?? "").split(/[\s,;]+/).map((a) => a.trim().toLowerCase()).filter(Boolean))];
+  const bad = to.find((address) => !EMAIL_ADDRESS.test(address));
+  if (bad) return { ok: false, error: `"${bad.slice(0, 60)}" isn't an email address.` };
+  if (to.length > MAX_RECIPIENTS) return { ok: false, error: `Send to ${MAX_RECIPIENTS} addresses at most.` };
+  if (apiKey && !to.length) return { ok: false, error: "Add the email address the alerts should go to." };
+  const events = Object.fromEntries(EMAIL_EVENTS.map((e) => [e, Boolean(input?.events?.[e] ?? true)])) as Record<EmailEvent, boolean>;
+
+  try {
+    await saveEmailConfig({ apiKey, from, to, events });
+    return { ok: true, view: await emailView() };
+  } catch (error) {
+    return failed(error) as { ok: false; error: string };
+  }
+}
+
+/** Sends the test email with what's saved, and says what Resend answered. */
+export async function sendTestEmail(): Promise<EmailSaved> {
+  await requireAdmin();
+  const config = await readVault<EmailConfig>("email").catch(() => null);
+  if (!config?.apiKey) return { ok: false, error: "Save a Resend API key first." };
+  if (!config.to.length) return { ok: false, error: "Add an address to send to first." };
+  const sent = await sendEmail(config, testEmail());
+  return sent.ok ? { ok: true, view: await emailView() } : sent;
 }
 
 export interface PostDraft {

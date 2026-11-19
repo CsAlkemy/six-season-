@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 
 import { saveStoreSettings } from "@/app/admin/actions";
 import { DEFAULT_SETTINGS } from "@/lib/defaults";
+import type { EmailView } from "@/lib/email";
 import { taka } from "@/lib/i18n";
 import { homeSeo } from "@/lib/site";
 import { type DeliveryZone, type Settings, SOCIAL_NAME, SOCIALS } from "@/lib/types";
@@ -11,6 +12,7 @@ import { type DeliveryZone, type Settings, SOCIAL_NAME, SOCIALS } from "@/lib/ty
 import { Modal, Switch, SwitchRow, toast } from "./controls";
 import { digits, Input, TextPair } from "./fields";
 import { HomeTab, type PickerProduct } from "./home-tab";
+import { NotificationsTab } from "./notifications-tab";
 import { PaymentsTab } from "./payments-tab";
 import { Button, cn, ContentCard, PageBody, PageHeader, Table, Td, Th } from "./ui";
 
@@ -21,8 +23,11 @@ const TABS = [
   { id: "home", label: "Home page" },
   { id: "delivery", label: "Delivery & zones" },
   { id: "payments", label: "Payments" },
+  { id: "notifications", label: "Notifications" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
+/** Tabs that save on their own (their keys never join the settings draft), so the header's Save isn't theirs. */
+const OWN_SAVE: readonly Tab[] = ["notifications"];
 
 /** What the home page uses while the title and description are left empty, shown as their placeholders. */
 const seoDefault = (field: "title" | "description") => ({
@@ -32,13 +37,15 @@ const seoDefault = (field: "title" | "description") => ({
 const SEO_DEFAULT = { title: seoDefault("title"), description: seoDefault("description") };
 
 /** Motherhood's layout: a tab list beside the cards (a scroller on phones), one draft across every tab, Save only when something changed. */
-export function SettingsForm({ initial, products, initialTab }: { initial: Settings; products: PickerProduct[]; initialTab?: string }) {
+export function SettingsForm({ initial, products, initialTab, email }: { initial: Settings; products: PickerProduct[]; initialTab?: string; email: EmailView }) {
   const [tab, setTab] = useState<Tab>(TABS.find((t) => t.id === initialTab)?.id ?? "store");
   const [saved, setSaved] = useState(initial);
   const [settings, setSettings] = useState(initial);
   const dirty = JSON.stringify(settings) !== JSON.stringify(saved);
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState<number | null>(null);
+  // Saves on its own; kept here so leaving the tab and coming back shows what was last saved.
+  const [emailNow, setEmailNow] = useState(email);
 
   useEffect(() => {
     if (!dirty) return;
@@ -73,10 +80,12 @@ export function SettingsForm({ initial, products, initialTab }: { initial: Setti
       <PageHeader
         title="Settings"
         actions={
-          <>
-            <Button variant="outline" disabled={!dirty || pending} onClick={() => setSettings(saved)}>Discard</Button>
-            <Button disabled={!dirty} loading={pending} onClick={onSave}>Save changes</Button>
-          </>
+          OWN_SAVE.includes(tab) && !dirty ? undefined : (
+            <>
+              <Button variant="outline" disabled={!dirty || pending} onClick={() => setSettings(saved)}>Discard</Button>
+              <Button disabled={!dirty} loading={pending} onClick={onSave}>Save changes</Button>
+            </>
+          )
         }
       />
 
@@ -146,6 +155,7 @@ export function SettingsForm({ initial, products, initialTab }: { initial: Setti
           )}
 
           {tab === "payments" && <PaymentsTab methods={settings.payments.methods} onChange={(methods) => setSettings((s) => ({ ...s, payments: { methods } }))} />}
+          {tab === "notifications" && <NotificationsTab initial={emailNow} onSaved={setEmailNow} />}
         </div>
       </div>
 
