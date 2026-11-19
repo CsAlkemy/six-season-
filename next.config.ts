@@ -10,6 +10,7 @@ const config: NextConfig = {
   experimental: {
     // Product photos are resized to WebP in the browser before upload, so 4 MB is plenty.
     serverActions: { bodySizeLimit: "4mb" },
+    agentUpgrade: "security",
   },
 };
 
