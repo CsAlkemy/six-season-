@@ -26,13 +26,14 @@ function savedChoice(): Choice {
 }
 
 /**
- * The header's season button: follow the calendar or pick a season, and turn the animation off. The head script
- * already set <html data-season data-motion> before paint, so the button reads those and CSS shows the right icon.
+ * The header's season button: follow the calendar or pick a season, and switch the page animation on (it's off until
+ * the visitor asks; the footer grass sways regardless). The head script already set <html data-season data-motion>
+ * before paint, so the button reads those and CSS shows the right icon.
  */
 export function SeasonPicker({ lang, labels }: { lang: Lang; labels: Labels }) {
   const [open, setOpen] = useState(false);
   const [choice, setChoice] = useState<Choice>("auto");
-  const [motion, setMotion] = useState(true);
+  const [motion, setMotion] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const html = () => document.documentElement;
 

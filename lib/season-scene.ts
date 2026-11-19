@@ -513,6 +513,8 @@ export function createStage(canvas: HTMLCanvasElement, front: boolean): Stage {
       layers.forEach(drop);
       textures.forEach((t) => t.dispose());
       renderer.dispose();
+      // Hand the GPU context back now: switching the animation off and on again shouldn't pile contexts up.
+      renderer.forceContextLoss();
     },
   };
 }

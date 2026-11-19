@@ -4,7 +4,11 @@ import { SEASONS, type Season } from "@/lib/types";
  * A strip of grass growing out of the footer's soil, with the season's plants among it: krishnachura in Grishma,
  * kadam in Barsha, kash in Sharat, ripe paddy in Hemanta, mustard in Sheet, shimul in Basanta. Drawn once on the
  * server from a seeded random, so every render (and the static HTML) is the same. All six are in the markup and CSS
- * shows the one <html data-season> names, along with that season's grass colours; the sway is CSS only.
+ * shows the one <html data-season> names, along with that season's grass colours.
+ *
+ * It always sways (unless the visitor's system asks for reduced motion), and it costs scrolling nothing: each layer
+ * is its own <svg> inside an HTML box, and the CSS tilts the box, which the browser does on the GPU from a picture it
+ * painted once. Tilting the shapes inside one SVG instead would repaint every blade on every frame.
  *
  * The field is one 1440-wide tile that repeats left and right of itself, so a wide screen gets more field instead of
  * a stretched one (stretching to fill the width cropped the tops off); H leaves room above the tallest plumes.
@@ -264,48 +268,55 @@ const PLANTS: Record<Season, Plants> = {
   basanta: shimul(seeded(6)),
 };
 
+/**
+ * One layer of the field: three tiles wide (the middle one drawn, the sides <use> copies), centred, so up to 3×W never
+ * runs out of field. Every layer has the same box, so they line up exactly; `sway` wraps it in the box that tilts.
+ */
+function Layer({ id, sway, children }: { id: string; sway?: "slow" | "mid" | "flowers" | "fast"; children: React.ReactNode }) {
+  const svg = (
+    <svg viewBox={`${-W} 0 ${3 * W} ${H}`} preserveAspectRatio="xMidYMax slice" className="grass-layer" focusable="false">
+      <use href={`#${id}`} x={-W} />
+      <use href={`#${id}`} x={W} />
+      <g id={id}>{children}</g>
+    </svg>
+  );
+  return sway ? <div className={`grass-sway grass-sway-${sway}`}>{svg}</div> : svg;
+}
+
 export function Grass({ className = "" }: { className?: string }) {
   return (
-    // Three tiles wide (the middle one drawn, the sides <use> copies), centred, so up to 3×W never runs out of field.
-    <svg
-      viewBox={`${-W} 0 ${3 * W} ${H}`}
-      preserveAspectRatio="xMidYMax slice"
-      className={`grass ${className}`}
-      aria-hidden
-      focusable="false"
-    >
-      <use href="#grass-tile" x={-W} />
-      <use href="#grass-tile" x={W} />
-      <g id="grass-tile">
-        <g className="grass-sway grass-sway-slow">
-          <path d={BACK} className="grass-back" />
-        </g>
-        <g className="grass-sway">
-          <path d={MID} className="grass-mid" />
-        </g>
-        <g className="grass-sway grass-sway-flowers">
-          {SEASONS.map((season) => (
-            <g key={season} data-grass-season={season}>
-              <path
-                d={PLANTS[season].stems}
-                fill="none"
-                className="grass-stem"
-                strokeWidth={PLANTS[season].stemWidth}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              {Object.entries(PLANTS[season].heads).map(([fill, d]) => (
-                <path key={fill} d={d} fill={fill} />
-              ))}
-            </g>
-          ))}
-        </g>
-        <g className="grass-sway grass-sway-fast">
-          <path d={FRONT} className="grass-front" />
-          <path d={TIPS} className="grass-tip" />
-        </g>
+    <div className={`grass relative overflow-hidden ${className}`} aria-hidden>
+      <Layer id="grass-back" sway="slow">
+        <path d={BACK} className="grass-back" />
+      </Layer>
+      <Layer id="grass-mid" sway="mid">
+        <path d={MID} className="grass-mid" />
+      </Layer>
+      <Layer id="grass-flowers" sway="flowers">
+        {SEASONS.map((season) => (
+          <g key={season} data-grass-season={season}>
+            <path
+              d={PLANTS[season].stems}
+              fill="none"
+              className="grass-stem"
+              strokeWidth={PLANTS[season].stemWidth}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            {Object.entries(PLANTS[season].heads).map(([fill, d]) => (
+              <path key={fill} d={d} fill={fill} />
+            ))}
+          </g>
+        ))}
+      </Layer>
+      <Layer id="grass-front" sway="fast">
+        <path d={FRONT} className="grass-front" />
+        <path d={TIPS} className="grass-tip" />
+      </Layer>
+      {/* The soil stays put, over the blades' feet. */}
+      <Layer id="grass-soil">
         <path d={SOIL_LINE} fill={SOIL} />
-      </g>
-    </svg>
+      </Layer>
+    </div>
   );
 }

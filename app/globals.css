@@ -353,8 +353,9 @@
 
 /*
  * The six seasons. <html data-season> (set before paint by lib/season.ts) picks the footer's plants and grass
- * colours and what drifts across the page; <html data-motion="on"> lets it all move. Everything that moves
- * animates transform only, so the browser keeps it on the GPU and never re-lays out the page.
+ * colours and the sky. <html data-motion="on"> (the visitor switched the animation on) brings in the WebGL scene of
+ * what drifts across the page; the footer grass sways either way. Everything that moves animates transform only, so
+ * the browser keeps it on the GPU and never re-lays out the page.
  */
 
 /* Only the current season's icons and badges show. */
@@ -369,7 +370,7 @@ html:not([data-season="basanta"]) [data-season-only="basanta"] {
 
 /*
  * The grass's plants go by inherited variables instead, because the field's side tiles are <use> copies and
- * selectors can't see past them to <html>; custom properties inherit into them. The sway works the same way.
+ * selectors can't see past them to <html>; custom properties inherit into them.
  */
 [data-grass-season] {
   display: none;
@@ -483,7 +484,12 @@ html:not([data-season="basanta"]) [data-season-only="basanta"] {
     stroke 0.8s ease;
 }
 
-/* Grass in the footer leans with the wind; each layer at its own pace so it never moves as one block. */
+/*
+ * Grass in the footer leans with the wind, always (the page animation switch is for the sky); each layer at its own
+ * pace so it never moves as one block. Each layer is an HTML box tilted by transform alone, which the browser runs on
+ * the GPU without repainting, so the sway never competes with scrolling. The footer's content-visibility skips it
+ * entirely while it's off-screen.
+ */
 @keyframes grass-sway {
   from {
     transform: skewX(-2.5deg);
@@ -493,14 +499,28 @@ html:not([data-season="basanta"]) [data-season-only="basanta"] {
   }
 }
 
-[data-motion="on"] {
-  --grass-sway: grass-sway;
+/* Every layer gets the same box, 1rem wider than the strip each side, so a tilted layer never shows its edge. */
+.grass-layer {
+  position: absolute;
+  top: 0;
+  left: -1rem;
+  width: calc(100% + 2rem);
+  height: 100%;
 }
 
 .grass-sway {
-  transform-box: fill-box;
+  position: absolute;
+  inset: 0;
   transform-origin: 50% 100%;
-  animation: var(--grass-sway, none) 5s ease-in-out infinite alternate;
+  will-change: transform;
+  animation: grass-sway 5s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grass-sway {
+    animation: none;
+    will-change: auto;
+  }
 }
 
 .grass-sway-slow {

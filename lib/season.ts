@@ -32,9 +32,10 @@ export const MOTION_KEY = "mt-motion";
 
 /**
  * Runs in <head> before the first paint: sets <html data-season data-motion> from ?season= (a preview, not saved),
- * the saved choice, else today's season, with motion off by default for anyone whose system asks for reduced motion.
+ * the saved choice, else today's season. The page animation (the sky and what drifts through it) is off unless the
+ * visitor switched it on in the season picker; the footer grass sways either way.
  */
 export const SEASON_SCRIPT = `(function(){var h=document.documentElement,s,m;try{s=localStorage.getItem(${JSON.stringify(SEASON_KEY)});m=localStorage.getItem(${JSON.stringify(MOTION_KEY)})}catch(e){}
 s=new URLSearchParams(location.search).get("season")||s;
 h.dataset.season=${JSON.stringify(SEASONS)}.indexOf(s)>=0?s:(${seasonAt.toString()})(Date.now());
-h.dataset.motion=m==="on"||m==="off"?m:matchMedia("(prefers-reduced-motion: reduce)").matches?"off":"on"})()`;
+h.dataset.motion=m==="on"?"on":"off"})()`;
