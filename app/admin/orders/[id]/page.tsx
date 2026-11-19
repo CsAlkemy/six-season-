@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { OrderActionsCard, OrderHeaderActions, OrderNoteCard, PackingSlip } from "@/components/admin/order-actions";
+import { ShipmentCard } from "@/components/admin/shipment-card";
+import { canCancelByApi, connected, loadAccounts, needsPlace, placeRequired } from "@/lib/couriers";
 import { Avatar, buttonClass, ContentCard, Icon, Labelled, LinkButton, OrderPill, PageBody, PageHeader, StatusPill } from "@/components/admin/ui";
 import { listCustomerOrders } from "@/lib/customers";
 import { loadOrder, loadProducts } from "@/lib/data";
@@ -14,6 +16,9 @@ import { ORDER_STATUSES } from "@/lib/types";
 
 const FLOW = ORDER_STATUSES.filter((s) => s !== "cancelled");
 const PAY_PILL = { ok: "success", wait: "pending", off: "neutral" } as const;
+
+/** Booking a parcel and refreshing its status wait on the courier. Server actions take their time limit from the page (seconds; 60 is allowed on every Vercel plan). */
+export const maxDuration = 60;
 
 export async function generateMetadata({ params }: PageProps<"/admin/orders/[id]">): Promise<Metadata> {
   const order = await loadOrder((await params).id);
@@ -41,7 +46,8 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
   }
   const history = historyOf(order);
   const pay = paymentState(order);
-  const orderCount = (await listCustomerOrders(order.customer.phone).catch(() => [])).length;
+  const [orderCount, accounts] = await Promise.all([listCustomerOrders(order.customer.phone).then((list) => list.length).catch(() => 0), loadAccounts().catch(() => null)]);
+  const couriers = accounts ? connected(accounts).map((id) => ({ id, places: needsPlace(id), placeRequired: placeRequired(id), cancels: canCancelByApi(id) })) : [];
   const cancelled = order.status === "cancelled";
   // A delivered order is the moment to ask for a review: the message is ready to send on WhatsApp.
   const review = order.status === "delivered" ? reviewRequest(order, await loadProducts()) : null;
@@ -130,6 +136,7 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
               </dl>
             </ContentCard>
 
+            <ShipmentCard order={order} couriers={couriers} defaults={accounts?.defaults ?? { courier: "", weightKg: 0.5 }} />
             {review && (
               <ContentCard title="Ask for a review" subtitle="Delivered. A WhatsApp message with a link to review each product.">
                 <a href={review.url} target="_blank" rel="noopener" className={buttonClass("outline")}>Open in WhatsApp</a>

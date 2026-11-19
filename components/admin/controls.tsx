@@ -122,7 +122,7 @@ export const RowMenu = ({ label, items }: { label: string; items: MenuItem[] }) 
 
 /* Modal: the back office's "spacious" dialog (560px, 32px padding, H2 title with its ✕ on the same line). */
 
-export function Modal({ open, onOpenChange, title, description, footer, children }: { open: boolean; onOpenChange: (open: boolean) => void; title: React.ReactNode; description?: React.ReactNode; footer?: React.ReactNode; children?: React.ReactNode }) {
+export function Modal({ open, onOpenChange, title, description, footer, children, dismissible = true }: { open: boolean; onOpenChange: (open: boolean) => void; title: React.ReactNode; description?: React.ReactNode; footer?: React.ReactNode; children?: React.ReactNode; /** False while work is under way: Esc, the backdrop and ✕ then do nothing. */ dismissible?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -134,8 +134,9 @@ export function Modal({ open, onOpenChange, title, description, footer, children
     <dialog
       ref={ref}
       aria-label={typeof title === "string" ? title : undefined}
+      onCancel={(e) => !dismissible && e.preventDefault()}
       onClose={() => onOpenChange(false)}
-      onClick={(e) => e.target === e.currentTarget && onOpenChange(false)}
+      onClick={(e) => dismissible && e.target === e.currentTarget && onOpenChange(false)}
       className="adm-dialog m-auto max-h-[calc(100dvh-2rem)] w-full max-w-140 overflow-y-auto rounded-xl border-0 p-0 text-fg-primary shadow-hover max-sm:w-[calc(100%-1.5rem)]"
     >
       <div className="flex flex-col gap-4 p-8 max-sm:p-6">
@@ -144,7 +145,7 @@ export function Modal({ open, onOpenChange, title, description, footer, children
             <h2 className="font-display text-h2 text-fg-primary max-sm:text-h3">{title}</h2>
             {description && <p className="text-body-sm text-fg-secondary">{description}</p>}
           </div>
-          <button type="button" aria-label="Close" onClick={() => onOpenChange(false)} className="mt-1 rounded-sm text-fg-tertiary transition-colors hover:text-fg-primary focus-visible:outline-2 focus-visible:outline-brand"><Icon name="x" className="size-5" /></button>
+          <button type="button" aria-label="Close" disabled={!dismissible} onClick={() => onOpenChange(false)} className="mt-1 rounded-sm text-fg-tertiary transition-colors hover:text-fg-primary focus-visible:outline-2 focus-visible:outline-brand"><Icon name="x" className="size-5" /></button>
         </div>
         {children}
         {footer && <div className="flex gap-3 [&>*]:flex-1">{footer}</div>}

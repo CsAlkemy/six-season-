@@ -1,11 +1,12 @@
 import { after } from "next/server";
 
+import { COURIER_NAME, STAGE_LABEL } from "./couriers/meta";
 import { type Email, type EmailConfig, esc, layout, loadEmailConfig, rows, section, sendEmail } from "./email";
 import { taka } from "./i18n";
 import { paymentIsCash, paymentName } from "./payments";
 import { absolute } from "./site";
 import type { StockAlert } from "./stock";
-import type { Order, Review } from "./types";
+import type { Order, Review, ShipmentStage } from "./types";
 
 /**
  * Email alerts for the team: each is built and sent after the response has gone out, so neither a slow mail service
@@ -122,6 +123,45 @@ export function notifyReview(review: Review, productName: string) {
       }),
       text: `New review waiting for approval\n${productName}: ${stars}\nFrom ${review.name} (${review.phoneHint}), order #${review.orderNo}\n\n${review.text}`,
       idempotencyKey: `review-${review.id}-${review.productId}-${review.createdAt}`,
+    };
+  });
+}
+
+/** What each parcel stage means for the team, for the stages worth an email. Waiting and on-the-way aren't. */
+const PARCEL_NEWS: Partial<Record<ShipmentStage, string>> = {
+  delivered: "The courier delivered it.",
+  partial: "The customer kept only part of it. Check what's coming back, and mark the order delivered when it's settled.",
+  issue: "The courier has a problem with it: on hold, a failed attempt, or worse. Call the customer or the courier.",
+  returning: "The courier is bringing it back. When it arrives, cancel the order to put its items back on the shelf, or book it again.",
+  returned: "It's back with you. Cancel the order to put its items back on the shelf, or book it again.",
+  cancelled: "The courier cancelled the parcel. Book it again, or cancel the order.",
+};
+
+/** A parcel reached a stage the team should know about. */
+export function notifyShipment(order: Order, from: ShipmentStage, to: ShipmentStage) {
+  const shipment = order.shipment;
+  const said = PARCEL_NEWS[to];
+  if (!shipment || !said || from === to) return;
+  const news = to !== "delivered" ? said : order.status === "delivered" ? `${said} The order is marked delivered.` : `${said} The order is ${order.status} here, so check it.`;
+  later("courier", (config) => {
+    if (!config.events.couriers) return null;
+    const courier = COURIER_NAME[shipment.courier].en;
+    const last = shipment.events?.at(-1);
+    return {
+      subject: `${STAGE_LABEL[to]}: #${order.no} · ${courier}`,
+      html: layout({
+        title: `${STAGE_LABEL[to]}: #${order.no}`,
+        intro: news,
+        body: rows([
+          ["Courier", `${courier} · ${shipment.consignmentId}`],
+          ["Courier says", `${shipment.status}${last?.note ? ` · ${last.note}` : ""}`],
+          ["Customer", `${order.customer.name} · ${order.customer.phone}`],
+          ["Collect", shipment.cod ? money(shipment.cod) : "Nothing (paid)"],
+        ]),
+        button: { label: "Open the order", href: adminOrder(order) },
+      }),
+      text: `${STAGE_LABEL[to]}: #${order.no} (${courier} ${shipment.consignmentId})\n${news}\nCourier says: ${shipment.status}${last?.note ? ` · ${last.note}` : ""}\n${order.customer.name} · ${order.customer.phone}\n\n${adminOrder(order)}`,
+      idempotencyKey: `parcel-${order.id}-${shipment.consignmentId}-${to}`,
     };
   });
 }

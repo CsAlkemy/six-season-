@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { advanceOrder, cancelOrder, saveOrderNote } from "@/app/admin/actions";
 import { taka } from "@/lib/i18n";
 import { paymentIsCash, paymentName } from "@/lib/payments";
+import { COURIER_NAME, FAILED_STAGES } from "@/lib/couriers/meta";
 import { canCancel, dhakaTime, itemCount, NEXT_STEP } from "@/lib/orders";
 import type { Order } from "@/lib/types";
 
@@ -46,7 +47,8 @@ export function OrderActionsCard({ order }: { order: Order }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, start] = useTransition();
-  const allowed = canCancel(order.status);
+  const allowed = canCancel(order);
+  const parcel = order.shipment && !FAILED_STAGES.includes(order.shipment.stage) ? order.shipment : null;
   const items = itemCount(order);
   const prepaid = !paymentIsCash(order.payment) && order.status !== "new";
 
@@ -87,6 +89,7 @@ export function OrderActionsCard({ order }: { order: Order }) {
         <ul className="flex list-disc flex-col gap-2 pl-5 text-body-sm text-fg-secondary">
           {order.stockTaken && <li>Its {items} {items === 1 ? "item goes" : "items go"} back on the shelf.</li>}
           {prepaid && <li>{taka(order.total, "en")} came in by {paymentName(order.payment, "en")}. Refund the customer yourself, outside this panel.</li>}
+          {parcel && <li className="text-fg-error">Its {COURIER_NAME[parcel.courier].en} parcel {parcel.consignmentId} is still booked. {parcel.courier === "carrybee" ? "Cancel it on the Courier card first." : `Cancel it in the ${COURIER_NAME[parcel.courier].en} panel too.`}</li>}
           <li>The customer sees the order as cancelled in their account.</li>
         </ul>
         <div className="grid gap-2">

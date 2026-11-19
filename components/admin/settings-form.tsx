@@ -4,12 +4,14 @@ import { useEffect, useState, useTransition } from "react";
 
 import { saveStoreSettings } from "@/app/admin/actions";
 import { DEFAULT_SETTINGS } from "@/lib/defaults";
+import type { CouriersView } from "@/lib/couriers/meta";
 import type { EmailView } from "@/lib/email";
 import { taka } from "@/lib/i18n";
 import { homeSeo } from "@/lib/site";
 import { type DeliveryZone, type Settings, SOCIAL_NAME, SOCIALS } from "@/lib/types";
 
 import { Modal, Switch, SwitchRow, toast } from "./controls";
+import { CouriersTab } from "./couriers-tab";
 import { digits, Input, TextPair } from "./fields";
 import { HomeTab, type PickerProduct } from "./home-tab";
 import { NotificationsTab } from "./notifications-tab";
@@ -23,11 +25,12 @@ const TABS = [
   { id: "home", label: "Home page" },
   { id: "delivery", label: "Delivery & zones" },
   { id: "payments", label: "Payments" },
+  { id: "couriers", label: "Couriers" },
   { id: "notifications", label: "Notifications" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 /** Tabs that save on their own (their keys never join the settings draft), so the header's Save isn't theirs. */
-const OWN_SAVE: readonly Tab[] = ["notifications"];
+const OWN_SAVE: readonly Tab[] = ["couriers", "notifications"];
 
 /** What the home page uses while the title and description are left empty, shown as their placeholders. */
 const seoDefault = (field: "title" | "description") => ({
@@ -37,15 +40,16 @@ const seoDefault = (field: "title" | "description") => ({
 const SEO_DEFAULT = { title: seoDefault("title"), description: seoDefault("description") };
 
 /** Motherhood's layout: a tab list beside the cards (a scroller on phones), one draft across every tab, Save only when something changed. */
-export function SettingsForm({ initial, products, initialTab, email }: { initial: Settings; products: PickerProduct[]; initialTab?: string; email: EmailView }) {
+export function SettingsForm({ initial, products, initialTab, email, couriers }: { initial: Settings; products: PickerProduct[]; initialTab?: string; email: EmailView; couriers: CouriersView }) {
   const [tab, setTab] = useState<Tab>(TABS.find((t) => t.id === initialTab)?.id ?? "store");
   const [saved, setSaved] = useState(initial);
   const [settings, setSettings] = useState(initial);
   const dirty = JSON.stringify(settings) !== JSON.stringify(saved);
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState<number | null>(null);
-  // Saves on its own; kept here so leaving the tab and coming back shows what was last saved.
+  // These two save on their own; kept here so leaving the tab and coming back shows what was last saved.
   const [emailNow, setEmailNow] = useState(email);
+  const [couriersNow, setCouriersNow] = useState(couriers);
 
   useEffect(() => {
     if (!dirty) return;
@@ -155,6 +159,7 @@ export function SettingsForm({ initial, products, initialTab, email }: { initial
           )}
 
           {tab === "payments" && <PaymentsTab methods={settings.payments.methods} onChange={(methods) => setSettings((s) => ({ ...s, payments: { methods } }))} />}
+          {tab === "couriers" && <CouriersTab initial={couriersNow} onSaved={setCouriersNow} />}
           {tab === "notifications" && <NotificationsTab initial={emailNow} onSaved={setEmailNow} />}
         </div>
       </div>

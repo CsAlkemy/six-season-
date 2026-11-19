@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 
 import { ListFilters } from "@/components/admin/controls";
-import { OrdersTable } from "@/components/admin/orders-table";
+import { OrdersTable, RefreshParcelsButton } from "@/components/admin/orders-table";
+import { FINAL_STAGES } from "@/lib/couriers/meta";
 import { DownloadButton, LinkButton, PageBody, PageHeader, Pagination, Tabs } from "@/components/admin/ui";
 import { loadAllOrders, loadSettings } from "@/lib/data";
 import { STATUS_LABEL } from "@/lib/orders";
 import { paymentName } from "@/lib/payments";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/types";
+
+/** "Refresh courier statuses" asks the couriers about up to 24 parcels. Server actions take their time limit from the page (seconds; 60 is allowed on every Vercel plan). */
+export const maxDuration = 60;
 
 export const metadata: Metadata = { title: "Orders" };
 
@@ -51,7 +55,7 @@ export default async function OrdersPage({ searchParams }: PageProps<"/admin/ord
     <PageBody>
       <PageHeader
         title="Orders"
-        actions={<><DownloadButton variant="outline" href={`/admin/orders/export${href({ page: undefined }).slice("/admin/orders".length)}`}>Export CSV</DownloadButton><LinkButton href="/admin/orders/new">+ Create order</LinkButton></>}
+        actions={<>{everything.some((o) => o.shipment && o.status !== "cancelled" && !FINAL_STAGES.includes(o.shipment.stage)) && <RefreshParcelsButton />}<DownloadButton variant="outline" href={`/admin/orders/export${href({ page: undefined }).slice("/admin/orders".length)}`}>Export CSV</DownloadButton><LinkButton href="/admin/orders/new">+ Create order</LinkButton></>}
       />
       <Tabs
         label="Order status"

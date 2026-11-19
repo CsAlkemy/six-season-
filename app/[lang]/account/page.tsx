@@ -5,6 +5,7 @@ import { AuthForms } from "@/components/account/auth-forms";
 import { ProfileForm } from "@/components/account/profile-form";
 import { TrackForm } from "@/components/account/track-form";
 import { CheckIcon } from "@/components/icons";
+import { COURIER_NAME, isActive } from "@/lib/couriers/meta";
 import { accessibleOrders, currentCustomer } from "@/lib/customers";
 import { type Dict, t, taka } from "@/lib/i18n";
 import { paymentName } from "@/lib/payments";
@@ -179,6 +180,18 @@ function OrderDetail({ order, lang, d }: { order: Order; lang: Lang; d: Dict }) 
               );
             })}
           </ol>
+        )}
+        {isActive(order.shipment) && order.status !== "cancelled" && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
+            <p className="text-body-sm text-fg-secondary">
+              {d.courier}: <span className="font-semibold text-fg-primary">{COURIER_NAME[order.shipment.courier][lang]}</span> · <span className="tabular-nums">{order.shipment.trackingCode ?? order.shipment.consignmentId}</span>
+            </p>
+            {order.shipment.trackingUrl && (
+              <a href={order.shipment.trackingUrl} target="_blank" rel="noopener" className="btn-secondary h-11 px-5 text-label-md">
+                {d.trackParcel}
+              </a>
+            )}
+          </div>
         )}
       </section>
 

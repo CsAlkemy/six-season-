@@ -15,6 +15,7 @@ const EVENTS: { id: EmailEvent; label: string; description: string }[] = [
   { id: "orders", label: "New orders", description: "From the store, and the ones the team creates. Wallet and bank orders come with their transaction ID to check." },
   { id: "stock", label: "Stock running low", description: "When an order takes a size to its low-stock level, or sells it out." },
   { id: "reviews", label: "New reviews", description: "A buyer's review, waiting for your approval." },
+  { id: "couriers", label: "Courier news", description: "A parcel delivered, coming back, cancelled or stuck, from Steadfast, Pathao or CarryBee." },
 ];
 
 const link = "text-fg-brand underline underline-offset-4";

@@ -167,6 +167,44 @@ export interface OrderItem {
   qty: number;
 }
 
+export const COURIERS = ["steadfast", "pathao", "carrybee"] as const;
+export type CourierId = (typeof COURIERS)[number];
+
+/**
+ * Where a parcel stands, read from each courier's own words: waiting for pickup, on its way, needs a look (on hold, a
+ * failed attempt, lost), delivered (all or part), coming back or back with the store, or cancelled before pickup.
+ */
+export const SHIPMENT_STAGES = ["booked", "in_transit", "issue", "delivered", "partial", "returning", "returned", "cancelled"] as const;
+export type ShipmentStage = (typeof SHIPMENT_STAGES)[number];
+
+/** A parcel booked with a courier for an order. */
+export interface Shipment {
+  courier: CourierId;
+  consignmentId: string;
+  /** Steadfast's short code, where the courier has one apart from the consignment ID. */
+  trackingCode?: string;
+  /** The courier's page where the customer can follow it, when there is one. */
+  trackingUrl?: string;
+  /** The invoice / merchant order ID the courier knows it by: the order number, plus "-2"… when booked again. */
+  invoice: string;
+  /** Taka the rider collects. */
+  cod: number;
+  /** The courier's charge, when it says. */
+  fee?: number;
+  /** The courier's own word for its state, e.g. "in_review", "Delivered", "order.picked". */
+  status: string;
+  stage: ShipmentStage;
+  bookedAt: string;
+  /** When the parcel's news last changed. */
+  updatedAt: string;
+  /** When the courier was last asked, so a parcel isn't asked about again on every open. */
+  checkedAt?: string;
+  /** Booked in the courier's own panel and only linked here. */
+  manual?: boolean;
+  /** The latest updates, newest last (at most 30). */
+  events?: { at: string; status: string; note?: string }[];
+}
+
 export interface Order {
   /** Blob key; sorts newest first. */
   id: string;
@@ -191,6 +229,12 @@ export interface Order {
   adminNote?: string;
   /** True once the order's units came off stock, so cancelling knows to put them back. */
   stockTaken?: boolean;
+  /** The parcel with a courier, once booked or linked. */
+  shipment?: Shipment;
+  /** Parcels cancelled or removed before this one, kept so their invoices aren't reused. */
+  pastShipments?: Shipment[];
+  /** Set while a courier booking is under way, so the same order isn't booked twice at once. */
+  bookingSince?: string;
 }
 
 /** A shopper's account, keyed by their verified mobile number. */

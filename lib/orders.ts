@@ -1,3 +1,4 @@
+import { FAILED_STAGES } from "./couriers/meta";
 import { paymentIsCash } from "./payments";
 import type { Order, OrderEvent, OrderStatus } from "./types";
 
@@ -40,8 +41,12 @@ export const NEXT_STEP: Partial<Record<OrderStatus, { to: OrderStatus; label: st
   shipped: { to: "delivered", label: "Mark delivered" },
 };
 
-/** Once it has left with the courier it can't be cancelled here. */
-export const canCancel = (status: OrderStatus) => status === "new" || status === "confirmed" || status === "packing";
+/**
+ * Before it ships, or after, once its courier says the parcel is coming back, is back, or was cancelled: then
+ * cancelling puts the items back on the shelf. Otherwise, once it has left with the courier it can't be cancelled here.
+ */
+export const canCancel = (order: Pick<Order, "status" | "shipment">) =>
+  order.status === "new" || order.status === "confirmed" || order.status === "packing" || (order.status === "shipped" && Boolean(order.shipment && FAILED_STAGES.includes(order.shipment.stage)));
 
 /** What happened so far; orders from before the timeline get their placing and current stage. */
 export function historyOf(order: Order): OrderEvent[] {

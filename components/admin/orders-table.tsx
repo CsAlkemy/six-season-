@@ -4,14 +4,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { advanceOrder, advanceOrders } from "@/app/admin/actions";
+import { advanceOrder, advanceOrders, refreshParcels } from "@/app/admin/actions";
+import { COURIER_NAME, STAGE_LABEL, STAGE_TONE } from "@/lib/couriers/meta";
 import { taka } from "@/lib/i18n";
 import { paymentName } from "@/lib/payments";
 import { dhakaTime, itemCount, NEXT_STEP, paymentState, STATUS_LABEL, STATUS_TONE } from "@/lib/orders";
 import type { Order } from "@/lib/types";
 
 import { BulkBar, CopyButton, DataTable, Menu, toast, type Column } from "./controls";
-import { cn, EmptyState, Icon, OrderPill, StatusPill } from "./ui";
+import { Button, cn, EmptyState, Icon, OrderPill, StatusPill } from "./ui";
 
 const PAY_TONE = { ok: "text-fg-success", wait: "text-fg-accent", off: "text-fg-tertiary" } as const;
 
@@ -71,6 +72,7 @@ export function OrdersTable({ orders, filtered, clearHref }: { orders: Order[]; 
     { key: "total", header: "Total", width: "w-28", cell: (o) => taka(o.total, "en") },
     { key: "payment", header: "Payment", width: "w-36", cell: (o) => { const pay = paymentState(o); return <><p>{paymentName(o.payment, "en")}</p><p className={cn("text-caption", PAY_TONE[pay.tone])}>{pay.label}</p></>; } },
     { key: "status", header: "Status", width: "w-44", cell: (o) => <StatusCell order={o} onMove={move} busy={busy} /> },
+    { key: "courier", header: "Courier", width: "w-40", cell: (o) => (o.shipment ? <><p className="truncate">{COURIER_NAME[o.shipment.courier].en}</p><StatusPill tone={STAGE_TONE[o.shipment.stage]} className="mt-1 px-2 py-0.5">{STAGE_LABEL[o.shipment.stage]}</StatusPill></> : <span className="text-fg-tertiary">—</span>) },
   ];
 
   const empty = (
@@ -111,6 +113,7 @@ export function OrdersTable({ orders, filtered, clearHref }: { orders: Order[]; 
                 <span className="min-w-0"><span className="block truncate text-label-md text-fg-primary">{o.customer.name}</span><span className="block truncate text-caption text-fg-secondary">{o.zone.name} · {dhakaTime(o.createdAt)}</span></span>
                 <span className="shrink-0 text-label-md text-fg-primary">{taka(o.total, "en")}</span>
               </span>
+              {o.shipment && <span className="text-caption text-fg-secondary">{COURIER_NAME[o.shipment.courier].en} · {STAGE_LABEL[o.shipment.stage]}</span>}
             </Link>
           </li>
         ))}
@@ -126,5 +129,28 @@ export function OrdersTable({ orders, filtered, clearHref }: { orders: Order[]; 
         ]}
       />
     </>
+  );
+}
+
+/** Asks the couriers about every parcel still on its way: for when webhooks aren't set up, or missed something. */
+export function RefreshParcelsButton() {
+  const router = useRouter();
+  const [busy, start] = useTransition();
+  return (
+    <Button
+      variant="outline"
+      loading={busy}
+      onClick={() =>
+        start(async () => {
+          const r = await refreshParcels();
+          if (!r.ok) return toast.error(r.error);
+          if (!r.checked) toast.info("No parcels on their way right now");
+          else toast[r.failed ? "error" : "success"](`${r.checked} parcels checked, ${r.changed} changed${r.failed ? `, ${r.failed} couldn't be checked` : ""}${r.more ? ". Press again for the rest." : ""}`);
+          router.refresh();
+        })
+      }
+    >
+      Refresh courier statuses
+    </Button>
   );
 }

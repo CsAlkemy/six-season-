@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -8,8 +8,10 @@ import { requireAdmin } from "@/lib/auth";
 import { deleteImages, putImage } from "@/lib/blob";
 import { htmlText, type Post, type PostText, today } from "@/lib/blog";
 import { CATEGORIES } from "@/lib/categories";
+import { book as bookWithCourier, cancel as cancelWithCourier, canCancelByApi, carrybee, type CourierAccounts, couriersView, DEFAULT_WEIGHT_KG, detectPlace, listPlaces, loadAccounts, needsPlace, newSecret, placeRequired, openAccounts, pathao, saveAccounts, steadfast } from "@/lib/couriers";
+import { COURIER_NAME, type CouriersView, FINAL_STAGES, isActive, type Place, stageOf, trackingUrl } from "@/lib/couriers/meta";
 import { listCustomerOrders, loadCustomer } from "@/lib/customers";
-import { loadOrder, loadPosts, loadProducts, loadSettings, refreshStorefront, saveOrder, savePosts, saveProducts, saveSettings } from "@/lib/data";
+import { loadAllOrders, loadOrder, loadPosts, loadProducts, loadSettings, refreshStorefront, saveOrder, savePosts, saveProducts, saveSettings } from "@/lib/data";
 import { cleanPostHtml, htmlImages } from "@/lib/post-html";
 import { DEFAULT_SETTINGS } from "@/lib/defaults";
 import { DEFAULT_FROM, EMAIL_ADDRESS, EMAIL_EVENTS, type EmailConfig, type EmailEvent, type EmailView, emailView, MAX_RECIPIENTS, saveEmailConfig, sendEmail, validFrom } from "@/lib/email";
@@ -17,13 +19,15 @@ import { testEmail } from "@/lib/notify";
 import { readVault } from "@/lib/vault";
 import { canCancel, NEXT_STEP, withStatus } from "@/lib/orders";
 import { createOrder } from "@/lib/place-order";
+import { paymentIsCash } from "@/lib/payments";
+import { indexShipment, recordNews, syncShipment } from "@/lib/shipping";
 import { normalizePhone } from "@/lib/pricing";
 import { sendSms, smsEnabled } from "@/lib/sms";
 import { createSession, passwordMatches, SESSION_COOKIE, SESSION_DAYS } from "@/lib/session";
 import { waNumber } from "@/lib/site";
 import { moveStock, summarize, withStock } from "@/lib/stock";
 import { taka } from "@/lib/i18n";
-import { LANGS, MAX_PHOTOS, SEASONS, SOCIALS, type HomeSection, type Lang, type Order, type PaymentKind, type PaymentMethod, type Product, type Settings, type Text, type Tone, type Variant } from "@/lib/types";
+import { COURIERS, type CourierId, LANGS, MAX_PHOTOS, SEASONS, SOCIALS, type Shipment, type HomeSection, type Lang, type Order, type PaymentKind, type PaymentMethod, type Product, type Settings, type Text, type Tone, type Variant } from "@/lib/types";
 
 export type Saved = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -118,7 +122,7 @@ export async function cancelOrder(id: string, reason: string): Promise<Saved> {
   await requireAdmin();
   const order = await loadOrder(id);
   if (!order) return { ok: false, error: "Order not found." };
-  if (!canCancel(order.status)) return { ok: false, error: "It has already shipped, so it can't be cancelled." };
+  if (!canCancel(order)) return { ok: false, error: "It has already shipped, so it can't be cancelled. If the courier is returning it, refresh the parcel's status first." };
   try {
     if (order.stockTaken) {
       const back = moveStock(await loadProducts(), order.items, 1);
@@ -593,4 +597,422 @@ export async function deletePost(id: string): Promise<Saved> {
   refreshStorefront();
   revalidatePath("/admin", "layout");
   return { ok: true };
+}
+
+/* Couriers */
+
+const courierOf = (value: unknown): CourierId | undefined => COURIERS.find((c) => c === value);
+const field = (value: unknown, max = 300) => String(value ?? "").trim().slice(0, max);
+
+/** What the connect dialog sends. Secret fields left empty keep what's saved. */
+export interface CourierKeysInput {
+  courier: CourierId;
+  sandbox: boolean;
+  apiKey?: string;
+  secretKey?: string;
+  clientId?: string;
+  clientSecret?: string;
+  clientContext?: string;
+  username?: string;
+  password?: string;
+  /** Pathao and CarryBee: the pickup store, chosen after the keys check out. */
+  storeId?: string;
+}
+
+export type CourierConnected =
+  | { ok: true; view: CouriersView; message: string }
+  /** The keys work; now pick the pickup store. */
+  | { ok: true; stores: (Place & { approved: boolean })[] }
+  | { ok: false; error: string };
+
+/**
+ * Checks a courier's keys against the courier itself before saving them, so a typo shows up now and not at the first
+ * booking. Pathao and CarryBee then want the pickup store: the first answer lists them, the second saves.
+ */
+export async function connectCourier(input: CourierKeysInput): Promise<CourierConnected> {
+  await requireAdmin();
+  const id = courierOf(input?.courier);
+  if (!id) return { ok: false, error: "Pick a courier." };
+  const { accounts } = await openAccounts();
+  let next: CourierAccounts;
+  let message = `${COURIER_NAME[id].en} is connected.`;
+
+  if (id === "steadfast") {
+    const prev = accounts.steadfast;
+    const account = { apiKey: field(input.apiKey) || prev?.apiKey || "", secretKey: field(input.secretKey) || prev?.secretKey || "", webhookToken: prev?.webhookToken || newSecret() };
+    if (!account.apiKey || !account.secretKey) return { ok: false, error: "Add both the API key and the secret key." };
+    const r = await steadfast.check(account);
+    if (!r.ok) return r;
+    message += ` Balance: ${taka(r.value.balance, "en")}.`;
+    next = { ...accounts, steadfast: account };
+  } else {
+    const prev = id === "pathao" ? accounts.pathao : accounts.carrybee;
+    // Moving between sandbox and live, or to another account, means new secrets: the old ones belong elsewhere.
+    const sameAccount = prev && prev.sandbox === Boolean(input.sandbox) && prev.clientId === (field(input.clientId) || prev.clientId);
+    const keep = (typed: unknown, saved: string | undefined) => field(typed) || (sameAccount ? saved ?? "" : "");
+    const storeId = field(input.storeId, 40);
+    let stores: (Place & { approved: boolean })[];
+    if (id === "pathao") {
+      const p = accounts.pathao;
+      const account: pathao.PathaoAccount = {
+        sandbox: Boolean(input.sandbox),
+        clientId: field(input.clientId) || p?.clientId || "",
+        clientSecret: keep(input.clientSecret, p?.clientSecret),
+        username: field(input.username, 120) || p?.username || "",
+        password: keep(input.password, p?.password),
+        storeId,
+        storeName: "",
+        webhookSecret: p?.webhookSecret || newSecret(),
+      };
+      if (!account.clientId || !account.clientSecret || !account.username || !account.password) return { ok: false, error: "Add the client ID and secret, and the Pathao merchant email and password." };
+      const r = await pathao.check(account);
+      if (!r.ok) return r;
+      stores = r.value.stores;
+      const store = stores.find((s) => String(s.id) === storeId);
+      if (!store) return stores.length ? { ok: true, stores } : { ok: false, error: "The keys work, but this Pathao account has no store yet. Add one in the Pathao panel first." };
+      next = { ...accounts, pathao: { ...account, storeName: store.name } };
+    } else {
+      const c = accounts.carrybee;
+      const account: carrybee.CarrybeeAccount = {
+        sandbox: Boolean(input.sandbox),
+        clientId: field(input.clientId) || c?.clientId || "",
+        clientSecret: keep(input.clientSecret, c?.clientSecret),
+        clientContext: keep(input.clientContext, c?.clientContext),
+        storeId,
+        storeName: "",
+        webhookSecret: c?.webhookSecret || newSecret(),
+      };
+      if (!account.clientId || !account.clientSecret || !account.clientContext) return { ok: false, error: "Add the Client ID, Client Secret and Client Context." };
+      const r = await carrybee.check(account);
+      if (!r.ok) return r;
+      stores = r.value.stores;
+      const store = stores.find((s) => String(s.id) === storeId);
+      if (!store) return stores.length ? { ok: true, stores } : { ok: false, error: "The keys work, but this CarryBee account has no store yet. Add one in the CarryBee panel first." };
+      if (!store.approved) return { ok: false, error: `CarryBee hasn't approved “${store.name}” yet, so it can't send parcels. Pick an approved store.` };
+      next = { ...accounts, carrybee: { ...account, storeName: store.name } };
+    }
+  }
+  if (!next.defaults.courier) next.defaults = { ...next.defaults, courier: id };
+  try {
+    await saveAccounts(next);
+  } catch (error) {
+    return failed(error) as { ok: false; error: string };
+  }
+  revalidatePath("/admin", "layout");
+  return { ok: true, view: await couriersView(), message };
+}
+
+export async function disconnectCourier(courier: CourierId): Promise<{ ok: true; view: CouriersView } | { ok: false; error: string }> {
+  await requireAdmin();
+  const id = courierOf(courier);
+  if (!id) return { ok: false, error: "Pick a courier." };
+  const { accounts } = await openAccounts();
+  const next: CourierAccounts = { ...accounts, [id]: undefined };
+  if (next.defaults.courier === id) next.defaults = { ...next.defaults, courier: (["steadfast", "pathao", "carrybee"] as const).find((c) => c !== id && next[c]) ?? "" };
+  try {
+    await saveAccounts(next);
+  } catch (error) {
+    return failed(error) as { ok: false; error: string };
+  }
+  revalidatePath("/admin", "layout");
+  return { ok: true, view: await couriersView() };
+}
+
+export async function saveCourierDefaults(input: { courier: string; weightKg: number }): Promise<{ ok: true; view: CouriersView } | { ok: false; error: string }> {
+  await requireAdmin();
+  const { accounts } = await openAccounts();
+  const courier = courierOf(input?.courier);
+  if (courier && !accounts[courier]) return { ok: false, error: `${COURIER_NAME[courier].en} isn't connected.` };
+  const weightKg = Math.round(Number(input?.weightKg) * 10) / 10;
+  if (!(weightKg >= 0.1 && weightKg <= 25)) return { ok: false, error: "Give a weight between 0.1 and 25 kg." };
+  try {
+    await saveAccounts({ ...accounts, defaults: { courier: courier ?? "", weightKg } });
+  } catch (error) {
+    return failed(error) as { ok: false; error: string };
+  }
+  return { ok: true, view: await couriersView() };
+}
+
+/** What the booking dialog sends; the server checks it all again. */
+export interface BookParcelInput {
+  orderId: string;
+  courier: CourierId;
+  name: string;
+  phone: string;
+  address: string;
+  cod: number;
+  weightKg: number;
+  note: string;
+  cityId?: number;
+  zoneId?: number;
+  areaId?: number;
+}
+
+const placeId = (value: unknown) => {
+  const n = Math.floor(Number(value));
+  return n > 0 && n < 1e9 ? n : undefined;
+};
+
+/** Books the order's parcel with a courier. A booked parcel is never booked again here until it's cancelled or removed. */
+export async function bookParcel(input: BookParcelInput): Promise<Saved> {
+  await requireAdmin();
+  const id = courierOf(input?.courier);
+  if (!id) return { ok: false, error: "Pick a courier." };
+  const order = await loadOrder(String(input.orderId));
+  if (!order) return { ok: false, error: "Order not found." };
+  if (order.status === "new") return { ok: false, error: "Confirm the order before booking a courier." };
+  if (order.status === "delivered" || order.status === "cancelled") return { ok: false, error: `This order is already ${order.status}.` };
+  if (isActive(order.shipment)) return { ok: false, error: `It's already booked with ${COURIER_NAME[order.shipment.courier].en} (${order.shipment.consignmentId}). Cancel or remove that parcel first.` };
+
+  const name = field(input.name, 100);
+  const phone = normalizePhone(String(input.phone ?? ""));
+  const address = field(input.address, 400).replace(/\s+/g, " ");
+  const cod = Number(input.cod);
+  const weightKg = Math.round(Number(input.weightKg) * 10) / 10;
+  if (name.length < 3) return { ok: false, error: "Give the customer's name (at least 3 letters)." };
+  if (id === "pathao" && name.length > 64) return { ok: false, error: "Pathao takes names up to 64 letters. Shorten it." };
+  if (!phone) return { ok: false, error: "Enter a Bangladeshi mobile number, like 01712345678." };
+  if (address.length < 10) return { ok: false, error: "Give the full address (at least 10 characters)." };
+  if (address.length > 220) return { ok: false, error: "Shorten the address to 220 characters; couriers cut longer ones." };
+  if (!Number.isInteger(cod) || cod < 0 || cod > 500_000) return { ok: false, error: "The amount to collect must be whole taka, 0 if it's paid." };
+  if (id === "pathao" ? !(weightKg >= 0.5 && weightKg <= 10) : !(weightKg >= 0.1 && weightKg <= 25)) return { ok: false, error: id === "pathao" ? "Pathao takes 0.5 to 10 kg." : "Give a weight between 0.1 and 25 kg." };
+  const accounts = await loadAccounts();
+  if (!accounts[id]) return { ok: false, error: `Connect ${COURIER_NAME[id].en} in Settings › Couriers first.` };
+  const [cityId, zoneId, areaId] = [placeId(input.cityId), placeId(input.zoneId), placeId(input.areaId)];
+  if (placeRequired(id) && (!cityId || !zoneId)) return { ok: false, error: `Pick the city and zone for ${COURIER_NAME[id].en}.` };
+  if (cityId && !zoneId) return { ok: false, error: "Pick the zone too, or neither." };
+
+  // One booking at a time per order: a dialog closed and reopened, or two people, mustn't make two parcels. The mark is
+  // set before the courier is called and cleared after; a stale one (a crash mid-booking) lapses after two minutes.
+  const started = Date.now();
+  if (order.bookingSince && started - Date.parse(order.bookingSince) < 120_000) {
+    return { ok: false, error: "This order is being booked right now. Wait a minute and reload. If no parcel shows, check the courier's panel before booking again." };
+  }
+  try {
+    await saveOrder({ ...order, bookingSince: new Date(started).toISOString() });
+  } catch (error) {
+    return failed(error);
+  }
+  const unlock = async () => {
+    const current = await loadOrder(order.id).catch(() => null);
+    if (current?.bookingSince) await saveOrder({ ...current, bookingSince: undefined }).catch(() => {});
+  };
+
+  // Each parcel needs its own invoice: the order number, then MT-…-2, -3 for parcels booked again.
+  const used = (order.pastShipments?.length ?? 0) + (order.shipment ? 1 : 0);
+  const invoice = used ? `${order.no}-${used + 1}` : order.no;
+  const result = await bookWithCourier(accounts, id, {
+    invoice,
+    name,
+    phone,
+    address,
+    cod,
+    note: field(input.note, 300),
+    description: order.items.map((item) => `${item.name} ${item.unit} × ${item.qty}`).join(", "),
+    quantity: order.items.reduce((sum, item) => sum + item.qty, 0),
+    weightKg,
+    ...(needsPlace(id) ? { cityId, zoneId, areaId } : {}),
+  });
+  if (!result.ok) {
+    await unlock();
+    return result;
+  }
+
+  const now = new Date().toISOString();
+  const booked = result.value;
+  const shipment: Shipment = {
+    courier: id,
+    consignmentId: booked.consignmentId,
+    ...(booked.trackingCode ? { trackingCode: booked.trackingCode } : {}),
+    ...((booked.trackingUrl ?? trackingUrl(id, booked.consignmentId, phone)) ? { trackingUrl: booked.trackingUrl ?? trackingUrl(id, booked.consignmentId, phone) } : {}),
+    invoice,
+    cod,
+    ...(booked.fee !== undefined ? { fee: booked.fee } : {}),
+    status: booked.status,
+    stage: stageOf(id, booked.status) ?? "booked",
+    bookedAt: now,
+    updatedAt: now,
+    events: [{ at: now, status: booked.status }],
+  };
+  // The courier took a few seconds: save onto the order as it is now, not as it was.
+  const latest = (await loadOrder(order.id)) ?? order;
+  try {
+    await saveOrder({ ...latest, bookingSince: undefined, shipment, pastShipments: [...(latest.pastShipments ?? []), ...(latest.shipment ? [latest.shipment] : [])] });
+    await indexShipment(order.id, shipment);
+  } catch (error) {
+    console.error("bookParcel: save", error);
+    return { ok: false, error: `${COURIER_NAME[id].en} booked it (${booked.consignmentId}) but the order couldn't be updated. Add that ID with “Add tracking by hand” so it isn't booked twice.` };
+  }
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/** A parcel booked in the courier's own panel, linked so its status shows here (and updates, if that courier is connected). */
+export async function linkParcel(input: { orderId: string; courier: CourierId; consignmentId: string; trackingCode: string }): Promise<Saved> {
+  await requireAdmin();
+  const id = courierOf(input?.courier);
+  if (!id) return { ok: false, error: "Pick a courier." };
+  const consignmentId = field(input.consignmentId, 60).replace(/\s+/g, "");
+  const trackingCode = field(input.trackingCode, 60).replace(/\s+/g, "");
+  if (!/^[\w-]{3,60}$/.test(consignmentId)) return { ok: false, error: "Enter the consignment ID as the courier shows it." };
+  const order = await loadOrder(String(input.orderId));
+  if (!order) return { ok: false, error: "Order not found." };
+  if (order.status === "cancelled") return { ok: false, error: "This order is cancelled." };
+  if (order.status === "new") return { ok: false, error: "Confirm the order first." };
+  if (isActive(order.shipment)) return { ok: false, error: "It already has a parcel. Remove that one first." };
+
+  const now = new Date().toISOString();
+  const shipment: Shipment = {
+    courier: id,
+    consignmentId,
+    ...(trackingCode ? { trackingCode } : {}),
+    ...(trackingUrl(id, consignmentId, order.customer.phone) ? { trackingUrl: trackingUrl(id, consignmentId, order.customer.phone) } : {}),
+    invoice: order.no,
+    cod: paymentIsCash(order.payment) ? order.total : 0,
+    status: "linked",
+    stage: "booked",
+    bookedAt: now,
+    updatedAt: now,
+    manual: true,
+    events: [{ at: now, status: "linked", note: "Added by hand" }],
+  };
+  const linked: Order = { ...order, shipment, pastShipments: [...(order.pastShipments ?? []), ...(order.shipment ? [order.shipment] : [])] };
+  try {
+    await saveOrder(linked);
+    await indexShipment(order.id, shipment);
+  } catch (error) {
+    return failed(error);
+  }
+  // Its real status, where the courier is connected; a wrong ID shows up here too.
+  const accounts = await loadAccounts();
+  if (accounts[id]) {
+    const synced = await syncShipment(linked, accounts);
+    if (!synced.ok) {
+      revalidatePath("/admin", "layout");
+      return { ok: false, error: `Linked, but ${synced.error}` };
+    }
+  }
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/** Asks the courier where the order's parcel is now. */
+export async function refreshParcel(orderId: string): Promise<{ ok: true; changed: boolean } | { ok: false; error: string }> {
+  await requireAdmin();
+  const order = await loadOrder(String(orderId));
+  if (!order?.shipment) return { ok: false, error: "This order has no parcel." };
+  const before = JSON.stringify(order.shipment);
+  const synced = await syncShipment(order, await loadAccounts());
+  if (!synced.ok) return synced;
+  const changed = JSON.stringify(synced.order.shipment) !== before;
+  if (changed) revalidatePath("/admin", "layout");
+  return { ok: true, changed };
+}
+
+/**
+ * Every parcel still on its way, asked about at once, for when webhooks aren't set up or missed something. A few at a
+ * time, newest first, so a long list doesn't hit the couriers' limits.
+ */
+export async function refreshParcels(): Promise<{ ok: true; checked: number; changed: number; failed: number; more: boolean } | { ok: false; error: string }> {
+  await requireAdmin();
+  const accounts = await loadAccounts();
+  // The ones asked about longest ago first, so pressing again works through the rest.
+  const lastAsked = (o: Order) => Date.parse(o.shipment!.checkedAt ?? o.shipment!.updatedAt) || 0;
+  const open = (await loadAllOrders())
+    .filter((o) => o.shipment && o.status !== "cancelled" && !FINAL_STAGES.includes(o.shipment.stage) && accounts[o.shipment.courier])
+    .sort((a, b) => lastAsked(a) - lastAsked(b));
+  const batch = open.slice(0, 24);
+  let changed = 0;
+  let failedCount = 0;
+  let checked = 0;
+  // Stops starting new ones after 30 seconds, so a slow courier can't run the page out of time.
+  const deadline = Date.now() + 30_000;
+  for (let i = 0; i < batch.length && Date.now() < deadline; i += 6) {
+    checked += batch.slice(i, i + 6).length;
+    await Promise.all(
+      batch.slice(i, i + 6).map(async (order) => {
+        const before = JSON.stringify(order.shipment);
+        const synced = await syncShipment(order, accounts).catch(() => null);
+        if (!synced?.ok) failedCount++;
+        else if (JSON.stringify(synced.order.shipment) !== before) changed++;
+      }),
+    );
+  }
+  if (changed) revalidatePath("/admin", "layout");
+  return { ok: true, checked, changed, failed: failedCount, more: open.length > checked };
+}
+
+/**
+ * CarryBee takes a cancellation by API but carries it out in the background, and refuses it once the parcel is picked
+ * up. So the parcel shows "cancel requested" until CarryBee confirms (by webhook or a status check); only then can the
+ * order be booked again or cancelled.
+ */
+export async function cancelParcel(orderId: string, reason: string): Promise<Saved> {
+  await requireAdmin();
+  const order = await loadOrder(String(orderId));
+  const shipment = order?.shipment;
+  if (!order || !isActive(shipment)) return { ok: false, error: "This order has no booked parcel." };
+  if (!canCancelByApi(shipment.courier)) return { ok: false, error: `Cancel it in the ${COURIER_NAME[shipment.courier].en} panel, then refresh its status here.` };
+  if (shipment.stage !== "booked") return { ok: false, error: "The courier has already picked it up, so it can't be cancelled from here. Ask the courier to return it." };
+  const r = await cancelWithCourier(await loadAccounts(), shipment, field(reason, 190));
+  if (!r.ok) return r;
+  try {
+    await recordNews(order, { status: "cancel_requested", stage: null, note: field(reason, 190) || "Cancel asked from the admin", current: false });
+  } catch (error) {
+    return failed(error);
+  }
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/**
+ * Forgets the order's parcel here (a wrong link, or one cancelled in the courier's panel), so it can be booked again.
+ * The courier's own record isn't touched.
+ */
+export async function removeParcel(orderId: string): Promise<Saved> {
+  await requireAdmin();
+  const order = await loadOrder(String(orderId));
+  if (!order?.shipment) return { ok: false, error: "This order has no parcel." };
+  try {
+    await saveOrder({ ...order, shipment: undefined, pastShipments: [...(order.pastShipments ?? []), order.shipment] });
+  } catch (error) {
+    return failed(error);
+  }
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
+
+/** Cities, zones and areas change rarely: a day's cache per courier account and level saves calls. */
+const cachedPlaces = unstable_cache(
+  async (courier: CourierId, _account: string, cityId: number, zoneId: number) => {
+    const r = await listPlaces(await loadAccounts(), courier, cityId || undefined, zoneId || undefined);
+    // Thrown, so a failure isn't cached.
+    if (!r.ok) throw new Error(r.error);
+    return r.value;
+  },
+  ["courier-places"],
+  { revalidate: 86_400 },
+);
+
+export async function courierPlaces(courier: CourierId, cityId?: number, zoneId?: number): Promise<{ ok: true; places: Place[] } | { ok: false; error: string }> {
+  await requireAdmin();
+  const id = courierOf(courier);
+  if (!id || !needsPlace(id)) return { ok: true, places: [] };
+  const accounts = await loadAccounts();
+  const account = accounts[id];
+  if (!account) return { ok: false, error: `${COURIER_NAME[id].en} isn't connected.` };
+  try {
+    const key = `${account.sandbox ? "sandbox" : "live"}:${account.clientId}`;
+    return { ok: true, places: await cachedPlaces(id, key, placeId(cityId) ?? 0, placeId(zoneId) ?? 0) };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Couldn't load the list." };
+  }
+}
+
+/** The courier's guess at the city and zone from the address, to start the pickers on. */
+export async function guessPlace(courier: CourierId, address: string): Promise<{ cityId: number; zoneId: number } | null> {
+  await requireAdmin();
+  const id = courierOf(courier);
+  if (!id) return null;
+  return detectPlace(await loadAccounts(), id, field(address, 300)).catch(() => null);
 }
