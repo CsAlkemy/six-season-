@@ -5,7 +5,8 @@ A small storefront for ghee, mustard oil, gur and eggs. Bangla at `/bn` (default
 - **Next.js 16 + Tailwind 4.** Storefront pages are prerendered static HTML. The only client JS is the cart and checkout.
 - **Vercel Blob** holds everything: `data/products.json`, `data/settings.json`, product photos and one JSON file per order under `orders/`. No database.
 - **Admin** is server actions behind a password cookie (`proxy.ts` + `lib/session.ts`).
-- **Customers** sign in with their mobile number (`/[lang]/account`): password, or a 6-digit SMS code. Guests verify their number by code before an order goes through, which also signs them in so they can track it. Profile, orders and tracking all live on the account page (`lib/customers.ts`, `lib/sms.ts`).
+- **Customers** check out as guests, no code needed. The browser that placed an order can open it again (a signed cookie), and from anywhere else the order number plus the mobile it was placed with finds it (`/[lang]/account`, and in a product's review box). Accounts that already have a password still log in with it. Profile, orders and tracking all live on the account page (`lib/customers.ts`).
+- **SMS is off** until `SMS_API_KEY` and `SMS_SENDER_ID` are set (`lib/sms.ts`). With them, guests verify their number by a 6-digit code before ordering (which also signs them in), and code login and signup come back. Without them nothing proves a number, so a guest's order joins that number's history but can't change an account's saved name or address, and guest orders are capped at 10 an hour per connection and 5 a day per number (`lib/throttle.ts`). Looking an order up by number is capped at 10 a day per mobile. Orders still start as New: call to confirm, as before, and cancel the fakes (their stock goes back).
 - **Design tokens** follow Motherhood's setup (`app/globals.css`): a raw palette, then semantic roles (`bg-brand`, `text-fg-secondary`…). The colours come from the logo: soil `#463121` and leaf `#02BF64`.
 
 ## Run locally
@@ -22,7 +23,7 @@ With no `BLOB_READ_WRITE_TOKEN`, `npm run dev` keeps everything on disk instead:
 
 1. Push this folder to GitHub and import it in Vercel.
 2. **Storage → Create → Blob**, then connect it to the project. This adds `BLOB_READ_WRITE_TOKEN`. Choose **public** access, because product photos are served straight from Blob.
-3. Add the env vars `ADMIN_PASSWORD`, `ADMIN_SECRET` (`openssl rand -hex 32`), and `SMS_API_KEY` + `SMS_SENDER_ID` from BulkSMSBD for OTP codes. For a demo without SMS, set `DEMO_OTP=555555` instead: no SMS goes out and that code verifies any number. Remove it before going live.
+3. Add the env vars `ADMIN_PASSWORD` and `ADMIN_SECRET` (`openssl rand -hex 32`). SMS is optional and off without `SMS_API_KEY` + `SMS_SENDER_ID` (see above). `DEMO_OTP` is no longer read; delete it if it's still set.
 4. Deploy. Then **Settings → Domains**: add your domain and set the DNS records Vercel shows.
 5. Open `/admin`, fill in **Settings** (phone, WhatsApp, delivery areas, payments) and update the products and photos.
 

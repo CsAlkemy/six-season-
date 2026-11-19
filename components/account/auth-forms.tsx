@@ -12,8 +12,11 @@ import { OtpField } from "../otp-field";
 
 type Mode = "login" | "code" | "signup";
 
-/** Log in with a password or an SMS code, or sign up (which always verifies the number by code). */
-export function AuthForms({ lang }: { lang: Lang }) {
+/**
+ * Log in with a password or an SMS code, or sign up (which always verifies the number by code). With SMS off (`sms`
+ * false) only the password login is left: nothing can prove a new number, so there's no signup either.
+ */
+export function AuthForms({ lang, sms }: { lang: Lang; sms: boolean }) {
   const d = t(lang);
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("login");
@@ -67,7 +70,8 @@ export function AuthForms({ lang }: { lang: Lang }) {
 
   return (
     <div className="card mx-auto max-w-md p-6 sm:p-8">
-      <div className="mb-6 grid grid-cols-2 rounded-full bg-muted p-1" role="tablist">
+      {!sms && <h2 className="mb-4 text-h4">{d.haveAccount}</h2>}
+      {sms && <div className="mb-6 grid grid-cols-2 rounded-full bg-muted p-1" role="tablist">
         {(["login", "signup"] as const).map((tab) => {
           const active = tab === "signup" ? mode === "signup" : mode !== "signup";
           return (
@@ -83,7 +87,7 @@ export function AuthForms({ lang }: { lang: Lang }) {
             </button>
           );
         })}
-      </div>
+      </div>}
 
       <form onSubmit={submit} noValidate className="space-y-4">
         {verifying ? (
@@ -141,7 +145,7 @@ export function AuthForms({ lang }: { lang: Lang }) {
           {pending ? busy : verifying ? d.verify : mode === "login" ? d.login : d.sendCode}
         </button>
 
-        {mode !== "signup" && !verifying && (
+        {sms && mode !== "signup" && !verifying && (
           <button
             type="button"
             onClick={() => switchTo(mode === "login" ? "code" : "login")}

@@ -1,5 +1,6 @@
 import { STORE_NAME } from "./i18n";
 import { absolute, waNumber } from "./site";
+import { smsEnabled } from "./sms";
 import type { Order, Product } from "./types";
 
 /**
@@ -18,9 +19,13 @@ export function reviewRequest(order: Order, products: Product[]): { url: string;
   });
   if (!links.length) return null;
 
+  // With SMS codes they log in with their number; without, the page asks for the order number and mobile instead.
+  const how = smsEnabled()
+    ? { bn: "রিভিউ লিখতে আপনার মোবাইল নম্বর দিয়ে লগইন করতে হবে:", en: "You'll log in with your mobile number to write it:" }
+    : { bn: `রিভিউ লিখতে পেজে অর্ডার নম্বর ${order.no} আর এই মোবাইল নম্বরটি দিন:`, en: `To write it, enter your order number ${order.no} and this mobile number on the page:` };
   const text =
     lang === "bn"
-      ? `প্রিয় ${order.customer.name}, আশা করি ${STORE_NAME.bn}-এর অর্ডার ${order.no} ঠিকমতো পৌঁছেছে। পণ্য কেমন লাগল জানালে আমাদের আর অন্য ক্রেতাদের অনেক উপকার হয়। রিভিউ লিখতে আপনার মোবাইল নম্বর দিয়ে লগইন করতে হবে:\n\n${links.join("\n")}\n\nধন্যবাদ!\n${STORE_NAME.bn}`
-      : `Hi ${order.customer.name}, we hope your ${STORE_NAME.en} order ${order.no} arrived well. If you have a minute, telling us how it was helps us and other shoppers a lot. You'll log in with your mobile number to write it:\n\n${links.join("\n")}\n\nThank you!\n${STORE_NAME.en}`;
+      ? `প্রিয় ${order.customer.name}, আশা করি ${STORE_NAME.bn}-এর অর্ডার ${order.no} ঠিকমতো পৌঁছেছে। পণ্য কেমন লাগল জানালে আমাদের আর অন্য ক্রেতাদের অনেক উপকার হয়। ${how.bn}\n\n${links.join("\n")}\n\nধন্যবাদ!\n${STORE_NAME.bn}`
+      : `Hi ${order.customer.name}, we hope your ${STORE_NAME.en} order ${order.no} arrived well. If you have a minute, telling us how it was helps us and other shoppers a lot. ${how.en}\n\n${links.join("\n")}\n\nThank you!\n${STORE_NAME.en}`;
   return { url: `https://wa.me/${phone}?text=${encodeURIComponent(text)}`, text };
 }

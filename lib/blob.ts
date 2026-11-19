@@ -73,6 +73,25 @@ export async function readAllJson<T>(prefix: string, limit: number, cursor?: str
   return { items, cursor: page.hasMore ? page.cursor : undefined };
 }
 
+/** The pathnames under `prefix` (a folder, or the start of a file name), in key order, without reading the files. */
+export async function listKeys(prefix: string, max = 1000): Promise<string[]> {
+  if (useLocal()) {
+    const folder = prefix.slice(0, prefix.lastIndexOf("/") + 1);
+    const start = prefix.slice(folder.length);
+    const names = await readdir(localFile(folder)).catch(() => [] as string[]);
+    return names.filter((n) => n.startsWith(start) && n.endsWith(".json")).sort().slice(0, max).map((n) => folder + n);
+  }
+  if (!hasToken()) return [];
+  const keys: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const page = await list({ prefix, limit: 1000, cursor });
+    keys.push(...page.blobs.map((blob) => blob.pathname));
+    cursor = page.hasMore ? page.cursor : undefined;
+  } while (cursor && keys.length < max);
+  return keys.slice(0, max);
+}
+
 /** Stores a photo and returns the URL the store shows it from. */
 export async function putImage(folder: string, file: File): Promise<string> {
   const ext = (file.type.split("/")[1] ?? "jpg").replace(/[^a-z0-9]/g, "") || "jpg";

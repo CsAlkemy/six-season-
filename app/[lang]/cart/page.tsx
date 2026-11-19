@@ -4,6 +4,7 @@ import { Checkout } from "@/components/checkout";
 import { currentCustomer } from "@/lib/customers";
 import { getProducts, getSettings } from "@/lib/data";
 import { t } from "@/lib/i18n";
+import { smsEnabled } from "@/lib/sms";
 import type { Lang } from "@/lib/types";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/cart">): Promise<Metadata> {
@@ -23,6 +24,7 @@ export default async function CartPage({ params }: PageProps<"/[lang]/cart">) {
         delivery={settings.delivery}
         methods={settings.payments.methods}
         customer={customer && { name: customer.name, phone: customer.phone, address: customer.address }}
+        sms={smsEnabled()}
       />
     </div>
   );

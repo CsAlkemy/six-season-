@@ -28,9 +28,11 @@ interface Props {
   methods: Settings["payments"]["methods"];
   /** The signed-in shopper; their number is already verified, so they skip the OTP. */
   customer: { name: string; phone: string; address: string } | null;
+  /** SMS codes are on: a guest proves the number before the order goes in. Off, guests order straight away. */
+  sms: boolean;
 }
 
-export function Checkout({ lang, products, delivery, methods, customer }: Props) {
+export function Checkout({ lang, products, delivery, methods, customer, sms }: Props) {
   const d = t(lang);
   const cart = useCart();
   const [pending, startTransition] = useTransition();
@@ -104,9 +106,10 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
         <h1 className="text-h3">{d.orderPlaced}</h1>
         <p className="mt-2 text-fg-secondary">{d.orderPlacedBody}</p>
         <p className="mt-3 text-h4 tracking-wide text-fg-brand">{placed.no}</p>
+        {!customer && <p className="mt-3 text-body-sm text-fg-tertiary">{d.keepOrderNo}</p>}
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           {placed.id && (
-            <Link href={`/${lang}/account?order=${placed.id}`} className="btn-primary">
+            <Link href={`/${lang}/account?order=${placed.no}`} className="btn-primary">
               {d.trackOrder}
             </Link>
           )}
@@ -141,7 +144,7 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
       setOtpPhone("");
       setError(d.errVerify);
     } else {
-      setError(result?.error === "phone" ? d.errPhone : result?.error === "required" ? d.errRequired : d.errGeneric);
+      setError(result?.error === "phone" ? d.errPhone : result?.error === "required" ? d.errRequired : result?.error === "busy" ? d.errBusy : d.errGeneric);
     }
   };
 
@@ -153,7 +156,8 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
     } else setError(d[result?.error ?? "errSms"]);
   };
 
-  // Guests get a code on the first submit and place the order once it checks out; signed-in shoppers order straight away.
+  // With SMS on, guests get a code on the first submit and place the order once it checks out. Signed-in shoppers,
+  // and everyone while SMS is off, order straight away.
   const onSubmit = (values: OrderFormValues) => {
     setError("");
     // Wallets and banks are paid first, so they need the transaction ID before anything else happens.
@@ -162,7 +166,7 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
       return setFocus("trxId");
     }
     startTransition(async () => {
-      if (customer?.phone === values.phone) return place(values);
+      if (!sms || customer?.phone === values.phone) return place(values);
       if (otpPhone !== values.phone) return sendCode(values.phone);
       if (code.length !== 6) return setError(d.errCode);
       const verified = await verifyCode({ phone: values.phone, code, name: values.name }).catch(() => null);
@@ -170,7 +174,8 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
       else setError(d[verified?.error ?? "errGeneric"]);
     });
   };
-  const verifying = !customer && otpPhone !== "";
+  const verifying = sms && !customer && otpPhone !== "";
+  const direct = !sms || Boolean(customer);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid items-start gap-8 lg:grid-cols-[1fr_380px]">
@@ -287,10 +292,10 @@ export function Checkout({ lang, products, delivery, methods, customer }: Props)
             />
           </div>
         )}
-        {!customer && !verifying && <p className="text-body-sm text-fg-tertiary">{d.verifyPhoneHint}</p>}
+        {!direct && !verifying && <p className="text-body-sm text-fg-tertiary">{d.verifyPhoneHint}</p>}
         {error && <p className="rounded-md bg-error-soft p-3 text-body-sm text-fg-error" role="alert">{error}</p>}
         <button type="submit" disabled={pending || !selected || !zone} className="btn-primary w-full">
-          {pending ? (customer || verifying ? d.placing : d.sending) : verifying ? d.verifyAndOrder : customer ? d.placeOrder : d.sendCode}
+          {pending ? (direct || verifying ? d.placing : d.sending) : verifying ? d.verifyAndOrder : direct ? d.placeOrder : d.sendCode}
         </button>
       </aside>
     </form>

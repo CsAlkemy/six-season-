@@ -1,29 +1,43 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 
 import { type ReviewState, reviewState, submitReview } from "@/app/[lang]/p/[slug]/actions";
 import type { Dict } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
 
+import { TrackForm } from "./account/track-form";
 import { StarIcon } from "./icons";
 
 /**
- * Write-a-review box. The product page is static, so whether this shopper may review (signed in, and a
- * delivered order with this product) is asked for once it loads.
+ * Write-a-review box. The product page is static, so whether this shopper may review (a delivered order with this
+ * product that they can open: signed in, or from this device) is asked for once it loads.
  */
 export function ReviewBox({ productId, lang, d }: { productId: string; lang: Lang; d: Dict }) {
   const [state, setState] = useState<ReviewState | null>(null);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     reviewState(productId)
       .then(setState)
-      .catch(() => setState({ state: "login" }));
+      .catch(() => setState({ state: "login", sms: false }));
   }, [productId]);
+  useEffect(load, [load]);
 
   if (!state) return <div className="h-14 animate-pulse rounded-xl bg-muted" aria-hidden />;
+
+  // Without SMS codes a guest shows they bought it with the order's number and mobile, right here.
+  if (state.state === "login" && !state.sms) {
+    return (
+      <div className="flex flex-col gap-3 rounded-xl border border-border p-5">
+        <TrackForm lang={lang} lead={d.reviewTrack} onFound={() => { setState(null); load(); }} />
+        <Link href={`/${lang}/account`} className="self-center text-body-sm text-fg-secondary underline hover:text-fg-brand">
+          {d.haveAccount}
+        </Link>
+      </div>
+    );
+  }
 
   if (state.state === "login") {
     return (

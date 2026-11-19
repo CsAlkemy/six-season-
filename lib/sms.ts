@@ -1,26 +1,18 @@
 /**
- * Demo mode: with `DEMO_OTP` set to a 6-digit code (e.g. 555555), no SMS is sent and that code verifies any number.
- * Opt-in on purpose: leave it unset on a live store, since anyone who knows the code can sign in as any customer.
+ * Text messages through BulkSMSBD (bulksmsbd.net), off until SMS_API_KEY and SMS_SENDER_ID are both set. While they're
+ * off nothing is sent: guests check out without a code, accounts log in with their password, and buyers find an order
+ * by its number and their mobile. Setting the keys brings codes back at checkout, code login and signup.
  */
-export function demoOtp(): string | null {
-  const code = process.env.DEMO_OTP?.trim();
-  return code && /^\d{6}$/.test(code) ? code : null;
-}
+export const smsEnabled = () => Boolean(process.env.SMS_API_KEY?.trim() && process.env.SMS_SENDER_ID?.trim());
 
-/** BulkSMSBD (bulksmsbd.net). Without keys, development prints the message to the terminal instead. */
 export async function sendSms(phone: string, message: string): Promise<boolean> {
-  const apiKey = process.env.SMS_API_KEY;
-  const senderId = process.env.SMS_SENDER_ID;
-  if (!apiKey || !senderId) {
-    if (process.env.NODE_ENV === "production") return false;
-    console.log(`[sms → ${phone}] ${message}`);
-    return true;
-  }
+  if (!smsEnabled()) return false;
   try {
     const res = await fetch("https://bulksmsbd.net/api/smsapi", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ api_key: apiKey, senderid: senderId, number: `88${phone}`, message, type: "text" }),
+      body: new URLSearchParams({ api_key: process.env.SMS_API_KEY!.trim(), senderid: process.env.SMS_SENDER_ID!.trim(), number: `88${phone}`, message, type: "text" }),
+      signal: AbortSignal.timeout(15_000),
     });
     const data = (await res.json().catch(() => null)) as { response_code?: number } | null;
     if (data?.response_code === 202) return true;

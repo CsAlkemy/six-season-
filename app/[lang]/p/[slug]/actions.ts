@@ -1,17 +1,19 @@
 "use server";
 
-import { currentCustomer, listCustomerOrders } from "@/lib/customers";
+import { accessibleOrders, currentPhone, loadCustomer } from "@/lib/customers";
 import { loadProducts } from "@/lib/data";
 import { loadReview, phoneHint, reviewId, saveReview } from "@/lib/reviews";
-import type { Customer, Order, Review, ReviewStatus } from "@/lib/types";
+import { smsEnabled } from "@/lib/sms";
+import type { Order, Review, ReviewStatus } from "@/lib/types";
 
 /**
  * What the review box shows. The product page is static, so it asks for this once it loads:
- * "login" for guests, "notBought" until an order with the product is delivered, "can" to write one,
- * "sent" once theirs is waiting or published.
+ * "login" for a guest with no order of it here (`sms` says whether they can log in with a code, or should look the
+ * order up by its number), "notBought" until an order with the product is delivered, "can" to write one, "sent" once
+ * theirs is waiting or published.
  */
 export type ReviewState =
-  | { state: "login" }
+  | { state: "login"; sms: boolean }
   | { state: "notBought" }
   | { state: "can"; previous: { rating: number; text: string } | null }
   | { state: "sent"; status: Exclude<ReviewStatus, "rejected"> };
@@ -21,18 +23,29 @@ export type ReviewError = "errRating" | "errReviewShort" | "errTooLong" | "errSa
 const MIN_TEXT = 10;
 const MAX_TEXT = 1000;
 
-/** The newest delivered order with this product in it: the proof the shopper is a buyer. */
-async function deliveredOrder(customer: Customer, productId: string): Promise<Order | undefined> {
-  const orders = await listCustomerOrders(customer.phone).catch(() => []);
-  return orders.find((o) => o.status === "delivered" && o.items.some((item) => item.productId === productId));
+const hasProduct = (order: Order, productId: string) => order.items.some((item) => item.productId === productId);
+
+/**
+ * The newest delivered order with this product that this visitor may open (signed in, or from this device): the
+ * proof they're a buyer. The review is filed under the signed-in number, else under the number on that order.
+ */
+async function buyer(productId: string) {
+  const phone = await currentPhone();
+  const orders = await accessibleOrders(phone);
+  const order = orders.find((o) => o.status === "delivered" && hasProduct(o, productId));
+  return { phone, orders, order, reviewer: phone ?? order?.customer.phone ?? null };
 }
 
 export async function reviewState(productId: string): Promise<ReviewState> {
-  const customer = await currentCustomer();
-  if (!customer) return { state: "login" };
-  const existing = await loadReview(String(productId), await reviewId(customer.phone)).catch(() => null);
+  const id = String(productId);
+  const { phone, orders, order, reviewer } = await buyer(id);
+  const existing = reviewer ? await loadReview(id, await reviewId(reviewer)).catch(() => null) : null;
   if (existing && existing.status !== "rejected") return { state: "sent", status: existing.status };
-  if (!(await deliveredOrder(customer, String(productId)))) return { state: "notBought" };
+  if (!order) {
+    // An order of it on its way: they're a buyer, just not yet one who has it.
+    const coming = orders.some((o) => o.status !== "cancelled" && hasProduct(o, id));
+    return phone || coming ? { state: "notBought" } : { state: "login", sms: smsEnabled() };
+  }
   return { state: "can", previous: existing ? { rating: existing.rating, text: existing.text } : null };
 }
 
@@ -44,28 +57,28 @@ export async function submitReview(input: { productId: string; rating: number; t
   if (text.length < MIN_TEXT) return { ok: false, error: "errReviewShort" };
   if (text.length > MAX_TEXT) return { ok: false, error: "errTooLong" };
 
-  const customer = await currentCustomer();
-  if (!customer) return { ok: false, error: "errVerify" };
   const productId = String(input.productId);
-  if (!(await loadProducts()).some((p) => p.id === productId)) return { ok: false, error: "errSave" };
+  const product = (await loadProducts()).find((p) => p.id === productId);
+  if (!product) return { ok: false, error: "errSave" };
+  const { phone, order, reviewer } = await buyer(productId);
+  if (!order || !reviewer) return { ok: false, error: "errVerify" };
 
-  const id = await reviewId(customer.phone);
+  const id = await reviewId(reviewer);
   const existing = await loadReview(productId, id).catch(() => null);
   // A published review stays as approved; a pending one can be rewritten, a rejected one replaced.
   if (existing?.status === "approved") return { ok: false, error: "errSave" };
-  const order = await deliveredOrder(customer, productId);
-  if (!order) return { ok: false, error: "errVerify" };
+  const customer = phone ? await loadCustomer(phone).catch(() => null) : null;
 
   const review: Review = {
     id,
     productId,
-    name: customer.name || order.customer.name,
+    name: customer?.name || order.customer.name,
     rating,
     text,
     status: "pending",
     createdAt: new Date().toISOString(),
     orderNo: order.no,
-    phoneHint: phoneHint(customer.phone),
+    phoneHint: phoneHint(reviewer),
     reply: null,
   };
   try {

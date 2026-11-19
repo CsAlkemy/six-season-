@@ -1,5 +1,5 @@
 import { linkOrder, loadCustomer, newCustomer, saveCustomer } from "./customers";
-import { loadProducts, loadSettings, refreshStorefront, saveOrder, saveProducts } from "./data";
+import { loadProducts, loadSettings, orderIdsByNo, refreshStorefront, saveOrder, saveProducts } from "./data";
 import { isCash, kindOf } from "./payments";
 import { deliveryFee, methodAvailable } from "./pricing";
 import { moveStock } from "./stock";
@@ -9,8 +9,13 @@ import { findVariant } from "./variants";
 export interface NewOrder {
   lang: Lang;
   name: string;
-  /** Already normalised and, for the store, proven by a code. */
+  /** Already normalised. */
   phone: string;
+  /**
+   * True when the number is the customer's own: signed in, proven by a code, or keyed in by the team. A guest's order
+   * (no SMS codes) still joins the number's history, but can't change the name and address an account has saved.
+   */
+  verified: boolean;
   address: string;
   note: string;
   zoneId: string;
@@ -61,7 +66,10 @@ export async function createOrder(input: NewOrder): Promise<PlaceResult> {
   if (!isCash(method) && !trxId && !admin) return { ok: false, error: "required" };
 
   const now = new Date();
-  const { no, id } = newOrderIds(now);
+  // Four random digits can repeat within a day; couriers want a unique invoice and customers look orders up by it.
+  let ids = newOrderIds(now);
+  for (let tries = 0; tries < 5 && (await orderIdsByNo(ids.no).catch(() => [])).length; tries++) ids = newOrderIds(now);
+  const { no, id } = ids;
 
   // Take the units before filing the order; a failed save puts them back. (Blob has no transactions: two
   // checkouts in the same second can still both read the old count.)
@@ -104,10 +112,14 @@ export async function createOrder(input: NewOrder): Promise<PlaceResult> {
   }
   // Counts changed: the cached store pages show "Only 3 left" and cap quantities by them, so they refresh now.
   if (counted) refreshStorefront();
-  // The order is in; failing to file it under the account or remember the address shouldn't fail it.
+  // The order is in; failing to file it under the number or remember the address shouldn't fail it.
   try {
-    const customer = (await loadCustomer(input.phone)) ?? newCustomer(input.phone);
-    await Promise.all([linkOrder(order), saveCustomer({ ...customer, name: customer.name || input.name, address: input.address })]);
+    const saved = await loadCustomer(input.phone);
+    const customer = saved ?? newCustomer(input.phone);
+    await Promise.all([
+      linkOrder(order),
+      input.verified || !saved ? saveCustomer({ ...customer, name: customer.name || input.name, address: input.address }) : null,
+    ]);
   } catch (error) {
     console.error("createOrder: link", error);
   }

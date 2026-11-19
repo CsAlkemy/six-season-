@@ -77,3 +77,10 @@ export const dhakaTime = (iso: string, style: "date" | "datetime" = "datetime") 
   });
 
 export const itemCount = (order: Order) => order.items.reduce((sum, item) => sum + item.qty, 0);
+
+/** "MT-261029-2565" from however a customer types it back: "mt 261029 2565", "2610292565", Bangla digits. */
+export function normalizeOrderNo(raw: string): string | null {
+  const latin = raw.replace(/[০-৯]/g, (d) => String(d.charCodeAt(0) - 0x09e6));
+  const match = /^(?:MT)?(\d{6})(\d{4})$/.exec(latin.toUpperCase().replace(/[^A-Z0-9]/g, ""));
+  return match ? `MT-${match[1]}-${match[2]}` : null;
+}

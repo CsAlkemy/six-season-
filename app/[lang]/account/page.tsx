@@ -3,11 +3,12 @@ import Link from "next/link";
 
 import { AuthForms } from "@/components/account/auth-forms";
 import { ProfileForm } from "@/components/account/profile-form";
+import { TrackForm } from "@/components/account/track-form";
 import { CheckIcon } from "@/components/icons";
-import { currentCustomer, listCustomerOrders } from "@/lib/customers";
-import { loadOrder } from "@/lib/data";
+import { accessibleOrders, currentCustomer } from "@/lib/customers";
 import { type Dict, t, taka } from "@/lib/i18n";
 import { paymentName } from "@/lib/payments";
+import { smsEnabled } from "@/lib/sms";
 import type { Lang, Order, OrderStatus } from "@/lib/types";
 
 import { logout } from "./actions";
@@ -39,34 +40,48 @@ const BADGE: Record<OrderStatus, string> = {
 const date = (iso: string, lang: Lang) =>
   new Date(iso).toLocaleDateString(lang === "bn" ? "bn-BD" : "en-GB", { timeZone: "Asia/Dhaka", dateStyle: "medium" });
 
-/** Profile, order history and tracking all live here; the footer stays free of account links. */
+/**
+ * Profile, order history and tracking all live here; the footer stays free of account links. An order opens by its
+ * number (`?order=MT-…`), never its id: the id is the key to its file, and page addresses reach analytics. Older links
+ * with the id still work, and either way only for orders this visitor may see.
+ */
 export default async function AccountPage({ params, searchParams }: PageProps<"/[lang]/account">) {
   const lang = (await params).lang as Lang;
-  const { order: orderId } = (await searchParams) as { order?: string };
+  const { order: wanted } = (await searchParams) as { order?: string };
   const d = t(lang);
   const customer = await currentCustomer();
+  const orders = await accessibleOrders(customer?.phone ?? null).catch(() => [] as Order[]);
 
-  if (!customer) {
+  const order = wanted ? orders.find((o) => o.no === wanted || o.id === wanted) : undefined;
+  if (order) {
     return (
       <div className="container-page pt-8 sm:pt-12">
-        <h1 className="mb-8 text-center text-h2 sm:text-h1">{d.account}</h1>
-        <AuthForms lang={lang} />
+        <OrderDetail order={order} lang={lang} d={d} />
       </div>
     );
   }
 
-  if (orderId) {
-    const order = await loadOrder(orderId).catch(() => null);
-    if (order?.customer.phone === customer.phone) {
-      return (
-        <div className="container-page pt-8 sm:pt-12">
-          <OrderDetail order={order} lang={lang} d={d} />
+  if (!customer) {
+    const sms = smsEnabled();
+    return (
+      <div className="container-page pt-8 sm:pt-12">
+        <h1 className="mb-8 text-center text-h2 sm:text-h1">{d.account}</h1>
+        {orders.length > 0 && (
+          <section className="mx-auto mb-10 max-w-3xl">
+            <h2 className="mb-4 text-h4">{d.deviceOrders}</h2>
+            <OrderList orders={orders} lang={lang} d={d} />
+          </section>
+        )}
+        <div className="mx-auto grid max-w-3xl items-start gap-6 md:grid-cols-2">
+          <section className="card p-6 sm:p-8">
+            <h2 className="mb-2 text-h4">{d.trackTitle}</h2>
+            <TrackForm lang={lang} />
+          </section>
+          <AuthForms lang={lang} sms={sms} />
         </div>
-      );
-    }
+      </div>
+    );
   }
-
-  const orders = await listCustomerOrders(customer.phone).catch(() => []);
 
   return (
     <div className="container-page pt-8 sm:pt-12">
@@ -92,29 +107,35 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
               </Link>
             </div>
           ) : (
-            <ul className="space-y-3">
-              {orders.map((order) => (
-                <li key={order.id}>
-                  <Link
-                    href={`/${lang}/account?order=${order.id}`}
-                    className="card flex flex-wrap items-center gap-x-4 gap-y-1 p-5 transition hover:border-border-brand hover:shadow-hover"
-                  >
-                    <span className="font-display text-h4">{order.no}</span>
-                    <StatusBadge status={order.status} d={d} />
-                    <span className="ml-auto font-display text-h4">{taka(order.total, lang)}</span>
-                    <span className="w-full text-body-sm text-fg-tertiary">
-                      {date(order.createdAt, lang)} · {order.items.map((item) => item.name).join(", ")}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <OrderList orders={orders} lang={lang} d={d} />
           )}
         </section>
 
         <ProfileForm lang={lang} name={customer.name} address={customer.address} hasPassword={Boolean(customer.password)} />
       </div>
     </div>
+  );
+}
+
+function OrderList({ orders, lang, d }: { orders: Order[]; lang: Lang; d: Dict }) {
+  return (
+    <ul className="space-y-3">
+      {orders.map((order) => (
+        <li key={order.id}>
+          <Link
+            href={`/${lang}/account?order=${order.no}`}
+            className="card flex flex-wrap items-center gap-x-4 gap-y-1 p-5 transition hover:border-border-brand hover:shadow-hover"
+          >
+            <span className="font-display text-h4">{order.no}</span>
+            <StatusBadge status={order.status} d={d} />
+            <span className="ml-auto font-display text-h4">{taka(order.total, lang)}</span>
+            <span className="w-full text-body-sm text-fg-tertiary">
+              {date(order.createdAt, lang)} · {order.items.map((item) => item.name).join(", ")}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 

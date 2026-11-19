@@ -6,16 +6,21 @@ import {
   checkOtp,
   currentPhone,
   endSession,
+  findOrderByNo,
+  forgetDeviceOrders,
   hashPassword,
   loadCustomer,
   newCustomer,
   passwordValid,
+  rememberOrder,
   saveCustomer,
   sendOtp,
   startSession,
 } from "@/lib/customers";
 import type { Dict } from "@/lib/i18n";
+import { normalizeOrderNo } from "@/lib/orders";
 import { normalizePhone } from "@/lib/pricing";
+import { smsEnabled } from "@/lib/sms";
 import type { Lang } from "@/lib/types";
 
 /** Errors are dictionary keys so the forms show them in the shopper's language. */
@@ -29,6 +34,7 @@ const clip = (value: unknown, max: number) => String(value ?? "").trim().slice(0
 const passwordOk = (password: string) => password.length >= 6 && password.length <= 100;
 
 export async function requestCode(rawPhone: string, lang: Lang): Promise<AuthResult> {
+  if (!smsEnabled()) return { ok: false, error: "errSms" };
   const phone = normalizePhone(clip(rawPhone, 20));
   if (!phone) return { ok: false, error: "errPhone" };
   try {
@@ -47,6 +53,7 @@ export async function requestCode(rawPhone: string, lang: Lang): Promise<AuthRes
  * signup also passes a name and password, which is how a forgotten password gets reset too.
  */
 export async function verifyCode(input: { phone: string; code: string; name?: string; password?: string }): Promise<AuthResult> {
+  if (!smsEnabled()) return { ok: false, error: "errSms" };
   const phone = normalizePhone(clip(input?.phone, 20));
   if (!phone) return { ok: false, error: "errPhone" };
   const password = String(input.password ?? "");
@@ -79,8 +86,10 @@ export async function loginWithPassword(rawPhone: string, password: string): Pro
   if (!phone) return { ok: false, error: "errPhone" };
   const customer = await loadCustomer(phone);
   if (!customer) return { ok: false, error: "errLogin" };
-  if (!customer.password) return { ok: false, error: "errNoPassword" };
-  if ((customer.lockedUntil ?? 0) > Date.now()) return { ok: false, error: "errLocked" };
+  // Without SMS there's no code to fall back on, so the messages point to the order lookup instead.
+  const sms = smsEnabled();
+  if (!customer.password) return { ok: false, error: sms ? "errNoPassword" : "errNoPasswordTrack" };
+  if ((customer.lockedUntil ?? 0) > Date.now()) return { ok: false, error: sms ? "errLocked" : "errLockedWait" };
 
   if (!(await passwordValid(String(password ?? "").slice(0, 100), customer.password))) {
     const failedLogins = (customer.failedLogins ?? 0) + 1;
@@ -90,7 +99,7 @@ export async function loginWithPassword(rawPhone: string, password: string): Pro
       failedLogins: locked ? 0 : failedLogins,
       lockedUntil: locked ? Date.now() + LOCK_MINUTES * 60_000 : 0,
     }).catch(() => {});
-    return { ok: false, error: locked ? "errLocked" : "errLogin" };
+    return { ok: false, error: locked ? (sms ? "errLocked" : "errLockedWait") : "errLogin" };
   }
   if (customer.failedLogins) await saveCustomer({ ...customer, failedLogins: 0 }).catch(() => {});
   await startSession(phone);
@@ -98,8 +107,25 @@ export async function loginWithPassword(rawPhone: string, password: string): Pro
 }
 
 export async function logout(form: FormData) {
-  await endSession();
+  await Promise.all([endSession(), forgetDeviceOrders()]);
   redirect(`/${form.get("lang") === "en" ? "en" : "bn"}/account`);
+}
+
+/** An order by its number and the mobile it was placed with; this browser can open it from then on. */
+export async function trackOrder(input: { no: string; phone: string }): Promise<{ ok: true; no: string } | { ok: false; error: AuthError }> {
+  const no = normalizeOrderNo(clip(input?.no, 40));
+  if (!no) return { ok: false, error: "errTrack" };
+  const phone = normalizePhone(clip(input?.phone, 20));
+  if (!phone) return { ok: false, error: "errPhone" };
+  try {
+    const found = await findOrderByNo(no, phone);
+    if (!found.ok) return found;
+    await rememberOrder(found.order.id);
+  } catch (error) {
+    console.error("trackOrder", error);
+    return { ok: false, error: "errGeneric" };
+  }
+  return { ok: true, no };
 }
 
 export async function updateProfile(input: { name: string; address: string; password: string }): Promise<AuthResult> {

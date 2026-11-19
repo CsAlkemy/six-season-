@@ -15,7 +15,7 @@ import { DEFAULT_SETTINGS } from "@/lib/defaults";
 import { canCancel, NEXT_STEP, withStatus } from "@/lib/orders";
 import { createOrder } from "@/lib/place-order";
 import { normalizePhone } from "@/lib/pricing";
-import { sendSms } from "@/lib/sms";
+import { sendSms, smsEnabled } from "@/lib/sms";
 import { createSession, passwordMatches, SESSION_COOKIE, SESSION_DAYS } from "@/lib/session";
 import { waNumber } from "@/lib/site";
 import { moveStock, summarize, withStock } from "@/lib/stock";
@@ -156,6 +156,7 @@ export interface AdminOrderInput {
   lines: { id: string; variant?: string; qty: number }[];
   adminNote: string;
   startConfirmed: boolean;
+  /** Ignored while SMS is off. */
   sendSms: boolean;
 }
 
@@ -185,6 +186,8 @@ export async function createAdminOrder(input: AdminOrderInput): Promise<{ ok: tr
     lang,
     name,
     phone,
+    // The team spoke to the customer, so the number counts as theirs.
+    verified: true,
     address,
     note: String(input.note ?? "").trim().slice(0, 300),
     zoneId: String(input.zoneId ?? ""),
@@ -201,7 +204,7 @@ export async function createAdminOrder(input: AdminOrderInput): Promise<{ ok: tr
 
   const { order } = result;
   let smsSent: boolean | null = null;
-  if (input.sendSms) {
+  if (input.sendSms && smsEnabled()) {
     const body = lang === "bn" ? `মাটির টান: আপনার অর্ডার ${order.no} পেয়েছি। মোট ${taka(order.total, "bn")}। ধন্যবাদ!` : `Matir Taan: we've got your order ${order.no}. Total ${taka(order.total, "en")}. Thank you!`;
     smsSent = await sendSms(phone, body).catch(() => false);
   }

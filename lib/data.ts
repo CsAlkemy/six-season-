@@ -2,7 +2,7 @@ import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 
 import { DEFAULT_POSTS } from "@/content/blog";
 
-import { readAllJson, readJson, writeJson } from "./blob";
+import { listKeys, readAllJson, readJson, writeJson } from "./blob";
 import type { Post } from "./blog";
 import { withBlur } from "./blur";
 import { DEFAULT_PRODUCTS, DEFAULT_SETTINGS } from "./defaults";
@@ -106,6 +106,20 @@ export const loadOrder = (id: string) => readJson<Order>(orderPath(id));
 
 /** Newest first, a page at a time. */
 export const listOrders = (cursor?: string) => readAllJson<Order>("orders/", 100, cursor);
+
+/**
+ * The ids of the orders with this number. The number carries the day it was placed (UTC) and an id starts with that
+ * moment counted down from 1e13, so a day's orders sit under one or two 5-digit key prefixes: listing those finds
+ * them without opening a single order.
+ */
+export async function orderIdsByNo(no: string): Promise<string[]> {
+  const match = /^MT-(\d\d)(\d\d)(\d\d)-\d{4}$/.exec(no);
+  if (!match) return [];
+  const start = Date.UTC(2000 + Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  const prefixes = new Set([start, start + 86_399_999].map((ms) => String(1e13 - ms).padStart(13, "0").slice(0, 5)));
+  const keys = (await Promise.all([...prefixes].map((prefix) => listKeys(`orders/${prefix}`)))).flat();
+  return keys.map((key) => key.slice("orders/".length, -".json".length)).filter((id) => id.includes(`-${no}-`));
+}
 
 /**
  * Every order, newest first, for the admin's search, counts and dashboard. One fetch per order, so this suits a

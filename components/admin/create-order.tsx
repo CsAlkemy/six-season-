@@ -51,7 +51,7 @@ const blankDraft = (zones: DeliveryZone[], methods: PaymentMethod[]): Draft => (
 const maxFor = (o: ProductOption) => Math.min(99, o.stock ?? 99);
 
 /** Figma-style Create order: customer, items, delivery and payment on the left; the totals and Create order on the right. */
-export function CreateOrder({ options, zones, methods }: { options: ProductOption[]; zones: DeliveryZone[]; methods: PaymentMethod[] }) {
+export function CreateOrder({ options, zones, methods, sms }: { options: ProductOption[]; zones: DeliveryZone[]; methods: PaymentMethod[]; /** SMS is set up, so a confirmation text can go out. */ sms: boolean }) {
   const router = useRouter();
   const [draft, setDraft] = useState(() => blankDraft(zones, methods));
   const [attempted, setAttempted] = useState(false);
@@ -134,7 +134,7 @@ export function CreateOrder({ options, zones, methods }: { options: ProductOptio
       const r = await createAdminOrder({
         lang: draft.lang, name: draft.name, phone: draft.phone, address: draft.address, note: draft.note, zoneId: draft.zoneId, methodId: method!.id,
         trxId: draft.trxId, lines: lines.map((l) => ({ id: l.option.productId, variant: l.option.variantId, qty: l.qty })),
-        adminNote: draft.adminNote, startConfirmed: draft.startConfirmed, sendSms: draft.sendSms,
+        adminNote: draft.adminNote, startConfirmed: draft.startConfirmed, sendSms: sms && draft.sendSms,
       });
       if (!r.ok) return toast.error(r.error);
       try { localStorage.removeItem(DRAFT_KEY); } catch {}
@@ -178,7 +178,7 @@ export function CreateOrder({ options, zones, methods }: { options: ProductOptio
               </div>
             )}
             <AddressField value={draft.address} error={shown("address")} onChange={(address) => set({ address })} />
-            <FormField label="Customer's language" hint="Used for the product names on the order and the confirmation SMS.">
+            <FormField label="Customer's language" hint={sms ? "Used for the product names on the order and the confirmation SMS." : "Used for the product names on the order."}>
               <div role="radiogroup" aria-label="Customer's language" className="inline-flex w-fit rounded-full border border-border-strong p-1">
                 {(["bn", "en"] as const).map((l) => (
                   <button key={l} type="button" role="radio" aria-checked={draft.lang === l} onClick={() => set({ lang: l })} className={cn("rounded-full px-5 py-1.5 text-label-md transition-colors", draft.lang === l ? "bg-brand text-fg-inverse" : "text-fg-secondary hover:bg-muted")}>{l === "bn" ? "বাংলা" : "English"}</button>
@@ -248,7 +248,7 @@ export function CreateOrder({ options, zones, methods }: { options: ProductOptio
             </dl>
             <Button className="w-full" loading={pending} onClick={submit}>Create order</Button>
             <SwitchRow label="Start as confirmed" description="You've already agreed it with the customer" checked={draft.startConfirmed} onCheckedChange={(startConfirmed) => set({ startConfirmed })} />
-            <SwitchRow label="Send confirmation SMS" checked={draft.sendSms} onCheckedChange={(sendSms) => set({ sendSms })} />
+            {sms && <SwitchRow label="Send confirmation SMS" checked={draft.sendSms} onCheckedChange={(sendSms) => set({ sendSms })} />}
           </ContentCard>
           {!empty && <Button variant="link" size="inline" className="self-center text-fg-secondary" onClick={startOver}>Start over</Button>}
         </div>
