@@ -119,7 +119,10 @@ export default async function OrderPage({ params }: PageProps<"/admin/orders/[id
                   <p className="text-caption text-fg-secondary">{orderCount > 1 ? `${orderCount} orders` : "First order"}</p>
                 </div>
               </div>
-              <a href={`tel:${order.customer.phone}`} className="text-body-sm text-fg-secondary hover:text-fg-primary">{order.customer.phone}</a>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <a href={`tel:${order.customer.phone}`} className="text-body-sm text-fg-secondary hover:text-fg-primary">{order.customer.phone}</a>
+                <Link href={`/admin/customers?phone=${order.customer.phone}`} className="text-label-md text-fg-brand underline-offset-4 hover:underline">Account</Link>
+              </div>
             </ContentCard>
 
             <ContentCard title="Delivery address">

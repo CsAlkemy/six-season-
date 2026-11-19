@@ -1,5 +1,7 @@
 import { randomBytes } from "node:crypto";
 
+import { headers } from "next/headers";
+
 import { listKeys, writeJson } from "./blob";
 import { sign } from "./session";
 
@@ -14,4 +16,9 @@ export async function withinLimit(bucket: string, key: string, limit: number, wi
   await writeJson(`${folder}${String(1e13 - now).padStart(13, "0")}-${randomBytes(4).toString("hex")}.json`, { at: now });
   const recent = (await listKeys(folder, limit + 1)).filter((path) => 1e13 - Number(path.slice(folder.length, folder.length + 13)) > now - windowMs);
   return recent.length <= limit;
+}
+
+/** The visitor's address: Vercel sets x-forwarded-for to the client's own. */
+export async function clientIp(): Promise<string> {
+  return (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
 }

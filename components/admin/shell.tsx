@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { Avatar, cn, Icon, type IconName } from "./ui";
 
 const GROUPS: { group: string; items: { href: string; label: string; icon: IconName }[] }[] = [
-  { group: "Main", items: [{ href: "/admin", label: "Dashboard", icon: "dashboard" }, { href: "/admin/orders", label: "Orders", icon: "orders" }] },
+  { group: "Main", items: [{ href: "/admin", label: "Dashboard", icon: "dashboard" }, { href: "/admin/orders", label: "Orders", icon: "orders" }, { href: "/admin/customers", label: "Customers", icon: "users" }] },
   { group: "Catalog", items: [{ href: "/admin/products", label: "Products", icon: "products" }] },
   { group: "Content", items: [{ href: "/admin/blog", label: "Blog", icon: "blog" }] },
 ];
@@ -102,7 +102,8 @@ export function AdminShell({ newOrders, logout, children }: { newOrders: number;
       </div>
 
       <nav aria-label="Admin" className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden">
-        {ALL.map((item) => (
+        {/* Five fit across a phone; Customers is in the menu. */}
+        {ALL.filter((item) => item.href !== "/admin/customers").map((item) => (
           <Link key={item.href} href={item.href} aria-current={item.href === active ? "page" : undefined} className={cn("flex flex-col items-center gap-1 py-2.5 text-caption", item.href === active ? "text-fg-brand" : "text-fg-secondary")}>
             <Icon name={item.icon} className="size-5" />{item.label}
           </Link>

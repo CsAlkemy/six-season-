@@ -10,7 +10,8 @@ import { htmlText, type Post, type PostText, today } from "@/lib/blog";
 import { CATEGORIES } from "@/lib/categories";
 import { book as bookWithCourier, cancel as cancelWithCourier, canCancelByApi, carrybee, type CourierAccounts, couriersView, DEFAULT_WEIGHT_KG, detectPlace, listPlaces, loadAccounts, needsPlace, newSecret, placeRequired, openAccounts, pathao, saveAccounts, steadfast } from "@/lib/couriers";
 import { COURIER_NAME, type CouriersView, FINAL_STAGES, isActive, type Place, stageOf, trackingUrl } from "@/lib/couriers/meta";
-import { listCustomerOrders, loadCustomer } from "@/lib/customers";
+import { resetWhatsApp } from "@/lib/account-mail";
+import { createReset, listCustomerOrders, loadCustomer } from "@/lib/customers";
 import { loadAllOrders, loadOrder, loadPosts, loadProducts, loadSettings, refreshStorefront, saveOrder, savePosts, saveProducts, saveSettings } from "@/lib/data";
 import { cleanPostHtml, htmlImages } from "@/lib/post-html";
 import { DEFAULT_SETTINGS } from "@/lib/defaults";
@@ -24,7 +25,7 @@ import { indexShipment, recordNews, syncShipment } from "@/lib/shipping";
 import { normalizePhone } from "@/lib/pricing";
 import { sendSms, smsEnabled } from "@/lib/sms";
 import { createSession, passwordMatches, SESSION_COOKIE, SESSION_DAYS } from "@/lib/session";
-import { waNumber } from "@/lib/site";
+import { absolute, waNumber } from "@/lib/site";
 import { moveStock, summarize, withStock } from "@/lib/stock";
 import { taka } from "@/lib/i18n";
 import { COURIERS, type CourierId, LANGS, MAX_PHOTOS, SEASONS, SOCIALS, type Shipment, type HomeSection, type Lang, type Order, type PaymentKind, type PaymentMethod, type Product, type Settings, type Text, type Tone, type Variant } from "@/lib/types";
@@ -1015,4 +1016,22 @@ export async function guessPlace(courier: CourierId, address: string): Promise<{
   const id = courierOf(courier);
   if (!id) return null;
   return detectPlace(await loadAccounts(), id, field(address, 300)).catch(() => null);
+}
+
+/* Customers */
+
+/**
+ * A one-time link to choose a new password, for a customer who asked on WhatsApp: the team sends it to the account's
+ * own number (the button opens WhatsApp with it), so opening it proves the number is theirs. Lasts a day.
+ */
+export async function createResetLink(rawPhone: string): Promise<{ ok: true; url: string; whatsapp: string } | { ok: false; error: string }> {
+  await requireAdmin();
+  const phone = normalizePhone(String(rawPhone ?? ""));
+  if (!phone) return { ok: false, error: "Enter a Bangladeshi mobile number, like 01712345678." };
+  try {
+    const url = absolute(`/r/${await createReset(phone, "whatsapp", "bn", 24 * 60)}`);
+    return { ok: true, url, whatsapp: `https://wa.me/${waNumber(phone)}?text=${encodeURIComponent(resetWhatsApp(url))}` };
+  } catch (error) {
+    return failed(error) as { ok: false; error: string };
+  }
 }

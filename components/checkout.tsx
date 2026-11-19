@@ -107,9 +107,18 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
         <p className="mt-2 text-fg-secondary">{d.orderPlacedBody}</p>
         <p className="mt-3 text-h4 tracking-wide text-fg-brand">{placed.no}</p>
         {!customer && <p className="mt-3 text-body-sm text-fg-tertiary">{d.keepOrderNo}</p>}
+        {/* Signing up on this browser brings this order into the new account. (With SMS on, the code signed them in.) */}
+        {!customer && !sms && (
+          <div className="mt-6 rounded-lg bg-subtle p-4">
+            <p className="text-body-sm text-fg-secondary">{d.createAccountCta}</p>
+            <Link href={`/${lang}/account?mode=signup`} className="btn-secondary mt-3 h-11 px-5 text-label-md">
+              {d.createAccount}
+            </Link>
+          </div>
+        )}
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           {placed.id && (
-            <Link href={`/${lang}/account?order=${placed.no}`} className="btn-primary">
+            <Link href={`/${lang}/track?order=${placed.no}`} className="btn-primary">
               {d.trackOrder}
             </Link>
           )}
@@ -203,7 +212,15 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
         </section>
 
         <section>
-          <h2 className="mb-4 text-h4">{d.yourDetails}</h2>
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h2 className="text-h4">{d.yourDetails}</h2>
+            {/* Guests can log in and come straight back, with their details filled in. */}
+            {!customer && (
+              <Link href={`/${lang}/account?next=/${lang}/cart`} className="text-body-sm text-fg-secondary underline underline-offset-4 hover:text-fg-brand">
+                {d.haveAccount}
+              </Link>
+            )}
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="name" className="label">{d.name}</label>

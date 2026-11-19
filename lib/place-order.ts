@@ -101,6 +101,8 @@ export async function createOrder(input: NewOrder): Promise<PlaceResult> {
     payment: { method: method.id, trxId, name: method.name, kind: kindOf(method) },
     history: [{ status: "new", at }, ...(confirmed ? [{ status: "confirmed" as const, at }] : [])],
     stockTaken: counted,
+    // From the store by the number's signed-in account: theirs, even before the number is proven.
+    ...(!admin && input.verified ? { viaAccount: true } : {}),
     ...(admin ? { source: "admin" as const, ...(admin.adminNote ? { adminNote: admin.adminNote } : {}) } : {}),
   };
 

@@ -76,6 +76,8 @@ async function record(patch: EmailStatus) {
 }
 
 export interface Email {
+  /** Someone other than the team, e.g. a shopper's reset link. Needs a domain verified at Resend. */
+  to?: string[];
   subject: string;
   html: string;
   text: string;
@@ -85,9 +87,10 @@ export interface Email {
 
 export type SendResult = { ok: true } | { ok: false; error: string };
 
-/** Sends one email to the team. Never throws; a failure is returned and remembered for the settings page. */
+/** Sends one email, to the team unless it names someone. Never throws; a failure is returned and remembered for the settings page. */
 export async function sendEmail(config: EmailConfig, email: Email): Promise<SendResult> {
-  if (!config.apiKey || !config.to.length) return { ok: false, error: "Email alerts aren't set up." };
+  const to = email.to ?? config.to;
+  if (!config.apiKey || !to.length) return { ok: false, error: "Email alerts aren't set up." };
   let error: string;
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -97,7 +100,7 @@ export async function sendEmail(config: EmailConfig, email: Email): Promise<Send
         "Content-Type": "application/json",
         ...(email.idempotencyKey && { "Idempotency-Key": email.idempotencyKey.slice(0, 256) }),
       },
-      body: JSON.stringify({ from: config.from || DEFAULT_FROM, to: config.to, subject: email.subject, html: email.html, text: email.text }),
+      body: JSON.stringify({ from: config.from || DEFAULT_FROM, to, subject: email.subject, html: email.html, text: email.text }),
       signal: AbortSignal.timeout(15_000),
     });
     if (res.ok) {

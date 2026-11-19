@@ -235,16 +235,28 @@ export interface Order {
   pastShipments?: Shipment[];
   /** Set while a courier booking is under way, so the same order isn't booked twice at once. */
   bookingSince?: string;
+  /** Placed while signed in to the number's account: shown in that account even before its number is proven. */
+  viaAccount?: boolean;
 }
 
-/** A shopper's account, keyed by their verified mobile number. */
+/** A shopper's account, keyed by their mobile number. A record without a password is only a guest's saved details. */
 export interface Customer {
   phone: string;
   name: string;
   /** Last delivery address, filled into the next checkout. */
   address: string;
-  /** scrypt `salt:hash`; null for shoppers who only ever verified by OTP. */
+  /** scrypt `salt:hash`; null until an account is made (guests, and shoppers who only ever verified by OTP). */
   password: string | null;
+  /** Where a password reset link can go; optional. */
+  email?: string;
+  /**
+   * The number is proven theirs: by an SMS code, or by opening a reset link the store sent to it on WhatsApp. Then the
+   * account shows every order placed with the number. Unproven, only the ones placed while signed in or proven by the
+   * order number. Missing on accounts from before, where a password means it was proven (only a code could set one).
+   */
+  phoneVerified?: boolean;
+  /** Orders an unproven account may see besides its own: placed as a guest on this browser, or found by number. */
+  claimed?: string[];
   createdAt: string;
   failedLogins?: number;
   lockedUntil?: number;

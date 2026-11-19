@@ -6,7 +6,7 @@ import { waNumber } from "@/lib/site";
 import { type Lang, type Settings, SOCIAL_NAME, SOCIALS } from "@/lib/types";
 
 import { Grass } from "./grass";
-import { WhatsAppIcon } from "./icons";
+import { TruckIcon, WhatsAppIcon } from "./icons";
 
 const LINK = "underline-offset-4 hover:text-fg-footer-accent hover:underline";
 
@@ -26,6 +26,10 @@ export function SiteFooter({ lang, settings, categories }: { lang: Lang; setting
           <div className="flex flex-col items-start gap-6">
             <img src="/logo-light.svg" alt={STORE_NAME[lang]} width={96} height={64} className="h-16 w-auto" />
             <p className="max-w-xl text-body-lg whitespace-pre-line text-fg-footer-muted">{d.footerTagline}</p>
+            <Link href={`/${lang}/track`} className="btn border border-fg-footer-muted/60 bg-white/5 text-fg-footer hover:border-fg-footer-accent hover:text-fg-footer-accent">
+              <TruckIcon className="size-5" />
+              {d.trackOrder}
+            </Link>
             {categories.length > 0 && (
               <nav aria-label={d.shop}>
                 <ul className="flex flex-wrap gap-x-6 gap-y-2 text-label-md">

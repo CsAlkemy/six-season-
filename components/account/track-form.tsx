@@ -9,7 +9,7 @@ import type { Lang } from "@/lib/types";
 
 /**
  * An order by its number and the mobile it was placed with: how a guest gets back to an order from another phone or
- * browser. On the account page it opens the order; in the review box (`onFound`) it lets them review what came.
+ * browser. On the tracking page it opens the order; in the review box (`onFound`) it lets them review what came.
  */
 export function TrackForm({ lang, onFound, lead }: { lang: Lang; onFound?: () => void; lead?: string }) {
   const d = t(lang);
@@ -28,7 +28,7 @@ export function TrackForm({ lang, onFound, lead }: { lang: Lang; onFound?: () =>
       const result = await trackOrder({ no, phone }).catch(() => null);
       if (!result?.ok) return setError(d[result?.error ?? "errGeneric"]);
       if (onFound) onFound();
-      else router.push(`/${lang}/account?order=${result.no}`);
+      else router.push(`/${lang}/track?order=${result.no}`);
     });
   };
 

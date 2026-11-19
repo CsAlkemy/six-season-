@@ -1,6 +1,6 @@
 "use server";
 
-import { accessibleOrders, currentPhone, loadCustomer } from "@/lib/customers";
+import { accessibleOrders, currentCustomer } from "@/lib/customers";
 import { loadProducts } from "@/lib/data";
 import { notifyReview } from "@/lib/notify";
 import { loadReview, phoneHint, reviewId, saveReview } from "@/lib/reviews";
@@ -31,10 +31,11 @@ const hasProduct = (order: Order, productId: string) => order.items.some((item) 
  * proof they're a buyer. The review is filed under the signed-in number, else under the number on that order.
  */
 async function buyer(productId: string) {
-  const phone = await currentPhone();
-  const orders = await accessibleOrders(phone);
+  const customer = await currentCustomer();
+  const phone = customer?.phone ?? null;
+  const orders = await accessibleOrders(customer);
   const order = orders.find((o) => o.status === "delivered" && hasProduct(o, productId));
-  return { phone, orders, order, reviewer: phone ?? order?.customer.phone ?? null };
+  return { customer, phone, orders, order, reviewer: phone ?? order?.customer.phone ?? null };
 }
 
 export async function reviewState(productId: string): Promise<ReviewState> {
@@ -61,14 +62,13 @@ export async function submitReview(input: { productId: string; rating: number; t
   const productId = String(input.productId);
   const product = (await loadProducts()).find((p) => p.id === productId);
   if (!product) return { ok: false, error: "errSave" };
-  const { phone, order, reviewer } = await buyer(productId);
+  const { phone, order, reviewer, customer } = await buyer(productId);
   if (!order || !reviewer) return { ok: false, error: "errVerify" };
 
   const id = await reviewId(reviewer);
   const existing = await loadReview(productId, id).catch(() => null);
   // A published review stays as approved; a pending one can be rewritten, a rejected one replaced.
   if (existing?.status === "approved") return { ok: false, error: "errSave" };
-  const customer = phone ? await loadCustomer(phone).catch(() => null) : null;
 
   const review: Review = {
     id,

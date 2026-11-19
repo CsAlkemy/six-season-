@@ -1,12 +1,10 @@
 "use server";
 
-import { headers } from "next/headers";
-
 import { currentPhone, rememberOrder } from "@/lib/customers";
 import { orderFormSchema, type OrderFormInput } from "@/lib/order-schema";
 import { createOrder } from "@/lib/place-order";
 import { smsEnabled } from "@/lib/sms";
-import { withinLimit } from "@/lib/throttle";
+import { clientIp, withinLimit } from "@/lib/throttle";
 import type { Lang } from "@/lib/types";
 
 export interface OrderInput extends OrderFormInput {
@@ -44,8 +42,7 @@ export async function placeOrder(input: OrderInput): Promise<OrderResult> {
   if (signedIn ? signedIn !== phone : smsEnabled()) return { ok: false, error: "verify" };
   const verified = signedIn === phone;
   if (!verified) {
-    // Vercel sets x-forwarded-for to the visitor's own address.
-    const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const ip = await clientIp();
     const [byIp, byPhone] = await Promise.all([
       withinLimit("checkout-ip", ip, GUEST_ORDERS_PER_IP_HOUR, 3_600_000).catch(() => true),
       withinLimit("checkout-phone", phone, GUEST_ORDERS_PER_PHONE_DAY, 86_400_000).catch(() => true),

@@ -37,15 +37,23 @@ export async function passwordMatches(input: string): Promise<boolean> {
 export const CUSTOMER_COOKIE = "mt_customer";
 export const CUSTOMER_DAYS = 90;
 
-/** `phone.expires.mac`: the phone was proven by an OTP or a password. */
-export async function createCustomerSession(phone: string): Promise<string> {
+/**
+ * `phone.expires.print.mac`. `print` comes from the account's password, so a new password (changed or reset) makes
+ * every session from before it stop working. Tokens from before prints existed have none and pass only while the
+ * account still has no password.
+ */
+export async function createCustomerSession(phone: string, print: string): Promise<string> {
   const expires = String(Date.now() + CUSTOMER_DAYS * 86_400_000);
-  return `${phone}.${expires}.${await sign(`customer:${phone}:${expires}`)}`;
+  return `${phone}.${expires}.${print}.${await sign(`customer:${phone}:${expires}:${print}`)}`;
 }
 
-export async function verifyCustomerSession(token: string | undefined): Promise<string | null> {
+export async function verifyCustomerSession(token: string | undefined): Promise<{ phone: string; print: string } | null> {
   if (!token) return null;
-  const [phone, expires, mac] = token.split(".");
-  if (!phone || !expires || !mac || Number(expires) < Date.now()) return null;
-  return (await sign(`customer:${phone}:${expires}`)) === mac ? phone : null;
+  const parts = token.split(".");
+  const [phone, expires] = parts;
+  const mac = parts.at(-1);
+  const print = parts.length === 4 ? parts[2]! : "";
+  if (!phone || !expires || !mac || (parts.length !== 3 && parts.length !== 4) || Number(expires) < Date.now()) return null;
+  const signed = parts.length === 4 ? `customer:${phone}:${expires}:${print}` : `customer:${phone}:${expires}`;
+  return (await sign(signed)) === mac ? { phone, print } : null;
 }

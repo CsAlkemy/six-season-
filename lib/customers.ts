@@ -94,12 +94,43 @@ export async function checkOtp(phone: string, code: string): Promise<CheckResult
   return "ok";
 }
 
+/* Accounts */
+
+/** Proven theirs by an SMS code or a WhatsApp reset link; older accounts with a password were (only codes made them). */
+export const numberProven = (customer: Customer) => customer.phoneVerified ?? Boolean(customer.password);
+
+/** An account (a password set), not just a guest's saved details. */
+export const isAccount = (customer: Customer | null): customer is Customer & { password: string } => Boolean(customer?.password);
+
+const MAX_CLAIMED = 50;
+
+/** Adds orders to what an unproven account may see. Proven accounts see every order on their number already. */
+export async function claimOrders(customer: Customer, ids: string[]): Promise<Customer> {
+  const fresh = ids.filter((id) => ORDER_ID.test(id) && !customer.claimed?.includes(id));
+  if (!fresh.length || numberProven(customer)) return customer;
+  const updated = { ...customer, claimed: [...fresh, ...(customer.claimed ?? [])].slice(0, MAX_CLAIMED) };
+  await saveCustomer(updated);
+  return updated;
+}
+
 /* Session */
 
-export async function startSession(phone: string): Promise<void> {
-  // Orders from this device may be someone else's (a shared phone); the account's own come with the number.
+/** Changes with the password, so a new password signs every other device out. */
+const printOf = async (customer: Customer) => (customer.password ? (await sign(`print:${customer.password}`)).slice(0, 12) : "");
+
+/**
+ * Signs the shopper in. This browser's guest orders on the same number become the account's (they were placed here);
+ * others are forgotten, since on a shared phone they're someone else's.
+ */
+export async function startSession(customer: Customer): Promise<void> {
+  const device = await deviceOrderIds();
+  if (device.length) {
+    const orders = await Promise.all(device.map((id) => loadOrder(id).catch(() => null)));
+    const mine = orders.filter((o) => o?.customer.phone === customer.phone).map((o) => o!.id);
+    if (mine.length) await claimOrders((await loadCustomer(customer.phone)) ?? customer, mine).catch((error) => console.error("startSession: claim", error));
+  }
   await forgetDeviceOrders();
-  (await cookies()).set(CUSTOMER_COOKIE, await createCustomerSession(phone), {
+  (await cookies()).set(CUSTOMER_COOKIE, await createCustomerSession(customer.phone, await printOf(customer)), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -112,15 +143,49 @@ export async function endSession(): Promise<void> {
   (await cookies()).delete(CUSTOMER_COOKIE);
 }
 
-/** The signed-in shopper's verified phone, or null. */
-export async function currentPhone(): Promise<string | null> {
-  return verifyCustomerSession((await cookies()).get(CUSTOMER_COOKIE)?.value);
+/** The signed-in shopper, or null. A session from before the account's current password no longer counts. */
+export async function currentCustomer(): Promise<Customer | null> {
+  const session = await verifyCustomerSession((await cookies()).get(CUSTOMER_COOKIE)?.value);
+  if (!session) return null;
+  const customer = (await loadCustomer(session.phone)) ?? newCustomer(session.phone);
+  return (await printOf(customer)) === session.print ? customer : null;
 }
 
-export async function currentCustomer(): Promise<Customer | null> {
-  const phone = await currentPhone();
-  if (!phone) return null;
-  return (await loadCustomer(phone)) ?? newCustomer(phone);
+export async function currentPhone(): Promise<string | null> {
+  return (await currentCustomer())?.phone ?? null;
+}
+
+/* Password reset links: emailed, or sent by the team on WhatsApp to the account's own number. */
+
+interface ResetRecord {
+  phone: string;
+  /** WhatsApp goes to the number itself, so opening it proves the number; email doesn't. */
+  via: "email" | "whatsapp";
+  lang: Lang;
+  expires: number;
+  used: boolean;
+}
+
+export const RESET_COOKIE = "mt_reset";
+const resetPath = async (token: string) => `resets/${(await sign(`reset:${token}`)).slice(0, 32)}.json`;
+
+/** A one-time link token; only its keyed hash is stored. */
+export async function createReset(phone: string, via: ResetRecord["via"], lang: Lang, minutes: number): Promise<string> {
+  const token = randomBytes(24).toString("base64url");
+  await writeJson(await resetPath(token), { phone, via, lang, expires: Date.now() + minutes * 60_000, used: false } satisfies ResetRecord);
+  return token;
+}
+
+export async function openReset(token: string | undefined): Promise<ResetRecord | null> {
+  if (!token || !/^[\w-]{20,64}$/.test(token)) return null;
+  const record = await readJson<ResetRecord>(await resetPath(token)).catch(() => null);
+  return record && !record.used && record.expires > Date.now() ? record : null;
+}
+
+export async function spendReset(token: string): Promise<void> {
+  const path = await resetPath(token);
+  const record = await readJson<ResetRecord>(path);
+  if (record) await writeJson(path, { ...record, used: true });
 }
 
 /* Orders */
@@ -172,15 +237,23 @@ export async function forgetDeviceOrders(): Promise<void> {
   (await cookies()).delete(DEVICE_COOKIE);
 }
 
-/** What this visitor may open: the signed-in number's orders and this device's, newest first. */
-export async function accessibleOrders(phone: string | null): Promise<Order[]> {
-  const [mine, device] = await Promise.all([
-    phone ? listCustomerOrders(phone).catch(() => [] as Order[]) : ([] as Order[]),
-    deviceOrderIds().then((ids) => Promise.all(ids.map((id) => loadOrder(id).catch(() => null)))),
+/**
+ * What this visitor may open, newest first: this device's orders, and for a signed-in shopper their account's. A
+ * proven number sees every order placed with it; an unproven one (an account made without a code) only those placed
+ * while signed in to it and those it proved (placed on this browser, or found by number and mobile), so registering
+ * someone else's number shows nothing of theirs.
+ */
+export async function accessibleOrders(customer: Customer | null): Promise<Order[]> {
+  const load = (ids: string[]) => Promise.all(ids.map((id) => loadOrder(id).catch(() => null)));
+  const [linked, claimed, device] = await Promise.all([
+    customer ? listCustomerOrders(customer.phone).catch(() => [] as Order[]) : ([] as Order[]),
+    customer && !numberProven(customer) ? load(customer.claimed ?? []) : Promise.resolve([] as (Order | null)[]),
+    deviceOrderIds().then(load),
   ]);
-  const seen = new Set(mine.map((order) => order.id));
-  const others = device.filter((order): order is Order => Boolean(order) && !seen.has(order!.id));
-  return [...mine, ...others].sort((a, b) => a.id.localeCompare(b.id));
+  const own = customer && !numberProven(customer) ? linked.filter((o) => o.viaAccount) : linked;
+  const all = new Map<string, Order>();
+  for (const order of [...own, ...claimed, ...device]) if (order) all.set(order.id, order);
+  return [...all.values()].sort((a, b) => a.id.localeCompare(b.id));
 }
 
 /**

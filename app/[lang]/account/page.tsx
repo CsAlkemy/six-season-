@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { AuthForms } from "@/components/account/auth-forms";
 import { ProfileForm } from "@/components/account/profile-form";
-import { TrackForm } from "@/components/account/track-form";
-import { CheckIcon } from "@/components/icons";
-import { COURIER_NAME, isActive } from "@/lib/couriers/meta";
-import { accessibleOrders, currentCustomer } from "@/lib/customers";
-import { type Dict, t, taka } from "@/lib/i18n";
-import { paymentName } from "@/lib/payments";
+import { ResetForm } from "@/components/account/reset-form";
+import { OrderDetail, OrderList } from "@/components/account/orders";
+import { accessibleOrders, currentCustomer, openReset, RESET_COOKIE } from "@/lib/customers";
+import { getSettings } from "@/lib/data";
+import { t } from "@/lib/i18n";
+import { phoneHint } from "@/lib/reviews";
+import { waNumber } from "@/lib/site";
 import { smsEnabled } from "@/lib/sms";
-import type { Lang, Order, OrderStatus } from "@/lib/types";
+import type { Lang, Order } from "@/lib/types";
 
 import { logout } from "./actions";
 
@@ -18,67 +21,69 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/account">)
   return { title: t((await params).lang as Lang).account, robots: { index: false } };
 }
 
-const STEPS = ["new", "confirmed", "packing", "shipped", "delivered"] as const;
-
-const STATUS_LABEL: Record<OrderStatus, keyof Dict> = {
-  new: "statusNew",
-  confirmed: "statusConfirmed",
-  packing: "statusPacking",
-  shipped: "statusShipped",
-  delivered: "statusDelivered",
-  cancelled: "statusCancelled",
-};
-
-const BADGE: Record<OrderStatus, string> = {
-  new: "bg-sage-soft text-fg-sage",
-  confirmed: "bg-brand-soft text-fg-brand",
-  packing: "bg-butter-100 text-soil-700",
-  shipped: "bg-mustard-100 text-soil-700",
-  delivered: "bg-brand text-fg-inverse",
-  cancelled: "bg-muted text-fg-tertiary",
-};
-
-const date = (iso: string, lang: Lang) =>
-  new Date(iso).toLocaleDateString(lang === "bn" ? "bn-BD" : "en-GB", { timeZone: "Asia/Dhaka", dateStyle: "medium" });
+const safeNext = (raw: unknown, lang: Lang) => (typeof raw === "string" && raw.startsWith(`/${lang}/`) && !/\/\/|\\|\.\./.test(raw) ? raw.slice(0, 200) : undefined);
 
 /**
- * Profile, order history and tracking all live here; the footer stays free of account links. An order opens by its
- * number (`?order=MT-…`), never its id: the id is the key to its file, and page addresses reach analytics. Older links
- * with the id still work, and either way only for orders this visitor may see.
+ * Log in, sign up, password resets, profile, order history and tracking all live here; the footer stays free of account
+ * links. An order opens by its number (`?order=MT-…`), never its id: the id is the key to its file, and page addresses
+ * reach analytics. Older links with the id still work, and either way only for orders this visitor may see.
+ *
+ * `?next=/bn/cart` comes back there after logging in; `?mode=signup` opens on signing up; `?reset=1` follows a reset
+ * link (/r/[token] put its token in a cookie).
  */
 export default async function AccountPage({ params, searchParams }: PageProps<"/[lang]/account">) {
   const lang = (await params).lang as Lang;
-  const { order: wanted } = (await searchParams) as { order?: string };
+  const query = (await searchParams) as { order?: string; reset?: string; next?: string; mode?: string };
+  const wanted = query.order;
+  const next = safeNext(query.next, lang);
   const d = t(lang);
+
+  if (query.reset === "1") {
+    const reset = await openReset((await cookies()).get(RESET_COOKIE)?.value).catch(() => null);
+    if (reset) {
+      return (
+        <div className="container-page pt-8 sm:pt-12">
+          <h1 className="mb-8 text-center text-h2 sm:text-h1">{d.account}</h1>
+          <div className="mx-auto max-w-md">
+            <ResetForm lang={lang} phone={phoneHint(reset.phone)} />
+          </div>
+        </div>
+      );
+    }
+  }
+
   const customer = await currentCustomer();
-  const orders = await accessibleOrders(customer?.phone ?? null).catch(() => [] as Order[]);
+  if (customer && next) redirect(next);
+  const orders = await accessibleOrders(customer).catch(() => [] as Order[]);
 
   const order = wanted ? orders.find((o) => o.no === wanted || o.id === wanted) : undefined;
   if (order) {
     return (
       <div className="container-page pt-8 sm:pt-12">
-        <OrderDetail order={order} lang={lang} d={d} />
+        <OrderDetail order={order} lang={lang} d={d} back={{ href: `/${lang}/account`, label: d.backToOrders }} />
       </div>
     );
   }
 
   if (!customer) {
-    const sms = smsEnabled();
+    const { store } = await getSettings();
     return (
       <div className="container-page pt-8 sm:pt-12">
         <h1 className="mb-8 text-center text-h2 sm:text-h1">{d.account}</h1>
         {orders.length > 0 && (
           <section className="mx-auto mb-10 max-w-3xl">
             <h2 className="mb-4 text-h4">{d.deviceOrders}</h2>
-            <OrderList orders={orders} lang={lang} d={d} />
+            <OrderList orders={orders} lang={lang} d={d} base="account" />
           </section>
         )}
-        <div className="mx-auto grid max-w-3xl items-start gap-6 md:grid-cols-2">
-          <section className="card p-6 sm:p-8">
-            <h2 className="mb-2 text-h4">{d.trackTitle}</h2>
-            <TrackForm lang={lang} />
-          </section>
-          <AuthForms lang={lang} sms={sms} />
+        <div className="mx-auto max-w-md space-y-6">
+          {query.reset && <p className="rounded-md bg-error-soft p-3 text-body-sm text-fg-error" role="alert">{d.errResetExpired}</p>}
+          <AuthForms lang={lang} sms={smsEnabled()} next={next} start={query.mode === "signup" ? "signup" : "login"} whatsapp={waNumber(store.whatsapp)} phone={store.phone} />
+          {/* Guests find their orders on the tracking page (also linked from the footer). */}
+          <p className="text-center text-body-sm text-fg-secondary">
+            {d.orderedAsGuest}{" "}
+            <Link href={`/${lang}/track`} className="font-semibold text-fg-brand underline underline-offset-4">{d.trackOrder}</Link>
+          </p>
         </div>
       </div>
     );
@@ -108,126 +113,12 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
               </Link>
             </div>
           ) : (
-            <OrderList orders={orders} lang={lang} d={d} />
+            <OrderList orders={orders} lang={lang} d={d} base="account" />
           )}
         </section>
 
-        <ProfileForm lang={lang} name={customer.name} address={customer.address} hasPassword={Boolean(customer.password)} />
+        <ProfileForm lang={lang} name={customer.name} address={customer.address} email={customer.email ?? ""} hasPassword={Boolean(customer.password)} />
       </div>
-    </div>
-  );
-}
-
-function OrderList({ orders, lang, d }: { orders: Order[]; lang: Lang; d: Dict }) {
-  return (
-    <ul className="space-y-3">
-      {orders.map((order) => (
-        <li key={order.id}>
-          <Link
-            href={`/${lang}/account?order=${order.no}`}
-            className="card flex flex-wrap items-center gap-x-4 gap-y-1 p-5 transition hover:border-border-brand hover:shadow-hover"
-          >
-            <span className="font-display text-h4">{order.no}</span>
-            <StatusBadge status={order.status} d={d} />
-            <span className="ml-auto font-display text-h4">{taka(order.total, lang)}</span>
-            <span className="w-full text-body-sm text-fg-tertiary">
-              {date(order.createdAt, lang)} · {order.items.map((item) => item.name).join(", ")}
-            </span>
-          </Link>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function StatusBadge({ status, d }: { status: OrderStatus; d: Dict }) {
-  return <span className={`rounded-full px-2.5 py-0.5 text-caption ${BADGE[status]}`}>{d[STATUS_LABEL[status]]}</span>;
-}
-
-function OrderDetail({ order, lang, d }: { order: Order; lang: Lang; d: Dict }) {
-  const reached = STEPS.indexOf(order.status as (typeof STEPS)[number]);
-  return (
-    <div className="mx-auto max-w-2xl">
-      <Link href={`/${lang}/account`} className="text-body-sm text-fg-secondary underline hover:text-fg-brand">
-        ← {d.backToOrders}
-      </Link>
-      <div className="mt-4 mb-8 flex flex-wrap items-center gap-3">
-        <h1 className="text-h2">{order.no}</h1>
-        <StatusBadge status={order.status} d={d} />
-        <span className="w-full text-fg-tertiary">{date(order.createdAt, lang)}</span>
-      </div>
-
-      <section className="card p-6">
-        <h2 className="mb-5 text-h4">{d.trackOrder}</h2>
-        {order.status === "cancelled" ? (
-          <p className="text-fg-secondary">{d.statusCancelled}</p>
-        ) : (
-          <ol className="space-y-0">
-            {STEPS.map((step, i) => {
-              const done = i <= reached;
-              return (
-                <li key={step} className="relative flex gap-4 pb-6 last:pb-0">
-                  {i < STEPS.length - 1 && (
-                    <span className={`absolute top-8 left-[15px] h-[calc(100%-2rem)] w-0.5 ${i < reached ? "bg-brand" : "bg-border"}`} aria-hidden />
-                  )}
-                  <span
-                    className={`grid size-8 shrink-0 place-items-center rounded-full border-2 ${done ? "border-brand bg-brand text-fg-inverse" : "border-border-strong bg-surface"}`}
-                  >
-                    {done && <CheckIcon className="size-4" />}
-                  </span>
-                  <span className={`pt-1 ${i === reached ? "font-semibold" : done ? "" : "text-fg-tertiary"}`}>{d[STATUS_LABEL[step]]}</span>
-                </li>
-              );
-            })}
-          </ol>
-        )}
-        {isActive(order.shipment) && order.status !== "cancelled" && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
-            <p className="text-body-sm text-fg-secondary">
-              {d.courier}: <span className="font-semibold text-fg-primary">{COURIER_NAME[order.shipment.courier][lang]}</span> · <span className="tabular-nums">{order.shipment.trackingCode ?? order.shipment.consignmentId}</span>
-            </p>
-            {order.shipment.trackingUrl && (
-              <a href={order.shipment.trackingUrl} target="_blank" rel="noopener" className="btn-secondary h-11 px-5 text-label-md">
-                {d.trackParcel}
-              </a>
-            )}
-          </div>
-        )}
-      </section>
-
-      <section className="card mt-6 divide-y divide-border">
-        <h2 className="p-6 pb-4 text-h4">{d.items}</h2>
-        {order.items.map((item, i) => (
-          <div key={`${item.productId}:${item.variantId ?? i}`} className="flex justify-between gap-4 px-6 py-3">
-            <span>
-              {item.name} <span className="text-fg-tertiary">· {item.unit} × {item.qty}</span>
-            </span>
-            <span className="font-display font-semibold">{taka(item.price * item.qty, lang)}</span>
-          </div>
-        ))}
-        <div className="space-y-2 p-6">
-          <Row label={d.subtotal} value={taka(order.subtotal, lang)} />
-          <Row label={d.delivery} value={order.deliveryFee === 0 ? d.free : taka(order.deliveryFee, lang)} />
-          <Row label={d.total} value={taka(order.total, lang)} strong />
-          <p className="pt-2 text-body-sm text-fg-tertiary">{paymentName(order.payment, lang)}</p>
-        </div>
-      </section>
-
-      <section className="card mt-6 p-6">
-        <h2 className="mb-2 text-h4">{d.deliveryArea}</h2>
-        <p className="font-semibold">{order.customer.name}</p>
-        <p className="whitespace-pre-line text-fg-secondary">{order.customer.address}</p>
-        <p className="text-fg-tertiary">{order.zone.name}</p>
-      </section>
-    </div>
-  );
-}
-
-function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <div className={`flex justify-between ${strong ? "text-h4" : "text-fg-secondary"}`}>
-      <span>{label}</span>
-      <span className={strong ? "font-display" : "font-display font-semibold text-fg-primary"}>{value}</span>
     </div>
   );
 }
