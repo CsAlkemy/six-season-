@@ -26,7 +26,7 @@ export function SiteFooter({ lang, settings, categories }: { lang: Lang; setting
           <div className="flex flex-col items-start gap-6">
             <img src="/logo-light.svg" alt={STORE_NAME[lang]} width={96} height={64} loading="lazy" className="h-16 w-auto" />
             <p className="max-w-xl text-body-lg whitespace-pre-line text-fg-footer-muted">{d.footerTagline}</p>
-            <Link href={`/${lang}/track`} className="btn border border-fg-footer-muted/60 bg-white/5 text-fg-footer hover:border-fg-footer-accent hover:text-fg-footer-accent">
+            <Link href={`/track`} className="btn border border-fg-footer-muted/60 bg-white/5 text-fg-footer hover:border-fg-footer-accent hover:text-fg-footer-accent">
               <TruckIcon className="size-5" />
               {d.trackOrder}
             </Link>
@@ -35,7 +35,7 @@ export function SiteFooter({ lang, settings, categories }: { lang: Lang; setting
                 <ul className="flex flex-wrap gap-x-6 gap-y-2 text-label-md">
                   {categories.map((c) => (
                     <li key={c.id}>
-                      <Link href={`/${lang}/c/${c.slug}`} className={LINK}>
+                      <Link href={`/c/${c.slug}`} className={LINK}>
                         {c.name[lang]}
                       </Link>
                     </li>
@@ -45,32 +45,32 @@ export function SiteFooter({ lang, settings, categories }: { lang: Lang; setting
             )}
             <ul className="flex flex-wrap gap-x-6 gap-y-2 text-label-md">
               <li>
-                <Link href={`/${lang}/blog`} className={LINK}>
+                <Link href={`/blog`} className={LINK}>
                   {d.blog}
                 </Link>
               </li>
               <li>
-                <Link href={`/${lang}/about`} className={LINK}>
+                <Link href={`/about`} className={LINK}>
                   {d.aboutUs}
                 </Link>
               </li>
               <li>
-                <Link href={`/${lang}/contact`} className={LINK}>
+                <Link href={`/contact`} className={LINK}>
                   {d.contact}
                 </Link>
               </li>
               <li>
-                <Link href={`/${lang}/delivery`} className={LINK}>
+                <Link href={`/delivery`} className={LINK}>
                   {d.deliveryPayment}
                 </Link>
               </li>
               <li>
-                <Link href={`/${lang}/returns`} className={LINK}>
+                <Link href={`/returns`} className={LINK}>
                   {d.returnsRefunds}
                 </Link>
               </li>
               <li>
-                <Link href={`/${lang}/privacy`} className={LINK}>
+                <Link href={`/privacy`} className={LINK}>
                   {d.privacyPolicy}
                 </Link>
               </li>

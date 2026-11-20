@@ -27,7 +27,7 @@ export function storeJsonLd(lang: Lang, settings: Settings) {
         "@id": STORE_ID,
         name: STORE_NAME[lang],
         alternateName: STORE_NAME[otherLang(lang)],
-        url: absolute(`/${lang}`),
+        url: absolute("/"),
         logo: absolute("/logo.png"),
         description: homeSeo(lang, seo).description,
         areaServed: { "@type": "Country", name: "Bangladesh" },
@@ -75,7 +75,7 @@ const returnPolicy = (lang: Lang, days: number) =>
           merchantReturnDays: days,
           returnMethod: "https://schema.org/ReturnByMail",
           returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
-          merchantReturnLink: absolute(`/${lang}/returns`),
+          merchantReturnLink: absolute(`/returns`),
         },
       }
     : {};
@@ -86,7 +86,7 @@ const returnPolicy = (lang: Lang, days: number) =>
  * Each size's sku is the same ID the Google feed and analytics use (lib/variants.ts itemId).
  */
 export function productJsonLd(product: Product, lang: Lang, reviews: Review[], summary: RatingSummary, settings: Settings) {
-  const url = absolute(`/${lang}/p/${product.slug}`);
+  const url = absolute(`/p/${product.slug}`);
   const category = categoryOf(product);
   const variants = variantsOf(product);
   const grouped = variants.length > 1;
@@ -148,7 +148,7 @@ export function productJsonLd(product: Product, lang: Lang, reviews: Review[], s
           })),
         }),
       },
-      breadcrumb(lang, [...(category ? [{ name: category.name[lang], url: absolute(`/${lang}/c/${category.slug}`) }] : []), { name: product.name[lang], url }]),
+      breadcrumb(lang, [...(category ? [{ name: category.name[lang], url: absolute(`/c/${category.slug}`) }] : []), { name: product.name[lang], url }]),
     ],
   };
 }
@@ -156,12 +156,12 @@ export function productJsonLd(product: Product, lang: Lang, reviews: Review[], s
 /** store › …trail, as Google's breadcrumb data. */
 const breadcrumb = (lang: Lang, trail: { name: string; url: string }[]) => ({
   "@type": "BreadcrumbList",
-  itemListElement: [{ name: STORE_NAME[lang], url: absolute(`/${lang}`) }, ...trail].map((crumb, i) => ({ "@type": "ListItem", position: i + 1, name: crumb.name, item: crumb.url })),
+  itemListElement: [{ name: STORE_NAME[lang], url: absolute("/") }, ...trail].map((crumb, i) => ({ "@type": "ListItem", position: i + 1, name: crumb.name, item: crumb.url })),
 });
 
 /** A plain page (about, contact, delivery, privacy): what kind it is and where it sits, store › page. */
 export function pageJsonLd(kind: string, slug: string, title: string, description: string, lang: Lang) {
-  const url = absolute(`/${lang}/${slug}`);
+  const url = absolute(`/${slug}`);
   return {
     "@context": "https://schema.org",
     "@graph": [
@@ -173,7 +173,7 @@ export function pageJsonLd(kind: string, slug: string, title: string, descriptio
 
 /** A category page: the products on it as a list, and store › category. */
 export function categoryJsonLd(category: Category, products: Product[], lang: Lang) {
-  const url = absolute(`/${lang}/c/${category.slug}`);
+  const url = absolute(`/c/${category.slug}`);
   return {
     "@context": "https://schema.org",
     "@graph": [
@@ -187,7 +187,7 @@ export function categoryJsonLd(category: Category, products: Product[], lang: La
         isPartOf: { "@id": WEBSITE_ID },
         mainEntity: {
           "@type": "ItemList",
-          itemListElement: products.map((p, i) => ({ "@type": "ListItem", position: i + 1, url: absolute(`/${lang}/p/${p.slug}`), name: p.name[lang] })),
+          itemListElement: products.map((p, i) => ({ "@type": "ListItem", position: i + 1, url: absolute(`/p/${p.slug}`), name: p.name[lang] })),
         },
       },
       breadcrumb(lang, [{ name: category.name[lang], url }]),
@@ -195,7 +195,7 @@ export function categoryJsonLd(category: Category, products: Product[], lang: La
   };
 }
 
-const blogRef = (lang: Lang) => ({ "@type": "Blog", "@id": BLOG_ID, name: t(lang).blog, url: absolute(`/${lang}/blog`) });
+const blogRef = (lang: Lang) => ({ "@type": "Blog", "@id": BLOG_ID, name: t(lang).blog, url: absolute(`/blog`) });
 
 /** The blog's front page: the blog and the posts on it. */
 export function blogJsonLd(lang: Lang, posts: Post[]) {
@@ -208,7 +208,7 @@ export function blogJsonLd(lang: Lang, posts: Post[]) {
     blogPost: posts.map((post) => ({
       "@type": "BlogPosting",
       headline: post.text[lang].title,
-      url: absolute(`/${lang}/blog/${post.slug}`),
+      url: absolute(`/blog/${post.slug}`),
       datePublished: post.published,
     })),
   };
@@ -216,7 +216,7 @@ export function blogJsonLd(lang: Lang, posts: Post[]) {
 
 /** A post, written by the store, about the products it names; and where it sits: store › blog › post. */
 export function postJsonLd(post: Post, lang: Lang, products: Product[], cover?: string) {
-  const url = absolute(`/${lang}/blog/${post.slug}`);
+  const url = absolute(`/blog/${post.slug}`);
   const title = post.text[lang].title;
   const description = postDescription(post, lang);
   return {
@@ -233,16 +233,16 @@ export function postJsonLd(post: Post, lang: Lang, products: Product[], cover?: 
         dateModified: post.updated ?? post.published,
         inLanguage: lang,
         ...(cover && { image: [absolute(cover)] }),
-        author: { "@type": "Organization", "@id": STORE_ID, name: STORE_NAME[lang], url: absolute(`/${lang}`) },
+        author: { "@type": "Organization", "@id": STORE_ID, name: STORE_NAME[lang], url: absolute("/") },
         publisher: { "@id": STORE_ID },
         isPartOf: blogRef(lang),
-        about: products.map((p) => ({ "@type": "Product", name: p.name[lang], url: absolute(`/${lang}/p/${p.slug}`) })),
+        about: products.map((p) => ({ "@type": "Product", name: p.name[lang], url: absolute(`/p/${p.slug}`) })),
       },
       {
         "@type": "BreadcrumbList",
         itemListElement: [
-          { "@type": "ListItem", position: 1, name: STORE_NAME[lang], item: absolute(`/${lang}`) },
-          { "@type": "ListItem", position: 2, name: t(lang).blog, item: absolute(`/${lang}/blog`) },
+          { "@type": "ListItem", position: 1, name: STORE_NAME[lang], item: absolute("/") },
+          { "@type": "ListItem", position: 2, name: t(lang).blog, item: absolute(`/blog`) },
           { "@type": "ListItem", position: 3, name: title, item: url },
         ],
       },

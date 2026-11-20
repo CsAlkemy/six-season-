@@ -22,7 +22,7 @@ export function ProductTiles({ products, lang, eagerFirst = false }: { products:
         const variants = variantsOf(product);
         const variant = defaultVariant(product);
         const inStock = variants.some((v) => v.inStock);
-        const href = `/${lang}/p/${product.slug}`;
+        const href = `/p/${product.slug}`;
         const line = product.tagline?.[lang] || variants.map((v) => v.label[lang]).join(" · ");
         const saving = savingPercent(variant);
         const price = variants.length > 1 ? fromPrice(variant.price, lang) : taka(variant.price, lang);

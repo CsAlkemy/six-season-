@@ -11,8 +11,8 @@ export async function GET(request: Request, ctx: RouteContext<"/r/[token]">) {
   const { token } = await ctx.params;
   const reset = await openReset(token).catch(() => null);
   const lang = reset?.lang ?? STORE_LANG;
-  if (!reset) return NextResponse.redirect(new URL(`/${lang}/account?reset=expired`, request.url), 303);
-  const response = NextResponse.redirect(new URL(`/${lang}/account?reset=1`, request.url), 303);
+  if (!reset) return NextResponse.redirect(new URL(`/account?reset=expired`, request.url), 303);
+  const response = NextResponse.redirect(new URL(`/account?reset=1`, request.url), 303);
   response.cookies.set(RESET_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

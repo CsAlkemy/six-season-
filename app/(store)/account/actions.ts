@@ -179,7 +179,7 @@ export async function loginWithPassword(rawPhone: string, password: string): Pro
 
 export async function logout(form: FormData) {
   await Promise.all([endSession(), forgetDeviceOrders()]);
-  redirect(`/${form.get("lang") === "en" ? "en" : "bn"}/account`);
+  redirect("/account");
 }
 
 export type ResetRequest = { ok: true; via: "email"; to: string } | { ok: true; via: "none" } | { ok: false; error: AuthError };

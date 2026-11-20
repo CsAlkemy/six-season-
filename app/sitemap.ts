@@ -29,14 +29,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       ...(extra.lastModified && { lastModified: extra.lastModified }),
     }));
   return [
-    ...page((lang) => `/${lang}`),
-    ...shopCategories(all).flatMap((c) => page((lang) => `/${lang}/c/${c.slug}`)),
-    ...products.flatMap((p) => page((lang) => `/${lang}/p/${p.slug}`, { images: photosOf(p).map(absolute) })),
-    ...PAGE_SLUGS.flatMap((slug) => page((lang) => `/${lang}/${slug}`)),
-    ...page((lang) => `/${lang}/blog`, { lastModified: posts[0]?.published }),
+    ...page((lang) => "/"),
+    ...shopCategories(all).flatMap((c) => page((lang) => `/c/${c.slug}`)),
+    ...products.flatMap((p) => page((lang) => `/p/${p.slug}`, { images: photosOf(p).map(absolute) })),
+    ...PAGE_SLUGS.flatMap((slug) => page((lang) => `/${slug}`)),
+    ...page((lang) => `/blog`, { lastModified: posts[0]?.published }),
     ...posts.flatMap((post) => {
       const cover = postCover(post, products);
-      return page((lang) => `/${lang}/blog/${post.slug}`, { lastModified: post.updated ?? post.published, images: cover ? [absolute(cover)] : [] }, shown(post));
+      return page((lang) => `/blog/${post.slug}`, { lastModified: post.updated ?? post.published, images: cover ? [absolute(cover)] : [] }, shown(post));
     }),
   ];
 }

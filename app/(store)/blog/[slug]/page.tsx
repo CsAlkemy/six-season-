@@ -11,14 +11,15 @@ import { STORE_NAME, t } from "@/lib/i18n";
 import { alternates, openGraph } from "@/lib/site";
 import { postJsonLd } from "@/lib/structured-data";
 import type { Lang } from "@/lib/types";
-import { langOf } from "@/lib/lang";
+import { STORE_LANG } from "@/lib/types";
+import { withoutLang } from "@/lib/post-html";
 
 export const revalidate = 3600;
 /** Posts published after the last build render on first visit, then stay static. */
 export const dynamicParams = true;
 
-export async function generateStaticParams({ params }: { params: { lang: string } }) {
-  return (await getPosts()).filter((p) => isLive(p, params.lang as Lang)).map((p) => ({ slug: p.slug }));
+export async function generateStaticParams() {
+  return (await getPosts()).filter((p) => isLive(p, STORE_LANG)).map((p) => ({ slug: p.slug }));
 }
 
 /** The post, if readers of this language should see it: drafts and posts not written in it are a 404. */
@@ -27,14 +28,14 @@ async function find(slug: string, lang: Lang) {
   return post && isLive(post, lang) ? post : undefined;
 }
 
-export async function generateMetadata({ params }: PageProps<"/[lang]/blog/[slug]">): Promise<Metadata> {
-  const { lang: l, slug } = await params;
-  const lang = langOf(l);
+export async function generateMetadata({ params }: PageProps<"/blog/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const lang = STORE_LANG;
   const post = await find(slug, lang);
   if (!post) return {};
   const title = post.text[lang].title;
   const description = postDescription(post, lang);
-  const path = (to: Lang) => `/${to}/blog/${post.slug}`;
+  const path = (to: Lang) => `/blog/${post.slug}`;
   return {
     title,
     description,
@@ -49,9 +50,9 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/blog/[slug
 }
 
 /** A post: the banner and text in a reading column, then the products it's about (to buy right there) and other posts. */
-export default async function PostPage({ params }: PageProps<"/[lang]/blog/[slug]">) {
-  const { lang: l, slug } = await params;
-  const lang = langOf(l);
+export default async function PostPage({ params }: PageProps<"/blog/[slug]">) {
+  const { slug } = await params;
+  const lang = STORE_LANG;
   const post = await find(slug, lang);
   if (!post) notFound();
   const d = t(lang);
@@ -68,13 +69,13 @@ export default async function PostPage({ params }: PageProps<"/[lang]/blog/[slug
           <nav aria-label="Breadcrumb">
             <ol className="flex flex-wrap items-center gap-2 text-caption text-fg-tertiary">
               <li>
-                <Link href={`/${lang}`} className="transition-colors hover:text-fg-primary">
+                <Link href={"/"} className="transition-colors hover:text-fg-primary">
                   {STORE_NAME[lang]}
                 </Link>
               </li>
               <li aria-hidden>/</li>
               <li>
-                <Link href={`/${lang}/blog`} className="transition-colors hover:text-fg-primary">
+                <Link href={`/blog`} className="transition-colors hover:text-fg-primary">
                   {d.blog}
                 </Link>
               </li>
@@ -90,7 +91,7 @@ export default async function PostPage({ params }: PageProps<"/[lang]/blog/[slug
           </div>
         )}
         {/* Cleaned when it was saved (lib/post-html.ts). */}
-        <div className="post-body mt-8 sm:mt-10" dangerouslySetInnerHTML={{ __html: post.text[lang].html }} />
+        <div className="post-body mt-8 sm:mt-10" dangerouslySetInnerHTML={{ __html: withoutLang(post.text[lang].html) }} />
       </article>
 
       {products.length > 0 && (

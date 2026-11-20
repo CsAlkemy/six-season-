@@ -23,8 +23,8 @@ export const howToBoilDeshiEggs: Post = {
 <p>বেশি সময় সেদ্ধ হলে কুসুমের ধারে ধূসর-সবুজ আস্তর পড়ে। এটা ক্ষতিকর নয়, তবে স্বাদ একটু শুকনো আর গন্ধ কড়া হয়। সময় কমালে আর সেদ্ধ হওয়ামাত্র ঠান্ডা পানিতে দিলে এটা এড়ানো যায়।</p>
 <h2>ফাটা ডিম আর নিরাপত্তা</h2>
 <p>ফাটা ডিম পানিতে ফেললে সাদা অংশ বেরিয়ে যেতে পারে। ওগুলো আগে ভেঙে অমলেট বা ভুনায় ব্যবহার করুন, আর ভালো করে রান্না করুন। শিশু, গর্ভবতী আর বয়স্কদের জন্য কাঁচা বা আধা-সেদ্ধ ডিম এড়ানোই ভালো, শক্ত করে সেদ্ধ করে দিন।</p>
-<p>দেশি ডিম চেনা, তাজা কিনা পরীক্ষা আর রাখার নিয়ম আছে <a href="/bn/blog/deshi-eggs-vs-farm-eggs">দেশি মুরগির ডিম চিনবেন কীভাবে</a> লেখায়।</p>
-<p>আমাদের দেশি ডিম খোলা উঠানে চরে বেড়ানো দেশি মুরগির, প্রতিদিন সংগ্রহ করা। দেখুন <a href="/bn/c/deshi-eggs">দেশি ডিম</a>।</p>
+<p>দেশি ডিম চেনা, তাজা কিনা পরীক্ষা আর রাখার নিয়ম আছে <a href="/blog/deshi-eggs-vs-farm-eggs">দেশি মুরগির ডিম চিনবেন কীভাবে</a> লেখায়।</p>
+<p>আমাদের দেশি ডিম খোলা উঠানে চরে বেড়ানো দেশি মুরগির, প্রতিদিন সংগ্রহ করা। দেখুন <a href="/c/deshi-eggs">দেশি ডিম</a>।</p>
 `,
     },
     en: {
@@ -42,8 +42,8 @@ export const howToBoilDeshiEggs: Post = {
 <p>If an egg is boiled too long, a grey-green layer forms around the yolk. It's harmless, but the yolk tastes a little dry and the smell is stronger. Shorter timings, and cold water as soon as they're done, avoid it.</p>
 <h2>Cracked eggs, and safety</h2>
 <p>If a cracked egg goes into the water, the white can leak out. Crack those first into an omelette or a curry, and cook them through. For children, pregnant women and older people, it's best to avoid raw or runny eggs: boil them hard.</p>
-<p>How to tell deshi eggs, test an egg for freshness and store them are in <a href="/en/blog/deshi-eggs-vs-farm-eggs">How to tell deshi eggs from farm eggs</a>.</p>
-<p>Our deshi eggs come from hens that roam open yards, collected daily. See <a href="/en/c/deshi-eggs">deshi eggs</a>.</p>
+<p>How to tell deshi eggs, test an egg for freshness and store them are in <a href="/blog/deshi-eggs-vs-farm-eggs">How to tell deshi eggs from farm eggs</a>.</p>
+<p>Our deshi eggs come from hens that roam open yards, collected daily. See <a href="/c/deshi-eggs">deshi eggs</a>.</p>
 `,
     },
   },

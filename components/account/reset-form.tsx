@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { resetPassword } from "@/app/[lang]/account/actions";
+import { resetPassword } from "@/app/(store)/account/actions";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
 
@@ -24,7 +24,7 @@ export function ResetForm({ lang, phone }: { lang: Lang; phone: string }) {
     startTransition(async () => {
       const result = await resetPassword({ password }).catch(() => null);
       if (!result?.ok) return setError(d[result?.error ?? "errGeneric"]);
-      router.replace(`/${lang}/account`);
+      router.replace(`/account`);
       router.refresh();
     });
   };

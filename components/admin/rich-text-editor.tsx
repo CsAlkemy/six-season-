@@ -191,7 +191,7 @@ function Toolbar({ editor, onPhoto, uploading }: { editor: Editor; onPhoto?: () 
         open={linking !== null}
         title="Link"
         label="Web address"
-        hint="A page on this store (/bn/p/gawa-ghee) or any site (https://…). Leave it empty to remove the link."
+        hint="A page on this store (/p/gawa-ghee) or any site (https://…). Leave it empty to remove the link."
         initial={linking ?? ""}
         onCancel={() => setLinking(null)}
         onApply={applyLink}

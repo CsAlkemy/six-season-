@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState, useTransition } from "react";
 
-import { type ReviewState, reviewState, submitReview } from "@/app/[lang]/p/[slug]/actions";
+import { type ReviewState, reviewState, submitReview } from "@/app/(store)/p/[slug]/actions";
 import type { Dict } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
 
@@ -32,7 +32,7 @@ export function ReviewBox({ productId, lang, d }: { productId: string; lang: Lan
     return (
       <div className="flex flex-col gap-3 rounded-xl border border-border p-5">
         <TrackForm lang={lang} lead={d.reviewTrack} onFound={() => { setState(null); load(); }} />
-        <Link href={`/${lang}/account`} className="self-center text-body-sm text-fg-secondary underline hover:text-fg-brand">
+        <Link href={`/account`} className="self-center text-body-sm text-fg-secondary underline hover:text-fg-brand">
           {d.haveAccount}
         </Link>
       </div>
@@ -43,7 +43,7 @@ export function ReviewBox({ productId, lang, d }: { productId: string; lang: Lan
     return (
       <div className="flex flex-col items-start gap-3 rounded-xl border border-border p-5">
         <p className="text-body-sm text-fg-secondary">{d.reviewLogin}</p>
-        <Link href={`/${lang}/account`} className="btn-secondary h-11 px-5 text-label-md">
+        <Link href={`/account`} className="btn-secondary h-11 px-5 text-label-md">
           {d.login}
         </Link>
       </div>

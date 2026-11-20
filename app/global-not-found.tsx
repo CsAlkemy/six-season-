@@ -19,13 +19,13 @@ export default function GlobalNotFound() {
   return (
     <html lang="en" className={fontVars}>
       <body className="flex min-h-dvh flex-col items-center justify-center px-4 py-16 text-center">
-        <Link href="/en">
+        <Link href="/">
           <img src="/logo.svg" alt={STORE_NAME.en} width={120} height={80} className="h-20 w-auto" />
         </Link>
         <p className="mt-10 font-display text-h1 text-fg-tertiary">404</p>
         <h1 className="mt-2 text-h2">{en.notFoundTitle}</h1>
         <p className="mt-3 max-w-md text-body-lg text-fg-secondary">{en.notFoundBody}</p>
-        <Link href="/en#products" className="btn-primary mt-8">
+        <Link href="/#products" className="btn-primary mt-8">
           {en.allProducts}
         </Link>
       </body>

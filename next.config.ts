@@ -3,14 +3,13 @@ import type { NextConfig } from "next";
 const config: NextConfig = {
   // No "x-powered-by: Next.js" on every answer.
   poweredByHeader: false,
-  // The store is in English (lib/types.ts STORE_LANG). Old Bangla addresses, in search results and shared links, go to
-  // the same page in English for good.
+  // The store is in English (lib/types.ts STORE_LANG) and its addresses carry no language. Old /bn and /en addresses,
+  // in search results and shared links, go to the same page for good.
   async redirects() {
-    return [
-      { source: "/", destination: "/en", permanent: false },
-      { source: "/bn", destination: "/en", permanent: true },
-      { source: "/bn/:path*", destination: "/en/:path*", permanent: true },
-    ];
+    return ["bn", "en"].flatMap((lang) => [
+      { source: `/${lang}`, destination: "/", permanent: true },
+      { source: `/${lang}/:path*`, destination: "/:path*", permanent: true },
+    ]);
   },
   // Browsers take files only as the type they're sent as, never show the store inside another site's frame, and tell
   // other sites only which domain a visitor came from.

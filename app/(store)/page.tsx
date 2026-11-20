@@ -11,18 +11,18 @@ import { t } from "@/lib/i18n";
 import { alternates, homeSeo, openGraph } from "@/lib/site";
 import { storeJsonLd } from "@/lib/structured-data";
 import type { Lang, Product } from "@/lib/types";
-import { langOf } from "@/lib/lang";
+import { STORE_LANG } from "@/lib/types";
 
 export const revalidate = 3600;
 
-export async function generateMetadata({ params }: PageProps<"/[lang]">): Promise<Metadata> {
-  const lang = langOf((await params).lang);
+export async function generateMetadata({ params }: PageProps<"/">): Promise<Metadata> {
+  const lang = STORE_LANG;
   const { title, description } = homeSeo(lang, (await getSettings()).store.seo);
   return {
     title: { absolute: title },
     description,
-    alternates: alternates(lang, (to) => `/${to}`),
-    openGraph: openGraph(lang, { url: `/${lang}`, title, description }),
+    alternates: alternates(lang, (to) => "/"),
+    openGraph: openGraph(lang, { url: "/", title, description }),
   };
 }
 
@@ -36,8 +36,8 @@ export async function generateMetadata({ params }: PageProps<"/[lang]">): Promis
  * - one real customer's review, when the owner has added one;
  * - the questions people ask before ordering, mostly answered from the settings, and the way back to the products.
  */
-export default async function Home({ params }: PageProps<"/[lang]">) {
-  const lang = langOf((await params).lang);
+export default async function Home({ params }: PageProps<"/">) {
+  const lang = STORE_LANG;
   const d = t(lang);
   const [all, settings] = await Promise.all([getProducts(), getSettings()]);
   const { home } = settings;

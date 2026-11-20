@@ -16,7 +16,7 @@ export interface PostText {
  */
 export interface Post {
   id: string;
-  /** The URL: /bn/blog/<slug> and /en/blog/<slug>. Latin, so links stay readable when shared. */
+  /** The URL: /blog/<slug>. Latin, so links stay readable when shared. */
   slug: string;
   /** YYYY-MM-DD: the day it was first published. */
   published: string;

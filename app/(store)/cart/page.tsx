@@ -8,10 +8,10 @@ import { getProducts, getSettings } from "@/lib/data";
 import { type Dict, t } from "@/lib/i18n";
 import { smsEnabled } from "@/lib/sms";
 import type { Lang, Settings } from "@/lib/types";
-import { langOf } from "@/lib/lang";
+import { STORE_LANG } from "@/lib/types";
 
-export async function generateMetadata({ params }: PageProps<"/[lang]/cart">): Promise<Metadata> {
-  return { title: t(langOf((await params).lang)).checkout, robots: { index: false } };
+export async function generateMetadata({ params }: PageProps<"/cart">): Promise<Metadata> {
+  return { title: t(STORE_LANG).checkout, robots: { index: false } };
 }
 
 /**
@@ -23,8 +23,8 @@ function promises(settings: Settings, lang: Lang, d: Dict) {
   return [cash && { icon: CashIcon, text: d.codBody }, quickest && { icon: TruckIcon, text: quickest }].filter((p) => !!p);
 }
 
-export default async function CartPage({ params }: PageProps<"/[lang]/cart">) {
-  const lang = langOf((await params).lang);
+export default async function CartPage({ params }: PageProps<"/cart">) {
+  const lang = STORE_LANG;
   const d = t(lang);
   const [products, settings, customer] = await Promise.all([getProducts(), getSettings(), currentCustomer()]);
   const lines = promises(settings, lang, d);

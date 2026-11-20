@@ -6,10 +6,10 @@ import { TruckIcon } from "@/components/icons";
 import { accessibleOrders, currentCustomer } from "@/lib/customers";
 import { t } from "@/lib/i18n";
 import type { Lang, Order } from "@/lib/types";
-import { langOf } from "@/lib/lang";
+import { STORE_LANG } from "@/lib/types";
 
-export async function generateMetadata({ params }: PageProps<"/[lang]/track">): Promise<Metadata> {
-  return { title: t(langOf((await params).lang)).trackOrder, robots: { index: false } };
+export async function generateMetadata({ params }: PageProps<"/track">): Promise<Metadata> {
+  return { title: t(STORE_LANG).trackOrder, robots: { index: false } };
 }
 
 /**
@@ -18,8 +18,8 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/track">): 
  * visitor can already open are listed under the form. An order opens here by its number (`?order=MT-…`), and only one
  * this visitor may see.
  */
-export default async function TrackPage({ params, searchParams }: PageProps<"/[lang]/track">) {
-  const lang = langOf((await params).lang);
+export default async function TrackPage({ params, searchParams }: PageProps<"/track">) {
+  const lang = STORE_LANG;
   const { order: wanted } = (await searchParams) as { order?: string };
   const d = t(lang);
   const customer = await currentCustomer();
@@ -29,7 +29,7 @@ export default async function TrackPage({ params, searchParams }: PageProps<"/[l
   if (order) {
     return (
       <div className="container-page pt-8 sm:pt-12">
-        <OrderDetail order={order} lang={lang} d={d} back={{ href: `/${lang}/track`, label: d.trackOrder }} />
+        <OrderDetail order={order} lang={lang} d={d} back={{ href: `/track`, label: d.trackOrder }} />
       </div>
     );
   }

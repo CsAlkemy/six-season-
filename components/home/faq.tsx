@@ -57,7 +57,7 @@ function items(lang: Lang, settings: Settings): Item[] {
       question: d.faqConfirmQ,
       answer: (
         <p>
-          {d.faqConfirmA} <Link href={`/${lang}/track`}>{d.trackOrder}</Link>
+          {d.faqConfirmA} <Link href={`/track`}>{d.trackOrder}</Link>
         </p>
       ),
     },
@@ -67,7 +67,7 @@ function items(lang: Lang, settings: Settings): Item[] {
       answer: (
         <p>
           {d.faqProblemA} {days > 0 && d.faqProblemDays.replace("{n}", days.toLocaleString(lang === "bn" ? "bn-BD" : "en"))}{" "}
-          <Link href={`/${lang}/returns`}>{d.readReturns}</Link>
+          <Link href={`/returns`}>{d.readReturns}</Link>
         </p>
       ),
     },
@@ -139,7 +139,7 @@ export function Faq({ lang, settings, full = false }: { lang: Lang; settings: Se
           <a href="#products" className="btn-primary h-13 min-w-64 text-label-md max-sm:w-full">
             {d.faqCta}
           </a>
-          <Link href={`/${lang}/returns`} className="text-body-md text-soil-700 underline underline-offset-4 hover:text-fg-brand">
+          <Link href={`/returns`} className="text-body-md text-soil-700 underline underline-offset-4 hover:text-fg-brand">
             {d.readReturns}
           </Link>
         </div>

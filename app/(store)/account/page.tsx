@@ -14,26 +14,26 @@ import { phoneHint } from "@/lib/reviews";
 import { waNumber } from "@/lib/site";
 import { smsEnabled } from "@/lib/sms";
 import type { Lang, Order } from "@/lib/types";
-import { langOf } from "@/lib/lang";
+import { STORE_LANG } from "@/lib/types";
 
 import { logout } from "./actions";
 
-export async function generateMetadata({ params }: PageProps<"/[lang]/account">): Promise<Metadata> {
-  return { title: t(langOf((await params).lang)).account, robots: { index: false } };
+export async function generateMetadata({ params }: PageProps<"/account">): Promise<Metadata> {
+  return { title: t(STORE_LANG).account, robots: { index: false } };
 }
 
-const safeNext = (raw: unknown, lang: Lang) => (typeof raw === "string" && raw.startsWith(`/${lang}/`) && !/\/\/|\\|\.\./.test(raw) ? raw.slice(0, 200) : undefined);
+const safeNext = (raw: unknown, lang: Lang) => (typeof raw === "string" && raw.startsWith(`/`) && !/\/\/|\\|\.\./.test(raw) ? raw.slice(0, 200) : undefined);
 
 /**
  * Log in, sign up, password resets, profile, order history and tracking all live here; the footer stays free of account
  * links. An order opens by its number (`?order=MT-…`), never its id: the id is the key to its file, and page addresses
  * reach analytics. Older links with the id still work, and either way only for orders this visitor may see.
  *
- * `?next=/bn/cart` comes back there after logging in; `?mode=signup` opens on signing up; `?reset=1` follows a reset
+ * `?next=/cart` comes back there after logging in; `?mode=signup` opens on signing up; `?reset=1` follows a reset
  * link (/r/[token] put its token in a cookie).
  */
-export default async function AccountPage({ params, searchParams }: PageProps<"/[lang]/account">) {
-  const lang = langOf((await params).lang);
+export default async function AccountPage({ params, searchParams }: PageProps<"/account">) {
+  const lang = STORE_LANG;
   const query = (await searchParams) as { order?: string; reset?: string; next?: string; mode?: string };
   const wanted = query.order;
   const next = safeNext(query.next, lang);
@@ -61,7 +61,7 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
   if (order) {
     return (
       <div className="container-page pt-8 sm:pt-12">
-        <OrderDetail order={order} lang={lang} d={d} back={{ href: `/${lang}/account`, label: d.backToOrders }} />
+        <OrderDetail order={order} lang={lang} d={d} back={{ href: `/account`, label: d.backToOrders }} />
       </div>
     );
   }
@@ -83,7 +83,7 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
           {/* Guests find their orders on the tracking page (also linked from the footer). */}
           <p className="text-center text-body-sm text-fg-secondary">
             {d.orderedAsGuest}{" "}
-            <Link href={`/${lang}/track`} className="font-semibold text-fg-brand underline underline-offset-4">{d.trackOrder}</Link>
+            <Link href={`/track`} className="font-semibold text-fg-brand underline underline-offset-4">{d.trackOrder}</Link>
           </p>
         </div>
       </div>
@@ -109,7 +109,7 @@ export default async function AccountPage({ params, searchParams }: PageProps<"/
           {orders.length === 0 ? (
             <div className="card p-10 text-center">
               <p className="text-fg-secondary">{d.noOrders}</p>
-              <Link href={`/${lang}#products`} className="btn-primary mt-6">
+              <Link href={`/#products`} className="btn-primary mt-6">
                 {d.continueShopping}
               </Link>
             </div>

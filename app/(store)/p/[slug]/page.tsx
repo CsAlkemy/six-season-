@@ -21,7 +21,8 @@ import { alternates, openGraph, snippet } from "@/lib/site";
 import { productJsonLd } from "@/lib/structured-data";
 import type { Lang } from "@/lib/types";
 import { variantsOf } from "@/lib/variants";
-import { langOf } from "@/lib/lang";
+import { STORE_LANG } from "@/lib/types";
+import { withoutLang } from "@/lib/post-html";
 
 /** Products added later render on first visit, then stay static. */
 export const dynamicParams = true;
@@ -29,12 +30,12 @@ export async function generateStaticParams() {
   return (await getProducts()).filter((p) => p.active).map((p) => ({ slug: p.slug }));
 }
 
-export async function generateMetadata({ params }: PageProps<"/[lang]/p/[slug]">): Promise<Metadata> {
-  const { lang: l, slug } = await params;
-  const lang = langOf(l);
+export async function generateMetadata({ params }: PageProps<"/p/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const lang = STORE_LANG;
   const product = await findProduct(slug);
   if (!product) return {};
-  const path = (to: Lang) => `/${to}/p/${product.slug}`;
+  const path = (to: Lang) => `/p/${product.slug}`;
   // The admin's own title and description (Products › Search listing), else the name and the start of the description.
   const title = product.seo?.title[lang] || product.name[lang];
   const description = product.seo?.description[lang] || snippet(product.description[lang] || t(lang).about);
@@ -46,9 +47,9 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/p/[slug]">
   };
 }
 
-export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug]">) {
-  const { lang: l, slug } = await params;
-  const lang = langOf(l);
+export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
+  const { slug } = await params;
+  const lang = STORE_LANG;
   const product = await findProduct(slug);
   if (!product) notFound();
   const d = t(lang);
@@ -78,7 +79,7 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug
         <nav aria-label="Breadcrumb" className="max-sm:hidden">
           <ol className="flex flex-wrap items-center gap-2 text-caption text-fg-tertiary">
             <li>
-              <Link href={`/${lang}`} className="transition-colors hover:text-fg-primary">
+              <Link href={"/"} className="transition-colors hover:text-fg-primary">
                 {STORE_NAME[lang]}
               </Link>
             </li>
@@ -86,7 +87,7 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug
             {category && (
               <>
                 <li>
-                  <Link href={`/${lang}/c/${category.slug}`} className="transition-colors hover:text-fg-primary">
+                  <Link href={`/c/${category.slug}`} className="transition-colors hover:text-fg-primary">
                     {category.name[lang]}
                   </Link>
                 </li>
@@ -147,7 +148,7 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug
       {/* Cleaned when the product was saved (lib/post-html.ts), and with no photos: those go in the gallery. */}
       {product.details?.[lang] && (
         <section aria-label={d.aboutProduct} className="mx-auto w-full max-w-180">
-          <div className="post-body" dangerouslySetInnerHTML={{ __html: product.details[lang] }} />
+          <div className="post-body" dangerouslySetInnerHTML={{ __html: withoutLang(product.details[lang]) }} />
         </section>
       )}
 

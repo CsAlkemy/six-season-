@@ -231,7 +231,7 @@ export function ProductForm({ product }: { product: Product | null }) {
           <ContentCard title="Search listing">
             <FormField label="URL" htmlFor="slug"><input id="slug" value={draft.slug} placeholder={slug || "gawa-ghee"} onChange={(e) => set({ slug: e.target.value })} className="field" /></FormField>
             <div className="flex flex-col gap-0.5 rounded-md bg-muted p-3">
-              <p className="truncate text-caption text-fg-success">matirtaan.com.bd/en/p/{slug || "…"}</p>
+              <p className="truncate text-caption text-fg-success">matirtaan.com.bd/p/{slug || "…"}</p>
               <p className="truncate text-label-md text-fg-brand">{draft.seo.title.en || draft.name.en || "Product name"}</p>
               <p className="line-clamp-2 text-caption text-fg-secondary">{draft.seo.description.en || draft.description.en || "The description shows here in search results."}</p>
             </div>

@@ -16,7 +16,7 @@ import { ProductMedia } from "./product-media";
  */
 export function ProductCard({ product, lang, priority = false }: { product: Product; lang: Lang; priority?: boolean }) {
   const d = t(lang);
-  const href = `/${lang}/p/${product.slug}`;
+  const href = `/p/${product.slug}`;
   const variants = variantsOf(product);
   const sizes = variants.length;
   const variant = defaultVariant(product);
@@ -80,7 +80,7 @@ export function ProductCard({ product, lang, priority = false }: { product: Prod
                 id={product.id}
                 variant={variant.id}
                 item={{ id: itemId(product, variant), name: product.name[lang], variant: variant.label[lang], price: variant.price }}
-                cartHref={`/${lang}/cart`}
+                cartHref={`/cart`}
                 label={d.addShort}
                 addedLabel={d.added}
                 buyLabel={d.buyNow}

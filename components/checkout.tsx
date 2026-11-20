@@ -5,8 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useForm, type FieldError } from "react-hook-form";
 
-import { requestCode, verifyCode } from "@/app/[lang]/account/actions";
-import { placeOrder } from "@/app/[lang]/cart/actions";
+import { requestCode, verifyCode } from "@/app/(store)/account/actions";
+import { placeOrder } from "@/app/(store)/cart/actions";
 import { trackAddToCart, trackBeginCheckout, trackPurchase } from "@/lib/analytics";
 import { type Dict, t, taka } from "@/lib/i18n";
 import { orderFormSchema, type OrderFormInput, type OrderFormValues } from "@/lib/order-schema";
@@ -117,18 +117,18 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
         {!customer && !sms && (
           <div className="mt-6 rounded-lg bg-subtle p-4">
             <p className="text-body-sm text-fg-secondary">{d.createAccountCta}</p>
-            <Link href={`/${lang}/account?mode=signup`} className="btn-secondary mt-3 h-11 px-5 text-label-md">
+            <Link href={`/account?mode=signup`} className="btn-secondary mt-3 h-11 px-5 text-label-md">
               {d.createAccount}
             </Link>
           </div>
         )}
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           {placed.id && (
-            <Link href={`/${lang}/track?order=${placed.no}`} className="btn-primary">
+            <Link href={`/track?order=${placed.no}`} className="btn-primary">
               {d.trackOrder}
             </Link>
           )}
-          <Link href={`/${lang}`} className="btn-secondary">
+          <Link href={"/"} className="btn-secondary">
             {d.continueShopping}
           </Link>
         </div>
@@ -141,7 +141,7 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
       <div className="py-16 text-center">
         <p className="text-body-lg text-fg-secondary">{d.emptyCart}</p>
         {unavailable > 0 && <p className="mt-2 text-body-sm text-soil-700">{d.cartUnavailable}</p>}
-        <Link href={`/${lang}#products`} className="btn-primary mt-6">
+        <Link href={`/#products`} className="btn-primary mt-6">
           {d.continueShopping}
         </Link>
       </div>
@@ -224,7 +224,7 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
               </div>
             </div>
           ))}
-          <Link href={`/${lang}#products`} className="flex min-h-13 items-center gap-2 rounded-b-xl px-4 text-label-md text-fg-brand transition-colors hover:bg-brand-subtle">
+          <Link href={`/#products`} className="flex min-h-13 items-center gap-2 rounded-b-xl px-4 text-label-md text-fg-brand transition-colors hover:bg-brand-subtle">
             <PlusIcon className="size-4.5" />
             {d.browseMore}
           </Link>
@@ -265,7 +265,7 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
             <h2 className="text-h4">{d.yourDetails}</h2>
             {/* Guests can log in and come straight back, with their details filled in. */}
             {!customer && (
-              <Link href={`/${lang}/account?next=/${lang}/cart`} className="inline-flex min-h-11 items-center text-body-sm text-fg-secondary underline underline-offset-4 hover:text-fg-brand">
+              <Link href={`/account?next=/cart`} className="inline-flex min-h-11 items-center text-body-sm text-fg-secondary underline underline-offset-4 hover:text-fg-brand">
                 {d.haveAccount}
               </Link>
             )}
@@ -394,7 +394,7 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
           </li>
           <li>
             {/* In a new tab, so what's typed in the form isn't lost. */}
-            <Link href={`/${lang}/returns`} target="_blank" className="flex min-h-11 items-center gap-2.5 underline underline-offset-4 hover:text-fg-brand">
+            <Link href={`/returns`} target="_blank" className="flex min-h-11 items-center gap-2.5 underline underline-offset-4 hover:text-fg-brand">
               <ReturnIcon className="size-5 shrink-0 text-fg-brand" />
               {d.returnsRefunds}
             </Link>

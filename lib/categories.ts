@@ -1,13 +1,13 @@
 import type { Lang, Product, Text } from "./types";
 
 /**
- * What the store sells, as pages people can search for: /bn/c/ghee for "খাঁটি ঘি" while each product's own page serves
+ * What the store sells, as pages people can search for: /c/ghee for "খাঁটি ঘি" while each product's own page serves
  * the specific one. The wording stays within what the store says about its products elsewhere. A product joins a
  * category from the admin (Products › Category); the four starter products are in theirs by id until it's saved.
  */
 export interface Category {
   id: string;
-  /** The URL: /bn/c/<slug>. */
+  /** The URL: /c/<slug>. */
   slug: string;
   name: Text;
   /** The page's title in Google (the store's name follows it). */

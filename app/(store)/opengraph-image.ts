@@ -1,19 +1,16 @@
 import { getProducts, getSettings } from "@/lib/data";
 import { OG_SIZE, storeCard } from "@/lib/og";
 import { homeSeo } from "@/lib/site";
-import { type Lang, STORE_LANGS } from "@/lib/types";
+import { STORE_LANG } from "@/lib/types";
 
 /** The picture when the store is shared on Facebook, WhatsApp and the rest; product pages have their own. */
 export const size = OG_SIZE;
 export const contentType = "image/jpeg";
-export const alt = "মাটির টান · Matir Taan";
+export const alt = "Matir Taan · মাটির টান";
 export const revalidate = 3600;
 
-export const generateStaticParams = () => STORE_LANGS.map((lang) => ({ lang }));
-
-export default async function Image({ params }: { params: Promise<{ lang: string }> }) {
-  const lang = (await params).lang as Lang;
-  if (!STORE_LANGS.includes(lang)) return new Response("Not found", { status: 404 });
+export default async function Image() {
+  const lang = STORE_LANG;
   const [products, settings] = await Promise.all([getProducts(), getSettings()]);
   const card = await storeCard(
     products.filter((p) => p.active),

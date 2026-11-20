@@ -26,7 +26,7 @@ export const pureKhejurGur: Post = {
 <blockquote><p>কাঁচা খেজুরের রস খাবেন না। রাতে বাদুড় রসের হাঁড়িতে মুখ দেয়, আর তাদের লালা থেকে রসে নিপাহ ভাইরাস ছড়াতে পারে, যা প্রাণঘাতী। রোগতত্ত্ব, রোগ নিয়ন্ত্রণ ও গবেষণা প্রতিষ্ঠান (আইইডিসিআর) প্রতি শীতে কাঁচা রস না খাওয়ার পরামর্শ দেয়। ঘণ্টার পর ঘণ্টা জ্বাল দিয়ে বানানো গুড় আর ভালোভাবে ফোটানো রস নিরাপদ বলে ধরা হয়।</p></blockquote>
 <h2>গুড় ভালো রাখবেন কীভাবে</h2>
 <ul><li><p>পাটালি বায়ুরোধী পাত্রে, ঠান্ডা ও শুকনো জায়গায় রাখুন। বাতাস পেলে নরম হয়ে গলে যায়, পিঁপড়াও ধরে।</p></li><li><p>ঝোলা গুড় ফ্রিজে রাখুন।</p></li><li><p>শুকনো চামচ ব্যবহার করুন।</p></li></ul>
-<p>আমাদের পাটালি শীতের ভোরে নামানো খেজুর রস জ্বাল দিয়ে তৈরি, চিনি মেশানো নেই। শীতের সকালে গুড়ের সাথে দেশি ডিমের কথাও আসে: পড়ুন <a href="/bn/blog/deshi-eggs-vs-farm-eggs">দেশি মুরগির ডিম চিনবেন কীভাবে</a>।</p>
+<p>আমাদের পাটালি শীতের ভোরে নামানো খেজুর রস জ্বাল দিয়ে তৈরি, চিনি মেশানো নেই। শীতের সকালে গুড়ের সাথে দেশি ডিমের কথাও আসে: পড়ুন <a href="/blog/deshi-eggs-vs-farm-eggs">দেশি মুরগির ডিম চিনবেন কীভাবে</a>।</p>
 `,
     },
     en: {
@@ -47,7 +47,7 @@ export const pureKhejurGur: Post = {
 <blockquote><p>Don't drink raw date-palm sap. Bats drink from the sap pots at night, and their saliva can carry Nipah virus into the sap, which can be fatal. Bangladesh's Institute of Epidemiology, Disease Control and Research (IEDCR) warns against raw sap every winter. Jaggery boiled for hours, and sap that has been boiled well, are considered safe.</p></blockquote>
 <h2>How to keep jaggery</h2>
 <ul><li><p>Keep patali in an airtight container somewhere cool and dry. Exposed to air, it softens, melts and draws ants.</p></li><li><p>Keep jhola gur in the fridge.</p></li><li><p>Use a dry spoon.</p></li></ul>
-<p>Our patali is made from date-palm sap collected on winter mornings, with no added sugar. Winter mornings with jaggery bring eggs to mind too: read <a href="/en/blog/deshi-eggs-vs-farm-eggs">How to tell deshi eggs from farm eggs</a>.</p>
+<p>Our patali is made from date-palm sap collected on winter mornings, with no added sugar. Winter mornings with jaggery bring eggs to mind too: read <a href="/blog/deshi-eggs-vs-farm-eggs">How to tell deshi eggs from farm eggs</a>.</p>
 `,
     },
   },

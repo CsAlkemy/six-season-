@@ -8,24 +8,24 @@ import { STORE_NAME, t } from "@/lib/i18n";
 import { alternates, openGraph } from "@/lib/site";
 import { blogJsonLd } from "@/lib/structured-data";
 import type { Lang } from "@/lib/types";
-import { langOf } from "@/lib/lang";
+import { STORE_LANG } from "@/lib/types";
 
 export const revalidate = 3600;
 
-export async function generateMetadata({ params }: PageProps<"/[lang]/blog">): Promise<Metadata> {
-  const lang = langOf((await params).lang);
+export async function generateMetadata({ params }: PageProps<"/blog">): Promise<Metadata> {
+  const lang = STORE_LANG;
   const d = t(lang);
   return {
     title: d.blog,
     description: d.blogLead,
-    alternates: alternates(lang, (to) => `/${to}/blog`),
-    openGraph: openGraph(lang, { url: `/${lang}/blog`, title: `${d.blog} · ${STORE_NAME[lang]}`, description: d.blogLead }),
+    alternates: alternates(lang, (to) => `/blog`),
+    openGraph: openGraph(lang, { url: `/blog`, title: `${d.blog} · ${STORE_NAME[lang]}`, description: d.blogLead }),
   };
 }
 
 /** মাটির কথা: the posts published in this language, newest first, each with its banner or product photo. */
-export default async function BlogPage({ params }: PageProps<"/[lang]/blog">) {
-  const lang = langOf((await params).lang);
+export default async function BlogPage({ params }: PageProps<"/blog">) {
+  const lang = STORE_LANG;
   const d = t(lang);
   const [all, products] = await Promise.all([getPosts(), getProducts()]);
   const posts = newestFirst(all.filter((p) => isLive(p, lang)));

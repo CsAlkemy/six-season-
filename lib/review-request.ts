@@ -15,7 +15,7 @@ export function reviewRequest(order: Order, products: Product[]): { url: string;
   const { lang } = order;
   const links = [...new Set(order.items.map((item) => item.productId))].flatMap((id) => {
     const product = products.find((p) => p.id === id && p.active);
-    return product ? [`${product.name[lang]}: ${absolute(`/${lang}/p/${product.slug}`)}#reviews`] : [];
+    return product ? [`${product.name[lang]}: ${absolute(`/p/${product.slug}`)}#reviews`] : [];
   });
   if (!links.length) return null;
 

@@ -47,7 +47,7 @@ export function FeaturedReview({ lang, settings, products }: { lang: Lang; setti
         <div className="relative min-h-72">
           <img {...sized(review.photo, "(min-width: 1024px) 50vw, 100vw")} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
           {product && (
-            <Link href={`/${lang}/p/${product.slug}`} className="absolute bottom-5 left-5 rounded-full bg-surface px-4 py-2 font-display text-label-md text-fg-primary shadow-card hover:text-fg-brand">
+            <Link href={`/p/${product.slug}`} className="absolute bottom-5 left-5 rounded-full bg-surface px-4 py-2 font-display text-label-md text-fg-primary shadow-card hover:text-fg-brand">
               {product.name[lang]}
             </Link>
           )}

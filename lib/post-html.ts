@@ -42,3 +42,9 @@ export function cleanPostHtml(html: string, { photos = true }: { photos?: boolea
 
 /** Every image a post body shows, so ones taken out can be deleted from the store. */
 export const htmlImages = (html: string) => [...html.matchAll(/<img[^>]+src="([^"]+)"/g)].map((m) => m[1]!);
+
+/**
+ * Links inside saved post and product text, as the store's addresses are now: written as /bn/… or /en/… when the
+ * store had a language in every address, they go straight to /… instead of through a redirect.
+ */
+export const withoutLang = (html: string) => html.replace(/href="\/(?:bn|en)(?=[/"#?])\/?/g, 'href="/');

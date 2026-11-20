@@ -14,20 +14,16 @@ import { fontVars } from "@/lib/fonts";
 import { STORE_NAME, t } from "@/lib/i18n";
 import { SEASON_SCRIPT, seasonAt } from "@/lib/season";
 import { openGraph, SITE_URL } from "@/lib/site";
-import { type Lang, type Product, STORE_LANGS } from "@/lib/types";
-import { shellLang } from "@/lib/lang";
+import { type Lang, type Product, STORE_LANG } from "@/lib/types";
 import { photosOf, variantsOf } from "@/lib/variants";
 
-// Only bn and en are prebuilt; the layout itself 404s any other language. (dynamicParams = false here would also stop
-// product pages added after the last build from rendering until the route list catches up.)
-export const generateStaticParams = () => STORE_LANGS.map((lang) => ({ lang }));
 
 /**
  * What every storefront page starts from. Canonical links and hreflang are set by each page that search should
  * list (home, products); cart and account opt out of search. Share images come from the opengraph-image routes.
  */
-export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Promise<Metadata> {
-  const lang = shellLang((await params).lang);
+export async function generateMetadata(): Promise<Metadata> {
+  const lang = STORE_LANG;
   const d = t(lang);
   const google = process.env.GOOGLE_SITE_VERIFICATION;
   const bing = process.env.BING_SITE_VERIFICATION;
@@ -36,7 +32,7 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
     title: { default: `${STORE_NAME[lang]} · ${d.tagline}`, template: `%s · ${STORE_NAME[lang]}` },
     description: d.about,
     applicationName: STORE_NAME[lang],
-    openGraph: openGraph(lang, { url: `/${lang}` }),
+    openGraph: openGraph(lang, { url: "/" }),
     twitter: { card: "summary_large_image" },
     verification: { google, other: bing ? { "msvalidate.01": bing } : undefined },
   };
@@ -62,8 +58,8 @@ function cartLabels(lang: Lang): CartLabels {
   };
 }
 
-export default async function StoreLayout({ children, params }: LayoutProps<"/[lang]">) {
-  const lang = shellLang((await params).lang);
+export default async function StoreLayout({ children }: LayoutProps<"/">) {
+  const lang = STORE_LANG;
   const [settings, products] = await Promise.all([getSettings(), getProducts()]);
 
   return (

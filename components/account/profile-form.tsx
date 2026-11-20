@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
-import { updateProfile } from "@/app/[lang]/account/actions";
+import { updateProfile } from "@/app/(store)/account/actions";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
 

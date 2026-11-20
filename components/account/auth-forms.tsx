@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 
-import { type AuthResult, loginWithPassword, requestCode, requestReset, signUp, verifyCode } from "@/app/[lang]/account/actions";
+import { type AuthResult, loginWithPassword, requestCode, requestReset, signUp, verifyCode } from "@/app/(store)/account/actions";
 import { type Dict, t } from "@/lib/i18n";
 import { normalizePhone } from "@/lib/pricing";
 import type { Lang } from "@/lib/types";

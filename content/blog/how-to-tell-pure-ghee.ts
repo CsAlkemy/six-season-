@@ -31,7 +31,7 @@ export const howToTellPureGhee: Post = {
 <p>আমাদের গাওয়া ঘি দেশি গরুর দুধের ননী থেকে ধীরে জ্বাল দিয়ে তৈরি, কোনো রং বা ভেজাল ছাড়া। ওপরের পরীক্ষাগুলো আমাদের ঘিতেও করে দেখতে পারেন।</p>
 <h2>ঘি ভালো রাখবেন কীভাবে</h2>
 <ul><li><p>শুকনো, বায়ুরোধী কাচের বয়ামে রাখুন।</p></li><li><p>সব সময় শুকনো চামচ ব্যবহার করুন। একফোঁটা পানি ঢুকলেও ছত্রাক ধরতে পারে।</p></li><li><p>রোদ আর চুলার তাপ থেকে দূরে রাখুন।</p></li><li><p>ঘরের তাপমাত্রায় কয়েক মাস ভালো থাকে। বেশি দিন রাখতে চাইলে ফ্রিজে রাখুন।</p></li></ul>
-<p>তেলের ব্যাপারেও একই প্রশ্ন আসে। পড়ুন <a href="/bn/blog/ghani-mustard-oil">ঘানি ভাঙা সরিষার তেল: কেন আলাদা, কীভাবে চিনবেন</a>।</p>
+<p>তেলের ব্যাপারেও একই প্রশ্ন আসে। পড়ুন <a href="/blog/ghani-mustard-oil">ঘানি ভাঙা সরিষার তেল: কেন আলাদা, কীভাবে চিনবেন</a>।</p>
 `,
     },
     en: {
@@ -57,7 +57,7 @@ export const howToTellPureGhee: Post = {
 <p>Our cow ghee is made from the cream of deshi cows' milk, cooked down slowly, with no colour or additives. Try the tests above on it too.</p>
 <h2>How to keep ghee</h2>
 <ul><li><p>Keep it in a dry, airtight glass jar.</p></li><li><p>Always use a dry spoon. Even a drop of water can let mould in.</p></li><li><p>Keep it away from sunlight and the stove's heat.</p></li><li><p>It keeps for a few months at room temperature. For longer, keep it in the fridge.</p></li></ul>
-<p>The same question comes up with oil. Read <a href="/en/blog/ghani-mustard-oil">Ghani mustard oil: why it's different, and how to tell</a>.</p>
+<p>The same question comes up with oil. Read <a href="/blog/ghani-mustard-oil">Ghani mustard oil: why it's different, and how to tell</a>.</p>
 `,
     },
   },

@@ -16,7 +16,7 @@ export function SiteHeader({ lang }: { lang: Lang }) {
   return (
     <header className="season-header sticky top-0 z-30 border-b">
       <div className="container-page flex h-18 items-center justify-between gap-4 lg:h-22">
-        <Link href={`/${lang}`} aria-label="Matir Taan">
+        <Link href={"/"} aria-label="Matir Taan">
           <img
             src="/logo.svg"
             alt="Matir Taan"
@@ -26,21 +26,21 @@ export function SiteHeader({ lang }: { lang: Lang }) {
           />
         </Link>
         <nav aria-label={d.navShop} className="hidden items-center gap-1 lg:flex">
-          <Link href={`/${lang}#products`} className={NAV}>{d.navShop}</Link>
-          <Link href={`/${lang}#faq`} className={NAV}>{d.navFaq}</Link>
-          <Link href={`/${lang}/about`} className={NAV}>{d.aboutUs}</Link>
-          <Link href={`/${lang}/track`} className={NAV}>{d.trackOrder}</Link>
+          <Link href={`/#products`} className={NAV}>{d.navShop}</Link>
+          <Link href={`/#faq`} className={NAV}>{d.navFaq}</Link>
+          <Link href={`/about`} className={NAV}>{d.aboutUs}</Link>
+          <Link href={`/track`} className={NAV}>{d.trackOrder}</Link>
         </nav>
         <nav className="flex items-center gap-1">
           <SeasonPicker lang={lang} labels={{ season: d.season, auto: d.seasonAuto, today: d.today, animation: d.animation }} />
           <Link
-            href={`/${lang}/account`}
+            href={`/account`}
             aria-label={d.account}
             className="grid size-12 place-items-center rounded-full transition-colors hover:bg-muted hover:text-fg-brand"
           >
             <UserIcon className="size-6" />
           </Link>
-          <CartButton href={`/${lang}/cart`} label={d.cart} />
+          <CartButton href={`/cart`} label={d.cart} />
         </nav>
       </div>
     </header>

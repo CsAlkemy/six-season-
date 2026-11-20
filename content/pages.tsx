@@ -114,12 +114,12 @@ export const PAGES: Record<PageSlug, InfoPage> = {
           <ul>
             {shopCategories(products).map((c) => (
               <li key={c.id}>
-                <Link href={`/bn/c/${c.slug}`}>{c.name.bn}</Link>
+                <Link href={`/c/${c.slug}`}>{c.name.bn}</Link>
               </li>
             ))}
           </ul>
           <p>
-            কোনটা খাঁটি, কীভাবে চিনবেন, কীভাবে রাখবেন আর কীভাবে রাঁধবেন, সবই লিখেছি <Link href="/bn/blog">মাটির কথা</Link>-য়।
+            কোনটা খাঁটি, কীভাবে চিনবেন, কীভাবে রাখবেন আর কীভাবে রাঁধবেন, সবই লিখেছি <Link href="/blog">মাটির কথা</Link>-য়।
           </p>
           <h2>আমরা যেভাবে কাজ করি</h2>
           <ul>
@@ -138,7 +138,7 @@ export const PAGES: Record<PageSlug, InfoPage> = {
           </ul>
           <blockquote>
             <p>
-              অর্ডার, ডেলিভারি বা যেকোনো প্রশ্নে <Link href="/bn/contact">যোগাযোগ</Link> করুন। ডেলিভারির চার্জ, সময় আর পেমেন্টের উপায় আছে <Link href="/bn/delivery">ডেলিভারি ও পেমেন্ট</Link> পাতায়, আর পণ্য বদল বা ফেরতের নিয়ম <Link href="/bn/returns">ফেরত ও রিফান্ড নীতি</Link> পাতায়।
+              অর্ডার, ডেলিভারি বা যেকোনো প্রশ্নে <Link href="/contact">যোগাযোগ</Link> করুন। ডেলিভারির চার্জ, সময় আর পেমেন্টের উপায় আছে <Link href="/delivery">ডেলিভারি ও পেমেন্ট</Link> পাতায়, আর পণ্য বদল বা ফেরতের নিয়ম <Link href="/returns">ফেরত ও রিফান্ড নীতি</Link> পাতায়।
             </p>
           </blockquote>
         </>
@@ -151,12 +151,12 @@ export const PAGES: Record<PageSlug, InfoPage> = {
           <ul>
             {shopCategories(products).map((c) => (
               <li key={c.id}>
-                <Link href={`/en/c/${c.slug}`}>{c.name.en}</Link>
+                <Link href={`/c/${c.slug}`}>{c.name.en}</Link>
               </li>
             ))}
           </ul>
           <p>
-            How to tell the real thing, keep it and cook it: we write it all up in <Link href="/en/blog">Notes from the soil</Link>.
+            How to tell the real thing, keep it and cook it: we write it all up in <Link href="/blog">Notes from the soil</Link>.
           </p>
           <h2>How we work</h2>
           <ul>
@@ -175,7 +175,7 @@ export const PAGES: Record<PageSlug, InfoPage> = {
           </ul>
           <blockquote>
             <p>
-              For orders, delivery or any question, <Link href="/en/contact">contact us</Link>. Delivery charges, times and ways to pay are on the <Link href="/en/delivery">delivery &amp; payment</Link> page, and replacements and refunds on the <Link href="/en/returns">returns &amp; refunds</Link> page.
+              For orders, delivery or any question, <Link href="/contact">contact us</Link>. Delivery charges, times and ways to pay are on the <Link href="/delivery">delivery &amp; payment</Link> page, and replacements and refunds on the <Link href="/returns">returns &amp; refunds</Link> page.
             </p>
           </blockquote>
         </>
@@ -198,7 +198,7 @@ export const PAGES: Record<PageSlug, InfoPage> = {
             <p>অর্ডার, ডেলিভারি বা পণ্য নিয়ে কোনো প্রশ্ন থাকলে আমাদের জানান। অর্ডার নিয়ে লিখলে অর্ডার নম্বরটা (যেমন MT-…) দিলে আমরা দ্রুত খুঁজে পাই।</p>
             {items.length > 0 ? <ul>{items}</ul> : <p>অর্ডার করলে আমরা আপনাকে ফোন করে নিশ্চিত করি।</p>}
             <p>
-              ডেলিভারি আর পেমেন্টের তথ্য আছে <Link href="/bn/delivery">ডেলিভারি ও পেমেন্ট</Link> পাতায়, আর পণ্যে সমস্যা হলে কী করবেন তা <Link href="/bn/returns">ফেরত ও রিফান্ড নীতি</Link> পাতায়।
+              ডেলিভারি আর পেমেন্টের তথ্য আছে <Link href="/delivery">ডেলিভারি ও পেমেন্ট</Link> পাতায়, আর পণ্যে সমস্যা হলে কী করবেন তা <Link href="/returns">ফেরত ও রিফান্ড নীতি</Link> পাতায়।
             </p>
           </>
         );
@@ -210,7 +210,7 @@ export const PAGES: Record<PageSlug, InfoPage> = {
             <p>If you have a question about an order, a delivery or a product, tell us. When you write about an order, include its number (like MT-…) and we can find it quickly.</p>
             {items.length > 0 ? <ul>{items}</ul> : <p>When you place an order, we call you to confirm it.</p>}
             <p>
-              Delivery and payment are on the <Link href="/en/delivery">delivery &amp; payment</Link> page, and what to do if something is wrong on the <Link href="/en/returns">returns &amp; refunds</Link> page.
+              Delivery and payment are on the <Link href="/delivery">delivery &amp; payment</Link> page, and what to do if something is wrong on the <Link href="/returns">returns &amp; refunds</Link> page.
             </p>
           </>
         );
@@ -253,10 +253,10 @@ export const PAGES: Record<PageSlug, InfoPage> = {
             <p>
               ডেলিভারিম্যান থাকতেই পণ্য দেখে নিন। পণ্য ক্ষতিগ্রস্ত, নষ্ট বা ভুল এলে ছবিসহ আমাদের ফোন বা হোয়াটসঅ্যাপে জানান, আমরা পণ্য বদলে দেব বা টাকা ফেরত দেব।{" "}
               {window > 0 ? `পণ্য হাতে পাওয়ার ${days(window, "bn")} দিনের মধ্যে জানাতে হবে।` : "পণ্য হাতে পাওয়ার পর যত দ্রুত সম্ভব জানান।"} পুরো নিয়ম আছে{" "}
-              <Link href="/bn/returns">ফেরত ও রিফান্ড নীতি</Link> পাতায়।
+              <Link href="/returns">ফেরত ও রিফান্ড নীতি</Link> পাতায়।
             </p>
             <p>
-              ফোন, হোয়াটসঅ্যাপ আর ইমেইল পাবেন <Link href="/bn/contact">যোগাযোগ</Link> পাতায়।
+              ফোন, হোয়াটসঅ্যাপ আর ইমেইল পাবেন <Link href="/contact">যোগাযোগ</Link> পাতায়।
             </p>
           </>
         );
@@ -288,10 +288,10 @@ export const PAGES: Record<PageSlug, InfoPage> = {
             <p>
               Check your order while the delivery person is there. If it arrives damaged, spoiled or not what you ordered, send us a photo by phone or WhatsApp and we'll replace it or refund you.{" "}
               {window > 0 ? `Tell us within ${window} ${window === 1 ? "day" : "days"} of receiving it.` : "Tell us as soon as you can after it arrives."} The full policy is on the{" "}
-              <Link href="/en/returns">returns &amp; refunds</Link> page.
+              <Link href="/returns">returns &amp; refunds</Link> page.
             </p>
             <p>
-              Our phone, WhatsApp and email are on the <Link href="/en/contact">contact</Link> page.
+              Our phone, WhatsApp and email are on the <Link href="/contact">contact</Link> page.
             </p>
           </>
         );
@@ -339,7 +339,7 @@ export const PAGES: Record<PageSlug, InfoPage> = {
               <li>আমরা দেখে জানাব পণ্য বদলে দেব নাকি টাকা ফেরত দেব, আর কিছু ফেরত পাঠাতে হলে কীভাবে পাঠাবেন।</li>
               <li>আমাদের সঙ্গে কথা না বলে কোনো পণ্য পাঠাবেন না। না জানিয়ে পাঠানো পার্সেল আমাদের হাতে না-ও পৌঁছাতে পারে।</li>
             </ol>
-            {reach.length > 0 ? <ul>{reach}</ul> : <p><Link href="/bn/contact">যোগাযোগ</Link> পাতায় আমাদের ফোন আর হোয়াটসঅ্যাপ পাবেন।</p>}
+            {reach.length > 0 ? <ul>{reach}</ul> : <p><Link href="/contact">যোগাযোগ</Link> পাতায় আমাদের ফোন আর হোয়াটসঅ্যাপ পাবেন।</p>}
             <h2>বদল আর টাকা ফেরত</h2>
             <ul>
               <li>পণ্য ক্ষতিগ্রস্ত, নষ্ট বা ভুল হলে আমরা একই পণ্য আবার পাঠাই, অথবা আপনি চাইলে ডেলিভারি চার্জসহ পুরো টাকা ফেরত দিই। পণ্য আনা-নেওয়ার কুরিয়ার খরচ আমাদের।</li>
@@ -392,7 +392,7 @@ export const PAGES: Record<PageSlug, InfoPage> = {
               <li>We'll check and tell you whether we'll replace it or refund you, and how to send anything back if needed.</li>
               <li>Please don't send anything back before talking to us. A parcel sent without telling us may never reach us.</li>
             </ol>
-            {reach.length > 0 ? <ul>{reach}</ul> : <p>Our phone and WhatsApp are on the <Link href="/en/contact">contact</Link> page.</p>}
+            {reach.length > 0 ? <ul>{reach}</ul> : <p>Our phone and WhatsApp are on the <Link href="/contact">contact</Link> page.</p>}
             <h2>Replacements and refunds</h2>
             <ul>
               <li>If a product is damaged, spoiled or wrong, we send the same product again or, if you'd rather, refund the whole amount including delivery. We pay the courier both ways.</li>
@@ -466,7 +466,7 @@ export const PAGES: Record<PageSlug, InfoPage> = {
           <p>অর্ডার, হিসাব আর আইনের প্রয়োজনে যতদিন লাগে ততদিন।</p>
           <h2>আপনি কী করতে পারেন</h2>
           <p>
-            আপনার তথ্য দেখতে, ঠিক করতে বা মুছে দিতে চাইলে <Link href="/bn/contact">আমাদের জানান</Link>। অ্যাকাউন্টে ঢুকে নাম আর ঠিকানা নিজেও বদলাতে পারেন। ব্রাউজারের সেটিংসে কুকি বন্ধ করা যায়।
+            আপনার তথ্য দেখতে, ঠিক করতে বা মুছে দিতে চাইলে <Link href="/contact">আমাদের জানান</Link>। অ্যাকাউন্টে ঢুকে নাম আর ঠিকানা নিজেও বদলাতে পারেন। ব্রাউজারের সেটিংসে কুকি বন্ধ করা যায়।
           </p>
           <h2>এই নীতি বদলালে</h2>
           <p>বদলালে এই পাতায় নতুন তারিখসহ দেওয়া হবে।</p>
@@ -515,7 +515,7 @@ export const PAGES: Record<PageSlug, InfoPage> = {
           <p>As long as we need it for orders, accounts and the law.</p>
           <h2>What you can do</h2>
           <p>
-            To see, correct or delete your information, <Link href="/en/contact">tell us</Link>. In your account you can also change your name and address yourself. Cookies can be switched off in your browser's settings.
+            To see, correct or delete your information, <Link href="/contact">tell us</Link>. In your account you can also change your name and address yourself. Cookies can be switched off in your browser's settings.
           </p>
           <h2>If this changes</h2>
           <p>We'll post the new version here with its date.</p>

@@ -9,7 +9,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: STORE_NAME.en,
     description: t("en").about,
     lang: "en",
-    start_url: "/en",
+    start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#168456",

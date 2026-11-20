@@ -25,7 +25,7 @@ export const deshiEggsVsFarmEggs: Post = {
 <p>ডিম পুরোনো হলে ভেতরের বাতাসের থলিটা বড় হয়, তাই ডিম হালকা হয়ে ভাসে।</p>
 <h2>ডিম রাখবেন কীভাবে</h2>
 <ul><li><p>রাখার আগে ডিম ধোবেন না। ধুলে খোসার প্রাকৃতিক সুরক্ষা আবরণ নষ্ট হয়। রান্নার ঠিক আগে ধুয়ে নিন।</p></li><li><p>ফ্রিজে সূচালো দিক নিচে রেখে রাখুন।</p></li><li><p>ফাটা ডিম আলাদা করে আগে খেয়ে ফেলুন।</p></li></ul>
-<p>আমাদের দেশি ডিম খোলা উঠোনে চরে বেড়ানো দেশি মুরগির, প্রতিদিন সংগ্রহ করা। আরও পড়ুন <a href="/bn/blog/pure-khejur-gur">খাঁটি খেজুরের গুড় চেনার উপায়</a>।</p>
+<p>আমাদের দেশি ডিম খোলা উঠোনে চরে বেড়ানো দেশি মুরগির, প্রতিদিন সংগ্রহ করা। আরও পড়ুন <a href="/blog/pure-khejur-gur">খাঁটি খেজুরের গুড় চেনার উপায়</a>।</p>
 `,
     },
     en: {
@@ -45,7 +45,7 @@ export const deshiEggsVsFarmEggs: Post = {
 <p>As an egg ages, the air pocket inside grows, so it gets lighter and floats.</p>
 <h2>How to store eggs</h2>
 <ul><li><p>Don't wash eggs before storing them. Washing strips the shell's natural protective coating. Wash them just before cooking.</p></li><li><p>In the fridge, store them pointed end down.</p></li><li><p>Set cracked eggs aside and use them first.</p></li></ul>
-<p>Our deshi eggs come from deshi hens that roam open yards, collected daily. Read next: <a href="/en/blog/pure-khejur-gur">How to tell pure date-palm jaggery</a>.</p>
+<p>Our deshi eggs come from deshi hens that roam open yards, collected daily. Read next: <a href="/blog/pure-khejur-gur">How to tell pure date-palm jaggery</a>.</p>
 `,
     },
   },

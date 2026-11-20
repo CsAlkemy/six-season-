@@ -135,7 +135,7 @@ export function TrustStrip({ lang, settings }: { lang: Lang; settings: Settings 
     quickest && { icon: TruckIcon, text: quickest },
     { icon: LeafIcon, text: d.pureTitle },
     { icon: PhoneIcon, text: d.confirmCall },
-    { icon: ShieldIcon, text: d.returnsShort, href: `/${lang}/returns` },
+    { icon: ShieldIcon, text: d.returnsShort, href: `/returns` },
   ].filter((item): item is { icon: typeof CashIcon; text: string; href?: string } => Boolean(item));
 
   return (

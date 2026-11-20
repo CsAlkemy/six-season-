@@ -27,7 +27,7 @@ export const ghaniMustardOil: Post = {
 <p>সরিষার তেলে মনোআনস্যাচুরেটেড ফ্যাট বেশি আর কিছু ওমেগা-৩ (আলফা-লিনোলেনিক অ্যাসিড) আছে। এতে ইরুসিক অ্যাসিডও থাকে, যে কারণে কিছু দেশে এটা রান্নার তেল হিসেবে বিক্রির নিয়ম আলাদা। দক্ষিণ এশিয়ায় শত শত বছর ধরে এটা রান্নার তেল। যেকোনো তেলের মতোই পরিমিত খাওয়া ভালো।</p>
 <h2>তেল ভালো রাখবেন কীভাবে</h2>
 <ul><li><p>ঢাকনা আঁটা কাচের বা গাঢ় রঙের বোতলে রাখুন।</p></li><li><p>রোদ আর চুলার পাশ থেকে দূরে, ঠান্ডা জায়গায় রাখুন। আলো আর বাতাসে ঝাঁঝ কমে আর তেল বাসি হয়ে যায়।</p></li><li><p>বাসি তেলের গন্ধ টক বা রঙের মতো লাগে। তখন আর খাবেন না।</p></li></ul>
-<p>আমাদের সরিষার তেল কাঠের ঘানিতে ভাঙা, কোনো কিছু মেশানো ছাড়া। ঘিয়ের ব্যাপারে জানতে পড়ুন <a href="/bn/blog/how-to-tell-pure-ghee">খাঁটি ঘি চেনার ৬টি ঘরোয়া উপায়</a>।</p>
+<p>আমাদের সরিষার তেল কাঠের ঘানিতে ভাঙা, কোনো কিছু মেশানো ছাড়া। ঘিয়ের ব্যাপারে জানতে পড়ুন <a href="/blog/how-to-tell-pure-ghee">খাঁটি ঘি চেনার ৬টি ঘরোয়া উপায়</a>।</p>
 `,
     },
     en: {
@@ -49,7 +49,7 @@ export const ghaniMustardOil: Post = {
 <p>Mustard oil is high in monounsaturated fat and has some omega-3 (alpha-linolenic acid). It also contains erucic acid, which is why some countries have different rules for selling it as a cooking oil. In South Asia it has been a cooking oil for centuries. As with any oil, use it in moderation.</p>
 <h2>How to keep it</h2>
 <ul><li><p>Keep it in a tightly closed glass or dark bottle.</p></li><li><p>Store it somewhere cool, away from sunlight and the stove. Light and air dull the bite and turn the oil stale.</p></li><li><p>Stale oil smells sour or like paint. Don't eat it then.</p></li></ul>
-<p>Our mustard oil is pressed in a wooden ghani, with nothing added. For ghee, read <a href="/en/blog/how-to-tell-pure-ghee">6 ways to tell pure ghee at home</a>.</p>
+<p>Our mustard oil is pressed in a wooden ghani, with nothing added. For ghee, read <a href="/blog/how-to-tell-pure-ghee">6 ways to tell pure ghee at home</a>.</p>
 `,
     },
   },

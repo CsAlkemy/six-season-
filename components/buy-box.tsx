@@ -80,7 +80,7 @@ export function BuyBox({ product, lang, d }: { product: Product; lang: Lang; d: 
               variant={variant.id}
               qty={Math.min(qty, max)}
               item={{ id: itemId(product, variant), name: product.name[lang], variant: variant.label[lang], price: variant.price }}
-              cartHref={`/${lang}/cart`}
+              cartHref={`/cart`}
               label={d.addToCart}
               addedLabel={d.added}
               buyLabel={d.buyNow}

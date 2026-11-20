@@ -41,7 +41,7 @@ export function OrderList({ orders, lang, d, base }: { orders: Order[]; lang: La
       {orders.map((order) => (
         <li key={order.id}>
           <Link
-            href={`/${lang}/${base}?order=${order.no}`}
+            href={`/${base}?order=${order.no}`}
             className="card flex flex-wrap items-center gap-x-4 gap-y-1 p-5 transition hover:border-border-brand hover:shadow-hover"
           >
             <span className="font-display text-h4">{order.no}</span>

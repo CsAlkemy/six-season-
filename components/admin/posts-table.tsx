@@ -73,7 +73,7 @@ export function PostsTable({ rows, filtered }: { rows: PostRow[]; filtered: bool
             label={`More for ${title(post)}`}
             items={[
               { label: "Edit", onSelect: () => edit(post) },
-              ...(lang ? [{ label: "View on the blog", onSelect: () => window.open(`/${lang}/blog/${post.slug}`, "_blank") }] : []),
+              ...(lang ? [{ label: "View on the blog", onSelect: () => window.open(`/blog/${post.slug}`, "_blank") }] : []),
               { separator: true as const },
               { label: "Delete", destructive: true, onSelect: () => setRemoving(post) },
             ]}

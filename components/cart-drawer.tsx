@@ -107,7 +107,7 @@ export function CartDrawer({ lang, products, labels: l }: { lang: Lang; products
             <BagIcon className="size-12 text-fg-tertiary" />
             <p className="text-body-lg text-fg-secondary">{l.emptyCart}</p>
             {unavailable > 0 && <p className="text-body-sm text-soil-700">{l.cartUnavailable}</p>}
-            <Link href={`/${lang}#products`} onClick={closeDrawer} className="btn-primary mt-2">
+            <Link href={`/#products`} onClick={closeDrawer} className="btn-primary mt-2">
               {l.continueShopping}
             </Link>
           </div>
@@ -118,13 +118,13 @@ export function CartDrawer({ lang, products, labels: l }: { lang: Lang; products
               <ul className="divide-y divide-border">
                 {lines.map(({ product, variant, line, qty }) => (
                   <li key={`${product.id}:${variant.id}`} className="flex gap-4 py-5">
-                    <Link href={`/${lang}/p/${product.slug}`} onClick={closeDrawer} className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-lg bg-muted text-fg-tertiary">
+                    <Link href={`/p/${product.slug}`} onClick={closeDrawer} className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-lg bg-muted text-fg-tertiary">
                       {product.image ? <img {...sized(product.image, "80px")} alt="" className="size-full object-cover" /> : <LeafIcon className="size-8" />}
                     </Link>
                     <div className="flex min-w-0 flex-1 flex-col gap-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <Link href={`/${lang}/p/${product.slug}`} onClick={closeDrawer} className="font-semibold leading-snug hover:text-fg-brand">
+                          <Link href={`/p/${product.slug}`} onClick={closeDrawer} className="font-semibold leading-snug hover:text-fg-brand">
                             {product.name[lang]}
                           </Link>
                           <p className="mt-0.5 font-display text-body-sm text-fg-secondary">
@@ -156,7 +156,7 @@ export function CartDrawer({ lang, products, labels: l }: { lang: Lang; products
                 <span className="font-display text-h4 text-fg-brand tabular-nums">{taka(subtotal, lang)}</span>
               </p>
               <p className="mt-1 text-body-sm text-fg-tertiary">{l.deliveryAtCheckout}</p>
-              <Link href={`/${lang}/cart`} onClick={closeDrawer} className="btn-primary mt-4 h-13 w-full text-label-md">
+              <Link href={`/cart`} onClick={closeDrawer} className="btn-primary mt-4 h-13 w-full text-label-md">
                 {l.checkout}
                 <ArrowRightIcon className="size-4.5" />
               </Link>

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 
-import { trackOrder } from "@/app/[lang]/account/actions";
+import { trackOrder } from "@/app/(store)/account/actions";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
 
@@ -28,7 +28,7 @@ export function TrackForm({ lang, onFound, lead }: { lang: Lang; onFound?: () =>
       const result = await trackOrder({ no, phone }).catch(() => null);
       if (!result?.ok) return setError(d[result?.error ?? "errGeneric"]);
       if (onFound) onFound();
-      else router.push(`/${lang}/track?order=${result.no}`);
+      else router.push(`/track?order=${result.no}`);
     });
   };
 

@@ -43,7 +43,7 @@ export function PostMeta({ post, lang }: { post: Post; lang: Lang }) {
 
 /** A post in a list: the cover, date and reading time, title and description. The title carries the link. */
 export function PostCard({ post, cover, lang, heading: Heading = "h2", priority = false }: { post: Post; cover?: string; lang: Lang; heading?: "h2" | "h3"; priority?: boolean }) {
-  const href = `/${lang}/blog/${post.slug}`;
+  const href = `/blog/${post.slug}`;
   return (
     <article className="group flex flex-col gap-4">
       {/* The mouse target; keyboards and screen readers use the title's link. */}

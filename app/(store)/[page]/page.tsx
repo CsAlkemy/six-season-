@@ -9,7 +9,7 @@ import { STORE_NAME } from "@/lib/i18n";
 import { alternates, openGraph } from "@/lib/site";
 import { pageJsonLd } from "@/lib/structured-data";
 import type { Lang } from "@/lib/types";
-import { langOf } from "@/lib/lang";
+import { STORE_LANG } from "@/lib/types";
 
 export const revalidate = 3600;
 /** Only the store's own pages (content/pages.tsx); anything else under /bn or /en is a 404. */
@@ -18,13 +18,13 @@ export const generateStaticParams = () => PAGE_SLUGS.map((page) => ({ page }));
 
 const find = (slug: string) => PAGE_SLUGS.find((s) => s === slug);
 
-export async function generateMetadata({ params }: PageProps<"/[lang]/[page]">): Promise<Metadata> {
-  const { lang: l, page: slug } = await params;
-  const lang = langOf(l);
+export async function generateMetadata({ params }: PageProps<"/[page]">): Promise<Metadata> {
+  const { page: slug } = await params;
+  const lang = STORE_LANG;
   const key = find(slug);
   if (!key) return {};
   const { title, description } = PAGES[key];
-  const path = (to: Lang) => `/${to}/${key}`;
+  const path = (to: Lang) => `/${key}`;
   return {
     title: title[lang],
     description: description[lang],
@@ -34,9 +34,9 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/[page]">):
 }
 
 /** About, contact, delivery, returns and privacy: a heading and text in the blog's reading column. */
-export default async function InfoPage({ params }: PageProps<"/[lang]/[page]">) {
-  const { lang: l, page: slug } = await params;
-  const lang = langOf(l);
+export default async function InfoPage({ params }: PageProps<"/[page]">) {
+  const { page: slug } = await params;
+  const lang = STORE_LANG;
   const key = find(slug);
   if (!key) notFound();
   const page = PAGES[key];
@@ -50,7 +50,7 @@ export default async function InfoPage({ params }: PageProps<"/[lang]/[page]">) 
           <nav aria-label="Breadcrumb">
             <ol className="flex flex-wrap items-center gap-2 text-caption text-fg-tertiary">
               <li>
-                <Link href={`/${lang}`} className="transition-colors hover:text-fg-primary">
+                <Link href={"/"} className="transition-colors hover:text-fg-primary">
                   {STORE_NAME[lang]}
                 </Link>
               </li>

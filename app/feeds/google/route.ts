@@ -32,7 +32,7 @@ export async function GET(request: Request) {
         tag("g:id", itemId(product, v)),
         tag("title", `${product.name[lang]} ${v.label[lang]}`.slice(0, 150)),
         tag("description", (product.description[lang] || product.name[lang]).slice(0, 5000)),
-        tag("link", absolute(`/${lang}/p/${product.slug}${variants.length > 1 ? `?${SIZE_PARAM}=${encodeURIComponent(v.id)}` : ""}`)),
+        tag("link", absolute(`/p/${product.slug}${variants.length > 1 ? `?${SIZE_PARAM}=${encodeURIComponent(v.id)}` : ""}`)),
         tag("g:image_link", photos[0]!),
         ...photos.slice(1, 11).map((url) => tag("g:additional_image_link", url)),
         tag("g:availability", v.inStock ? "in_stock" : "out_of_stock"),

@@ -12,17 +12,17 @@ import { STORE_NAME, t } from "@/lib/i18n";
 import { alternates, openGraph } from "@/lib/site";
 import { categoryJsonLd } from "@/lib/structured-data";
 import type { Lang } from "@/lib/types";
-import { langOf } from "@/lib/lang";
+import { STORE_LANG } from "@/lib/types";
 
 export const revalidate = 3600;
 export const generateStaticParams = () => CATEGORIES.map((c) => ({ slug: c.slug }));
 
-export async function generateMetadata({ params }: PageProps<"/[lang]/c/[slug]">): Promise<Metadata> {
-  const { lang: l, slug } = await params;
-  const lang = langOf(l);
+export async function generateMetadata({ params }: PageProps<"/c/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const lang = STORE_LANG;
   const category = findCategory(slug);
   if (!category) return {};
-  const path = (to: Lang) => `/${to}/c/${category.slug}`;
+  const path = (to: Lang) => `/c/${category.slug}`;
   return {
     title: category.title[lang],
     description: category.description[lang],
@@ -32,9 +32,9 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/c/[slug]">
 }
 
 /** A kind of product as a page: what it is, the products of that kind, and the posts about them. A category with nothing to buy is a 404. */
-export default async function CategoryPage({ params }: PageProps<"/[lang]/c/[slug]">) {
-  const { lang: l, slug } = await params;
-  const lang = langOf(l);
+export default async function CategoryPage({ params }: PageProps<"/c/[slug]">) {
+  const { slug } = await params;
+  const lang = STORE_LANG;
   const category = findCategory(slug);
   if (!category) notFound();
   const [all, posts] = await Promise.all([getProducts(), getPosts()]);
@@ -51,7 +51,7 @@ export default async function CategoryPage({ params }: PageProps<"/[lang]/c/[slu
         <nav aria-label="Breadcrumb">
           <ol className="flex flex-wrap items-center gap-2 text-caption text-fg-tertiary">
             <li>
-              <Link href={`/${lang}`} className="transition-colors hover:text-fg-primary">
+              <Link href={"/"} className="transition-colors hover:text-fg-primary">
                 {STORE_NAME[lang]}
               </Link>
             </li>

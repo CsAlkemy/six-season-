@@ -20,8 +20,8 @@ export const khejurGurPayesh: Post = {
 <h2>দুধ কাটে কেন</h2>
 <p>খুব গরম দুধে গুড় দিলে, বিশেষ করে গুড়ে একটু টক ভাব থাকলে, দুধ কেটে যেতে পারে। তাই দুধ একটু ঠান্ডা করে নিয়ে গুড় অল্প অল্প করে মেশানো নিরাপদ। বেশি ভয় থাকলে গুড় এক বাটি গরম পানিতে গলিয়ে ছেঁকে নিয়ে মেশান, কিংবা আগে এক হাতা পায়েসে মিশিয়ে দেখুন। তবু কেটে গেলে ফেলে দেবেন না। ছানা-ছানা ঘন পায়েস হিসেবেও দিব্যি খাওয়া যায়।</p>
 <h2>গুড় কেমন নেবেন</h2>
-<p>পায়েসের জন্য এমন গুড় নিন, যার স্বাদে শুধু মিষ্টি নয়, খেজুরের সুবাসও আছে। চিনি মেশানো গুড় কীভাবে ধরবেন তা লিখেছি <a href="/bn/blog/pure-khejur-gur">খাঁটি খেজুরের গুড় চেনার উপায়</a> লেখায়।</p>
-<p>আমাদের খেজুরের পাটালি গুড় শীতের ভোরে নামানো রস জ্বাল দিয়ে তৈরি, চিনি মেশানো নেই। দেখুন <a href="/bn/c/khejur-gur">খেজুরের গুড়</a>।</p>
+<p>পায়েসের জন্য এমন গুড় নিন, যার স্বাদে শুধু মিষ্টি নয়, খেজুরের সুবাসও আছে। চিনি মেশানো গুড় কীভাবে ধরবেন তা লিখেছি <a href="/blog/pure-khejur-gur">খাঁটি খেজুরের গুড় চেনার উপায়</a> লেখায়।</p>
+<p>আমাদের খেজুরের পাটালি গুড় শীতের ভোরে নামানো রস জ্বাল দিয়ে তৈরি, চিনি মেশানো নেই। দেখুন <a href="/c/khejur-gur">খেজুরের গুড়</a>।</p>
 `,
     },
     en: {
@@ -36,8 +36,8 @@ export const khejurGurPayesh: Post = {
 <h2>Why milk splits</h2>
 <p>Jaggery added to very hot milk, especially if the jaggery is a little sour, can split it. So let the milk cool a little and add the jaggery gradually. If you're worried, melt it in a bowl of hot water, strain it and stir that in, or try it in a ladle of the payesh first. If it splits anyway, don't throw it away: thick, curd-flecked payesh is perfectly good to eat.</p>
 <h2>Which jaggery to use</h2>
-<p>For payesh, pick a jaggery whose taste is more than sweetness, one with the fragrance of date palm. How to spot jaggery mixed with sugar is in <a href="/en/blog/pure-khejur-gur">how to tell pure date-palm jaggery</a>.</p>
-<p>Our date-palm patali is made from sap collected on winter mornings, with no added sugar. See <a href="/en/c/khejur-gur">date-palm jaggery</a>.</p>
+<p>For payesh, pick a jaggery whose taste is more than sweetness, one with the fragrance of date palm. How to spot jaggery mixed with sugar is in <a href="/blog/pure-khejur-gur">how to tell pure date-palm jaggery</a>.</p>
+<p>Our date-palm patali is made from sap collected on winter mornings, with no added sugar. See <a href="/c/khejur-gur">date-palm jaggery</a>.</p>
 `,
     },
   },
