@@ -244,10 +244,12 @@ export function HomeTab({ home, products, onChange }: { home: Home; products: Pi
 
   return (
     <div className="flex flex-col gap-4">
-      <ContentCard padding="md" title="Hero" subtitle="A banner above the products. Off until you switch it on." action={<Switch aria-label="Show hero" checked={home.hero.enabled} onCheckedChange={(enabled) => setHero({ enabled })} />}>
+      <ContentCard padding="md" title="Hero" subtitle="The top of the home page: sticker, headline, checklist, button and photo." action={<Switch aria-label="Show hero" checked={home.hero.enabled} onCheckedChange={(enabled) => setHero({ enabled })} />}>
         <HeroPreview hero={home.hero} />
         <div className={cn("flex flex-col gap-4 transition-opacity", !home.hero.enabled && "opacity-50")}>
+          <TextPair label="Sticker (empty hides it)" maxLength={30} value={home.hero.badge} onChange={(badge) => setHero({ badge })} placeholder={{ bn: "খামার থেকে সরাসরি", en: "Straight from the farm" }} />
           <TextPair label="Title" value={home.hero.title} onChange={(title) => setHero({ title })} />
+          <p className="-mt-2 text-caption text-fg-tertiary">A comma splits it over two lines, the first outlined like a sticker: মাটির টানে, খাঁটি খাবার.</p>
           <TextPair label="Subtitle" value={home.hero.subtitle} onChange={(subtitle) => setHero({ subtitle })} />
           <TextPair label="Button (empty hides it)" value={home.hero.cta} onChange={(cta) => setHero({ cta })} />
           <PhotoField label="Background photo (optional)" hint="A wide photo works best. It's shrunk to WebP before it uploads." url={home.hero.image} onChange={(image) => setHero({ image })} />

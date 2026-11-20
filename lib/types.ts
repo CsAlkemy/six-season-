@@ -137,6 +137,8 @@ export interface HomeSettings {
     image: string | null;
     /** Up to 4 short reasons to buy, a checklist under the title. Claims the store stands behind; empty shows none. */
     points: Text[];
+    /** A few words on a tilted sticker over the title ("খামার থেকে সরাসরি"); empty hides it. */
+    badge: Text;
   };
   sections: HomeSection[];
   /** One real customer's words on the home page, as they wrote them (a Facebook comment, a message). */

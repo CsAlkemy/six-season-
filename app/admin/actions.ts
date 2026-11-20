@@ -501,6 +501,7 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
         cta: text(hero.cta, 40),
         image: isImage(hero.image) ? hero.image : null,
         points,
+        badge: text(hero.badge, 30),
       },
       sections,
       review,

@@ -153,6 +153,7 @@ export const DEFAULT_SETTINGS: Settings = {
       subtitle: { bn: "", en: "" },
       cta: { bn: "পণ্য দেখুন", en: "Shop now" },
       image: null,
+      badge: { bn: "খামার থেকে সরাসরি", en: "Straight from the farm" },
       // What the store already says of itself (its description, the product page's promises).
       points: [
         { bn: "নিজেদের খামার আর চেনা কৃষকদের কাছ থেকে", en: "From our own farm and farmers we know" },
