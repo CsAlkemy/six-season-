@@ -4,6 +4,7 @@
  * Only products, prices and the order number go out: never a name, phone number or address.
  */
 export interface TrackedItem {
+  /** The size's ID (lib/variants.ts itemId), the same as the Google feed's g:id and the product data's sku. */
   id: string;
   name: string;
   /** The size's label. */

@@ -8,11 +8,12 @@ import { STORE_NAME, t } from "@/lib/i18n";
 import { alternates, openGraph } from "@/lib/site";
 import { blogJsonLd } from "@/lib/structured-data";
 import type { Lang } from "@/lib/types";
+import { langOf } from "@/lib/lang";
 
 export const revalidate = 3600;
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/blog">): Promise<Metadata> {
-  const lang = (await params).lang as Lang;
+  const lang = langOf((await params).lang);
   const d = t(lang);
   return {
     title: d.blog,
@@ -24,7 +25,7 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/blog">): P
 
 /** মাটির কথা: the posts published in this language, newest first, each with its banner or product photo. */
 export default async function BlogPage({ params }: PageProps<"/[lang]/blog">) {
-  const lang = (await params).lang as Lang;
+  const lang = langOf((await params).lang);
   const d = t(lang);
   const [all, products] = await Promise.all([getPosts(), getProducts()]);
   const posts = newestFirst(all.filter((p) => isLive(p, lang)));

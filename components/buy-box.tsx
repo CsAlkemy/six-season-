@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { type Dict, taka } from "@/lib/i18n";
 import type { Lang, Product } from "@/lib/types";
 import { DEFAULT_LOW_STOCK } from "@/lib/stock";
-import { defaultVariant, savingPercent, variantsOf } from "@/lib/variants";
+import { askedVariant, defaultVariant, itemId, savingPercent, SIZE_PARAM, variantsOf } from "@/lib/variants";
 
 import { CardActions, QtyStepper } from "./add-to-cart";
 
@@ -15,6 +15,18 @@ export function BuyBox({ product, lang, d }: { product: Product; lang: Lang; d: 
   const [variantId, setVariantId] = useState(() => defaultVariant(product).id);
   const [qty, setQty] = useState(1);
   const variant = variants.find((v) => v.id === variantId) ?? variants[0]!;
+  // An address with ?size= opens on that size (Google links to each size this way); picking one puts it in the
+  // address to share. Read after the page loads, so product pages stay cached and the same for everyone.
+  useEffect(() => {
+    const asked = askedVariant(product, window.location.search);
+    if (asked) setVariantId(asked.id);
+  }, [product]);
+  const pick = (id: string) => {
+    setVariantId(id);
+    const url = new URL(window.location.href);
+    url.searchParams.set(SIZE_PARAM, id);
+    window.history.replaceState(window.history.state, "", url);
+  };
   const saving = savingPercent(variant);
   const max = Math.min(20, variant.stock ?? 20);
   const left = variant.stock !== undefined && variant.stock > 0 && variant.stock <= (product.lowStockAt ?? DEFAULT_LOW_STOCK) ? variant.stock : null;
@@ -48,7 +60,7 @@ export function BuyBox({ product, lang, d }: { product: Product; lang: Lang; d: 
                     checked ? "border-brand bg-brand-soft text-fg-brand ring-1 ring-brand" : "border-border-strong bg-surface hover:border-fg-primary"
                   } ${v.inStock ? "" : "text-fg-tertiary line-through decoration-1"}`}
                 >
-                  <input type="radio" name="size" value={v.id} checked={checked} onChange={() => setVariantId(v.id)} className="sr-only" />
+                  <input type="radio" name="size" value={v.id} checked={checked} onChange={() => pick(v.id)} className="sr-only" />
                   {v.label[lang]}
                 </label>
               );
@@ -67,7 +79,7 @@ export function BuyBox({ product, lang, d }: { product: Product; lang: Lang; d: 
               id={product.id}
               variant={variant.id}
               qty={Math.min(qty, max)}
-              item={{ id: product.id, name: product.name[lang], variant: variant.label[lang], price: variant.price }}
+              item={{ id: itemId(product, variant), name: product.name[lang], variant: variant.label[lang], price: variant.price }}
               cartHref={`/${lang}/cart`}
               label={d.addToCart}
               addedLabel={d.added}

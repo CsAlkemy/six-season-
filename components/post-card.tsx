@@ -3,6 +3,7 @@ import Link from "next/link";
 import { type Post, postDate, postDescription, readingMinutes } from "@/lib/blog";
 import { blurOf } from "@/lib/blur";
 import { blurStyle } from "@/lib/blur-style";
+import { sized } from "@/lib/photo-sizes";
 import { t } from "@/lib/i18n";
 import type { Lang } from "@/lib/types";
 
@@ -10,7 +11,7 @@ import { LeafIcon } from "./icons";
 import { TONE } from "./product-media";
 
 /** A post's picture (its banner, or its product's photo) over that photo's blur; a leaf on green without one. */
-export async function PostCover({ src, alt = "", className = "", priority = false }: { src?: string; alt?: string; className?: string; priority?: boolean }) {
+export async function PostCover({ src, alt = "", className = "", priority = false, sizes = "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" }: { src?: string; alt?: string; className?: string; priority?: boolean; sizes?: string }) {
   if (!src) {
     return (
       <div className={`flex w-full items-center justify-center ${TONE.leaf} ${className}`} aria-hidden>
@@ -20,7 +21,7 @@ export async function PostCover({ src, alt = "", className = "", priority = fals
   }
   return (
     <img
-      src={src}
+      {...sized(src, sizes)}
       alt={alt}
       loading={priority ? "eager" : "lazy"}
       fetchPriority={priority ? "high" : undefined}

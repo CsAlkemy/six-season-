@@ -9,6 +9,7 @@ import { STORE_NAME } from "@/lib/i18n";
 import { alternates, openGraph } from "@/lib/site";
 import { pageJsonLd } from "@/lib/structured-data";
 import type { Lang } from "@/lib/types";
+import { langOf } from "@/lib/lang";
 
 export const revalidate = 3600;
 /** Only the store's own pages (content/pages.tsx); anything else under /bn or /en is a 404. */
@@ -19,7 +20,7 @@ const find = (slug: string) => PAGE_SLUGS.find((s) => s === slug);
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/[page]">): Promise<Metadata> {
   const { lang: l, page: slug } = await params;
-  const lang = l as Lang;
+  const lang = langOf(l);
   const key = find(slug);
   if (!key) return {};
   const { title, description } = PAGES[key];
@@ -35,7 +36,7 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/[page]">):
 /** About, contact, delivery and privacy: a heading and text in the blog's reading column. */
 export default async function InfoPage({ params }: PageProps<"/[lang]/[page]">) {
   const { lang: l, page: slug } = await params;
-  const lang = l as Lang;
+  const lang = langOf(l);
   const key = find(slug);
   if (!key) notFound();
   const page = PAGES[key];

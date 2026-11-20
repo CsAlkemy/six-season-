@@ -6,13 +6,14 @@ import { getProducts, getSettings } from "@/lib/data";
 import { t } from "@/lib/i18n";
 import { smsEnabled } from "@/lib/sms";
 import type { Lang } from "@/lib/types";
+import { langOf } from "@/lib/lang";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/cart">): Promise<Metadata> {
-  return { title: t((await params).lang as Lang).checkout, robots: { index: false } };
+  return { title: t(langOf((await params).lang)).checkout, robots: { index: false } };
 }
 
 export default async function CartPage({ params }: PageProps<"/[lang]/cart">) {
-  const lang = (await params).lang as Lang;
+  const lang = langOf((await params).lang);
   const [products, settings, customer] = await Promise.all([getProducts(), getSettings(), currentCustomer()]);
 
   return (

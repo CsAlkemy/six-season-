@@ -155,6 +155,8 @@ const dict = {
     cartUnavailable: "কিছু পণ্য এখন আর পাওয়া যাচ্ছে না, তাই বাদ দেওয়া হয়েছে।",
     outOfStockShort: "স্টক নেই",
     allProducts: "সব পণ্য",
+    notFoundTitle: "পাতাটি খুঁজে পাওয়া যায়নি",
+    notFoundBody: "ঠিকানাটা হয়তো বদলে গেছে, বা লিখতে ভুল হয়েছে। আমাদের সব পণ্য এক জায়গায় দেখুন।",
     // Product page
     codTitle: "ক্যাশ অন ডেলিভারি",
     codBody: "পণ্য হাতে পেয়ে টাকা দিন",
@@ -336,6 +338,8 @@ const dict = {
     cartUnavailable: "Some items are no longer available and were left out.",
     outOfStockShort: "Sold out",
     allProducts: "All products",
+    notFoundTitle: "We couldn't find that page",
+    notFoundBody: "The address may have changed, or have a typo in it. All our products are in one place.",
     // Product page
     codTitle: "Cash on delivery",
     codBody: "Pay when it reaches you",
@@ -370,7 +374,8 @@ const dict = {
 } satisfies Record<Lang, Record<string, string>>;
 
 export type Dict = (typeof dict)["en"];
-export const t = (lang: Lang): Dict => dict[lang];
+// An address with no language of ours (/xyz) still gets words, so its titles can be worked out on the way to the 404.
+export const t = (lang: Lang): Dict => dict[lang] ?? dict.bn;
 
 export const STORE_NAME: Text = { bn: "মাটির টান", en: "Matir Taan" };
 

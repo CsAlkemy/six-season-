@@ -3,7 +3,7 @@ import { getProducts } from "@/lib/data";
 import { STORE_NAME } from "@/lib/i18n";
 import { absolute, SITE_URL } from "@/lib/site";
 import { type Lang, LANGS } from "@/lib/types";
-import { photosOf, variantsOf } from "@/lib/variants";
+import { itemId, photosOf, SIZE_PARAM, variantsOf } from "@/lib/variants";
 
 const escape = (value: string) => value.replace(/[<>&'"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" })[c]!);
 const tag = (name: string, value: string | number) => `<${name}>${escape(String(value))}</${name}>`;
@@ -29,10 +29,10 @@ export async function GET(request: Request) {
     return variants.map((v) => {
       const discounted = v.compareAt !== null && v.compareAt > v.price;
       const fields = [
-        tag("g:id", `${product.id}-${v.id}`),
+        tag("g:id", itemId(product, v)),
         tag("title", `${product.name[lang]} ${v.label[lang]}`.slice(0, 150)),
         tag("description", (product.description[lang] || product.name[lang]).slice(0, 5000)),
-        tag("link", absolute(`/${lang}/p/${product.slug}`)),
+        tag("link", absolute(`/${lang}/p/${product.slug}${variants.length > 1 ? `?${SIZE_PARAM}=${encodeURIComponent(v.id)}` : ""}`)),
         tag("g:image_link", photos[0]!),
         ...photos.slice(1, 11).map((url) => tag("g:additional_image_link", url)),
         tag("g:availability", v.inStock ? "in_stock" : "out_of_stock"),

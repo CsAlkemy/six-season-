@@ -18,7 +18,8 @@ import { getApprovedReviews, summarize } from "@/lib/reviews";
 import { alternates, openGraph, snippet } from "@/lib/site";
 import { productJsonLd } from "@/lib/structured-data";
 import type { Lang } from "@/lib/types";
-import { defaultVariant, variantsOf } from "@/lib/variants";
+import { variantsOf } from "@/lib/variants";
+import { langOf } from "@/lib/lang";
 
 /** Products added later render on first visit, then stay static. */
 export const dynamicParams = true;
@@ -28,7 +29,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/p/[slug]">): Promise<Metadata> {
   const { lang: l, slug } = await params;
-  const lang = l as Lang;
+  const lang = langOf(l);
   const product = await findProduct(slug);
   if (!product) return {};
   const path = (to: Lang) => `/${to}/p/${product.slug}`;
@@ -45,7 +46,7 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/p/[slug]">
 
 export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug]">) {
   const { lang: l, slug } = await params;
-  const lang = l as Lang;
+  const lang = langOf(l);
   const product = await findProduct(slug);
   if (!product) notFound();
   const d = t(lang);
@@ -70,7 +71,7 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug
   return (
     <div className="container-page flex flex-col gap-12 sm:gap-16 sm:pt-5">
       <JsonLd data={productJsonLd(product, lang, reviews, summary, settings)} />
-      <TrackProductView item={{ id: product.id, name: product.name[lang], variant: defaultVariant(product).label[lang], price: defaultVariant(product).price }} />
+      <TrackProductView product={product} lang={lang} />
       <div className="flex flex-col gap-4 sm:gap-6">
         <nav aria-label="Breadcrumb" className="max-sm:hidden">
           <ol className="flex flex-wrap items-center gap-2 text-caption text-fg-tertiary">

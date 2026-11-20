@@ -1,4 +1,5 @@
 import { blurStyle } from "@/lib/blur-style";
+import { CARD_SIZES, sized } from "@/lib/photo-sizes";
 import type { Lang, Product, Tone } from "@/lib/types";
 
 import { LeafIcon } from "./icons";
@@ -12,13 +13,14 @@ export const TONE: Record<Tone, string> = {
 
 /**
  * The product photo, or a tinted tile with its name until one is uploaded. `priority` is for the page's main photo
- * (the largest paint Google times): fetched first instead of waiting until it scrolls near.
+ * (the largest paint Google times): fetched first instead of waiting until it scrolls near. `sizes` is how wide it
+ * shows (lib/photo.ts), so the browser picks a file near that size; a product card's width unless said otherwise.
  */
-export function ProductMedia({ product, lang, className = "", priority = false }: { product: Product; lang: Lang; className?: string; priority?: boolean }) {
+export function ProductMedia({ product, lang, className = "", priority = false, sizes = CARD_SIZES }: { product: Product; lang: Lang; className?: string; priority?: boolean; sizes?: string }) {
   if (product.image) {
     return (
       <img
-        src={product.image}
+        {...sized(product.image, sizes)}
         alt={product.name[lang]}
         loading={priority ? "eager" : "lazy"}
         fetchPriority={priority ? "high" : undefined}

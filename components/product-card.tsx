@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { fromPrice, t, taka } from "@/lib/i18n";
 import type { Lang, Product } from "@/lib/types";
-import { defaultVariant, variantsOf } from "@/lib/variants";
+import { defaultVariant, itemId, variantsOf } from "@/lib/variants";
 
 import { CardActions } from "./add-to-cart";
 import { SeasonIcon } from "./icons";
@@ -75,7 +75,7 @@ export function ProductCard({ product, lang, priority = false }: { product: Prod
               <CardActions
                 id={product.id}
                 variant={variant.id}
-                item={{ id: product.id, name: product.name[lang], variant: variant.label[lang], price: variant.price }}
+                item={{ id: itemId(product, variant), name: product.name[lang], variant: variant.label[lang], price: variant.price }}
                 cartHref={`/${lang}/cart`}
                 label={d.addShort}
                 addedLabel={d.added}

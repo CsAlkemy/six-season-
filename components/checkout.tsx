@@ -13,7 +13,7 @@ import { orderFormSchema, type OrderFormInput, type OrderFormValues } from "@/li
 import { isCash } from "@/lib/payments";
 import { deliveryFee, methodAvailable } from "@/lib/pricing";
 import type { Lang, Product, Settings } from "@/lib/types";
-import { findVariant } from "@/lib/variants";
+import { findVariant, itemId } from "@/lib/variants";
 
 import { QtyStepper } from "./add-to-cart";
 import { useCart } from "./cart-provider";
@@ -80,7 +80,7 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
   const zone = zones.find((z) => z.id === zoneId);
   const fee = zone ? deliveryFee(zone, subtotal) : 0;
   const total = subtotal + fee;
-  const tracked = lines.map((l) => ({ id: l.product.id, name: l.product.name[lang], variant: l.variant.label[lang], price: l.variant.price, qty: l.qty }));
+  const tracked = lines.map((l) => ({ id: itemId(l.product, l.variant), name: l.product.name[lang], variant: l.variant.label[lang], price: l.variant.price, qty: l.qty }));
   const available = methods.filter((m) => methodAvailable(m, total));
   const selected = available.find((m) => m.id === method) ?? available[0];
 
@@ -193,7 +193,7 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
         <section className="card divide-y divide-border">
           {lines.map(({ product, variant, line, qty }) => (
             <div key={`${product.id}:${variant.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-3 p-4 sm:flex-nowrap">
-              <ProductMedia product={product} lang={lang} className="size-16! shrink-0 rounded-md [&_svg]:size-6 [&_span]:hidden" />
+              <ProductMedia product={product} lang={lang} sizes="64px" className="size-16! shrink-0 rounded-md [&_svg]:size-6 [&_span]:hidden" />
               <div className="min-w-0 flex-1">
                 <p className="truncate font-semibold">{product.name[lang]}</p>
                 <p className="font-display text-body-md font-medium text-fg-secondary">

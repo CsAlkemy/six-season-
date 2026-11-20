@@ -24,7 +24,7 @@ export function SiteFooter({ lang, settings, categories }: { lang: Lang; setting
       <div className="soil-texture bg-footer text-fg-footer">
         <div className="container-page grid gap-12 pt-8 pb-14 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] md:pt-12">
           <div className="flex flex-col items-start gap-6">
-            <img src="/logo-light.svg" alt={STORE_NAME[lang]} width={96} height={64} className="h-16 w-auto" />
+            <img src="/logo-light.svg" alt={STORE_NAME[lang]} width={96} height={64} loading="lazy" className="h-16 w-auto" />
             <p className="max-w-xl text-body-lg whitespace-pre-line text-fg-footer-muted">{d.footerTagline}</p>
             <Link href={`/${lang}/track`} className="btn border border-fg-footer-muted/60 bg-white/5 text-fg-footer hover:border-fg-footer-accent hover:text-fg-footer-accent">
               <TruckIcon className="size-5" />

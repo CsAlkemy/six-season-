@@ -8,8 +8,8 @@ import { type Category, categoryOf } from "./categories";
 import { otherLang, STORE_NAME, t } from "./i18n";
 import type { RatingSummary } from "./reviews";
 import { absolute, homeSeo, intlPhone, SITE_URL } from "./site";
-import { type Lang, type Product, type Review, type Settings, SOCIALS } from "./types";
-import { photosOf, variantsOf } from "./variants";
+import { type Lang, type Product, type Review, type Settings, SOCIALS, type Variant } from "./types";
+import { itemId, photosOf, SIZE_PARAM, variantsOf } from "./variants";
 
 const STORE_ID = `${SITE_URL}/#store`;
 const WEBSITE_ID = `${SITE_URL}/#website`;
@@ -77,34 +77,57 @@ const returnPolicy = (lang: Lang, days: number) =>
       }
     : {};
 
+/**
+ * A product for Google. One size: a Product. Several: a ProductGroup with each size as its own Product, as Google
+ * wants variants on one page, each with an address that opens the page on that size (`?size=`, components/buy-box.tsx).
+ * Each size's sku is the same ID the Google feed and analytics use (lib/variants.ts itemId).
+ */
 export function productJsonLd(product: Product, lang: Lang, reviews: Review[], summary: RatingSummary, settings: Settings) {
   const url = absolute(`/${lang}/p/${product.slug}`);
   const category = categoryOf(product);
-  const offers = variantsOf(product).map((v) => ({
+  const variants = variantsOf(product);
+  const grouped = variants.length > 1;
+  const image = photosOf(product).map(absolute);
+  const offer = (v: Variant) => ({
     "@type": "Offer",
-    url,
-    sku: `${product.id}-${v.id}`,
-    name: `${product.name[lang]} · ${v.label[lang]}`,
+    url: grouped ? `${url}?${SIZE_PARAM}=${encodeURIComponent(v.id)}` : url,
     price: v.price,
     priceCurrency: "BDT",
+    // The was price, for Google to show struck through beside the price.
+    ...(v.compareAt && v.compareAt > v.price && {
+      priceSpecification: { "@type": "UnitPriceSpecification", priceType: "https://schema.org/StrikethroughPrice", price: v.compareAt, priceCurrency: "BDT" },
+    }),
     availability: `https://schema.org/${v.inStock ? "InStock" : "OutOfStock"}`,
     itemCondition: "https://schema.org/NewCondition",
     seller: { "@id": STORE_ID },
     ...returnPolicy(lang, settings.returns.days),
-  }));
+  });
+  const only = variants[0]!;
   return {
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "Product",
+        "@type": grouped ? "ProductGroup" : "Product",
         "@id": `${url}#product`,
         name: product.name[lang],
         description: product.description[lang] || undefined,
         url,
-        sku: product.id,
-        image: photosOf(product).map(absolute),
+        image,
         brand: { "@type": "Brand", name: STORE_NAME[lang] },
-        offers: offers.length === 1 ? offers[0] : offers,
+        ...(grouped
+          ? {
+              productGroupID: product.id,
+              variesBy: ["https://schema.org/size"],
+              hasVariant: variants.map((v) => ({
+                "@type": "Product",
+                sku: itemId(product, v),
+                name: `${product.name[lang]} · ${v.label[lang]}`,
+                size: v.label[lang],
+                image,
+                offers: offer(v),
+              })),
+            }
+          : { sku: itemId(product, only), offers: offer(only) }),
         ...(summary.count > 0 && {
           aggregateRating: {
             "@type": "AggregateRating",

@@ -33,7 +33,8 @@ export interface Post {
 }
 
 /** Whether readers of `lang` see the post: published, and written in that language. */
-export const isLive = (post: Post, lang: Lang) => post.active && Boolean(post.text[lang].title.trim() && htmlText(post.text[lang].html));
+// `?.`: a mistyped language (/xyz/blog) has no text, and must reach the 404 rather than crash on the way.
+export const isLive = (post: Post, lang: Lang) => post.active && Boolean(post.text[lang]?.title.trim() && htmlText(post.text[lang]!.html));
 
 /** The languages a post is live in, for hreflang and the sitemap. */
 export const liveLangs = (post: Post): Lang[] => LANGS.filter((lang) => isLive(post, lang));

@@ -6,9 +6,10 @@ import { TruckIcon } from "@/components/icons";
 import { accessibleOrders, currentCustomer } from "@/lib/customers";
 import { t } from "@/lib/i18n";
 import type { Lang, Order } from "@/lib/types";
+import { langOf } from "@/lib/lang";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/track">): Promise<Metadata> {
-  return { title: t((await params).lang as Lang).trackOrder, robots: { index: false } };
+  return { title: t(langOf((await params).lang)).trackOrder, robots: { index: false } };
 }
 
 /**
@@ -18,7 +19,7 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/track">): 
  * this visitor may see.
  */
 export default async function TrackPage({ params, searchParams }: PageProps<"/[lang]/track">) {
-  const lang = (await params).lang as Lang;
+  const lang = langOf((await params).lang);
   const { order: wanted } = (await searchParams) as { order?: string };
   const d = t(lang);
   const customer = await currentCustomer();

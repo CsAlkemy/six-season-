@@ -22,6 +22,21 @@ export function defaultVariant(product: Product): Variant {
   return (inStock.length ? inStock : variants).reduce((min, v) => (v.price < min.price ? v : min));
 }
 
+/**
+ * One size's ID wherever it's counted: the Google feed's g:id, the product data's sku, and the item ID analytics and
+ * the Pixel send. One ID in all three is what lets ads and remarketing match a visit to the product.
+ */
+export const itemId = (product: Pick<Product, "id">, variant: Pick<Variant, "id">) => `${product.id}-${variant.id}`;
+
+/** The query that opens a product page on one size: `/bn/p/ghee?size=v-eb76ba`. Google links each size this way. */
+export const SIZE_PARAM = "size";
+
+/** The size an address asks for (`?size=`), when the product has it. */
+export function askedVariant(product: Product, search: string): Variant | undefined {
+  const id = new URLSearchParams(search).get(SIZE_PARAM);
+  return id ? variantsOf(product).find((v) => v.id === id) : undefined;
+}
+
 /** Whole-percent saving against the was price, or null without one. */
 export const savingPercent = (variant: Variant) =>
   variant.compareAt && variant.compareAt > variant.price ? Math.round((1 - variant.price / variant.compareAt) * 100) : null;

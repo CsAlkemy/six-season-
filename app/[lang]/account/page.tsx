@@ -14,11 +14,12 @@ import { phoneHint } from "@/lib/reviews";
 import { waNumber } from "@/lib/site";
 import { smsEnabled } from "@/lib/sms";
 import type { Lang, Order } from "@/lib/types";
+import { langOf } from "@/lib/lang";
 
 import { logout } from "./actions";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/account">): Promise<Metadata> {
-  return { title: t((await params).lang as Lang).account, robots: { index: false } };
+  return { title: t(langOf((await params).lang)).account, robots: { index: false } };
 }
 
 const safeNext = (raw: unknown, lang: Lang) => (typeof raw === "string" && raw.startsWith(`/${lang}/`) && !/\/\/|\\|\.\./.test(raw) ? raw.slice(0, 200) : undefined);
@@ -32,7 +33,7 @@ const safeNext = (raw: unknown, lang: Lang) => (typeof raw === "string" && raw.s
  * link (/r/[token] put its token in a cookie).
  */
 export default async function AccountPage({ params, searchParams }: PageProps<"/[lang]/account">) {
-  const lang = (await params).lang as Lang;
+  const lang = langOf((await params).lang);
   const query = (await searchParams) as { order?: string; reset?: string; next?: string; mode?: string };
   const wanted = query.order;
   const next = safeNext(query.next, lang);

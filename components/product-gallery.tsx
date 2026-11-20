@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { blurStyle } from "@/lib/blur-style";
+import { PRODUCT_SIZES, sized } from "@/lib/photo-sizes";
 import type { Lang, Product } from "@/lib/types";
 import { photosOf } from "@/lib/variants";
 
@@ -12,11 +13,11 @@ import { ProductMedia } from "./product-media";
 export function ProductGallery({ product, lang, dim }: { product: Product; lang: Lang; dim: boolean }) {
   const photos = photosOf(product);
   const [current, setCurrent] = useState(0);
-  if (photos.length < 2) return <ProductMedia product={product} lang={lang} className={dim ? "opacity-55" : ""} priority />;
+  if (photos.length < 2) return <ProductMedia product={product} lang={lang} className={dim ? "opacity-55" : ""} priority sizes={PRODUCT_SIZES} />;
   return (
     <div>
       <img
-        src={photos[current]}
+        {...sized(photos[current]!, PRODUCT_SIZES)}
         alt={product.name[lang]}
         fetchPriority="high"
         style={blurStyle(product.blur?.[photos[current]!])}
@@ -26,7 +27,7 @@ export function ProductGallery({ product, lang, dim }: { product: Product; lang:
         {photos.map((url, i) => (
           <li key={url} className="shrink-0">
             <button type="button" onClick={() => setCurrent(i)} aria-label={`${product.name[lang]} ${i + 1}`} aria-current={i === current} className={`block size-16 overflow-hidden rounded-lg border-2 transition sm:size-20 ${i === current ? "border-brand" : "border-transparent opacity-70 hover:opacity-100"}`}>
-              <img src={url} alt="" loading="lazy" style={blurStyle(product.blur?.[url])} className="size-full object-cover" />
+              <img {...sized(url, "80px")} alt="" loading="lazy" style={blurStyle(product.blur?.[url])} className="size-full object-cover" />
             </button>
           </li>
         ))}

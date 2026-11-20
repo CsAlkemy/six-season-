@@ -11,6 +11,7 @@ import { STORE_NAME, t } from "@/lib/i18n";
 import { alternates, openGraph } from "@/lib/site";
 import { postJsonLd } from "@/lib/structured-data";
 import type { Lang } from "@/lib/types";
+import { langOf } from "@/lib/lang";
 
 export const revalidate = 3600;
 /** Posts published after the last build render on first visit, then stay static. */
@@ -28,7 +29,7 @@ async function find(slug: string, lang: Lang) {
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/blog/[slug]">): Promise<Metadata> {
   const { lang: l, slug } = await params;
-  const lang = l as Lang;
+  const lang = langOf(l);
   const post = await find(slug, lang);
   if (!post) return {};
   const title = post.text[lang].title;
@@ -50,7 +51,7 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/blog/[slug
 /** A post: the banner and text in a reading column, then the products it's about (to buy right there) and other posts. */
 export default async function PostPage({ params }: PageProps<"/[lang]/blog/[slug]">) {
   const { lang: l, slug } = await params;
-  const lang = l as Lang;
+  const lang = langOf(l);
   const post = await find(slug, lang);
   if (!post) notFound();
   const d = t(lang);
@@ -85,7 +86,7 @@ export default async function PostPage({ params }: PageProps<"/[lang]/blog/[slug
         </header>
         {cover && (
           <div className="mt-8 overflow-hidden rounded-xl bg-muted sm:mt-10">
-            <PostCover src={cover} alt={post.image ? post.text[lang].title : (products[0]?.name[lang] ?? "")} priority className="aspect-[16/9]" />
+            <PostCover src={cover} alt={post.image ? post.text[lang].title : (products[0]?.name[lang] ?? "")} priority sizes="(min-width: 784px) 720px, 100vw" className="aspect-[16/9]" />
           </div>
         )}
         {/* Cleaned when it was saved (lib/post-html.ts). */}

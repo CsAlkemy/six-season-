@@ -12,13 +12,14 @@ import { STORE_NAME, t } from "@/lib/i18n";
 import { alternates, openGraph } from "@/lib/site";
 import { categoryJsonLd } from "@/lib/structured-data";
 import type { Lang } from "@/lib/types";
+import { langOf } from "@/lib/lang";
 
 export const revalidate = 3600;
 export const generateStaticParams = () => CATEGORIES.map((c) => ({ slug: c.slug }));
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/c/[slug]">): Promise<Metadata> {
   const { lang: l, slug } = await params;
-  const lang = l as Lang;
+  const lang = langOf(l);
   const category = findCategory(slug);
   if (!category) return {};
   const path = (to: Lang) => `/${to}/c/${category.slug}`;
@@ -33,7 +34,7 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/c/[slug]">
 /** A kind of product as a page: what it is, the products of that kind, and the posts about them. A category with nothing to buy is a 404. */
 export default async function CategoryPage({ params }: PageProps<"/[lang]/c/[slug]">) {
   const { lang: l, slug } = await params;
-  const lang = l as Lang;
+  const lang = langOf(l);
   const category = findCategory(slug);
   if (!category) notFound();
   const [all, posts] = await Promise.all([getProducts(), getPosts()]);

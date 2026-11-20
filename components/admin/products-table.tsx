@@ -54,7 +54,7 @@ export function ProductsTable({ products, reorder, filtered, clearHref }: { prod
       key: "product", header: "Product",
       cell: (p) => (
         <Link href={`/admin/products/${p.id}`} className="flex items-center gap-3 hover:text-fg-brand">
-          <ProductMedia product={p} lang="en" className="size-11! shrink-0 rounded-md [&_span]:hidden [&_svg]:size-5" />
+          <ProductMedia product={p} lang="en" sizes="44px" className="size-11! shrink-0 rounded-md [&_span]:hidden [&_svg]:size-5" />
           <span className="min-w-0"><span className="block truncate text-label-md">{p.name.en}</span><span className="block truncate text-caption text-fg-secondary">{p.name.bn} · {variantsOf(p).length} {variantsOf(p).length === 1 ? "size" : "sizes"}</span></span>
         </Link>
       ),
@@ -130,7 +130,7 @@ export function ProductsTable({ products, reorder, filtered, clearHref }: { prod
         {products.map((p) => (
           <li key={p.id}>
             <Link href={`/admin/products/${p.id}`} className="flex items-center gap-3 rounded-lg border border-border bg-surface p-3 focus-visible:outline-2 focus-visible:outline-brand">
-              <ProductMedia product={p} lang="en" className="size-14! shrink-0 rounded-md [&_span]:hidden [&_svg]:size-5" />
+              <ProductMedia product={p} lang="en" sizes="56px" className="size-14! shrink-0 rounded-md [&_span]:hidden [&_svg]:size-5" />
               <span className="min-w-0 flex-1"><span className="block truncate text-label-md">{p.name.en}</span><span className="block text-caption text-fg-secondary">{taka(p.price, "en")} · {totalStock(p) ?? (p.inStock ? "In stock" : "Out of stock")}{totalStock(p) !== null ? " in stock" : ""}</span></span>
               <StatusPill tone={p.active ? "success" : "neutral"}>{p.active ? "Active" : "Hidden"}</StatusPill>
             </Link>

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 
 import "../globals.css";
 import { Analytics } from "@/components/analytics";
@@ -14,6 +13,7 @@ import { STORE_NAME, t } from "@/lib/i18n";
 import { SEASON_SCRIPT, seasonAt } from "@/lib/season";
 import { openGraph, SITE_URL } from "@/lib/site";
 import { LANGS, type Lang } from "@/lib/types";
+import { shellLang } from "@/lib/lang";
 
 // Only bn and en are prebuilt; the layout itself 404s any other language. (dynamicParams = false here would also stop
 // product pages added after the last build from rendering until the route list catches up.)
@@ -24,7 +24,7 @@ export const generateStaticParams = () => LANGS.map((lang) => ({ lang }));
  * list (home, products); cart and account opt out of search. Share images come from the opengraph-image routes.
  */
 export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Promise<Metadata> {
-  const lang = (await params).lang as Lang;
+  const lang = shellLang((await params).lang);
   const d = t(lang);
   const google = process.env.GOOGLE_SITE_VERIFICATION;
   const bing = process.env.BING_SITE_VERIFICATION;
@@ -40,8 +40,7 @@ export async function generateMetadata({ params }: LayoutProps<"/[lang]">): Prom
 }
 
 export default async function StoreLayout({ children, params }: LayoutProps<"/[lang]">) {
-  const lang = (await params).lang as Lang;
-  if (!LANGS.includes(lang)) notFound();
+  const lang = shellLang((await params).lang);
   const [settings, products] = await Promise.all([getSettings(), getProducts()]);
 
   return (

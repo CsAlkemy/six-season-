@@ -6,14 +6,16 @@ import { blurOf } from "@/lib/blur";
 import { blurStyle } from "@/lib/blur-style";
 import { getProducts, getSettings } from "@/lib/data";
 import { t } from "@/lib/i18n";
+import { sized } from "@/lib/photo-sizes";
 import { alternates, homeSeo, openGraph } from "@/lib/site";
 import { storeJsonLd } from "@/lib/structured-data";
 import type { Lang, Product } from "@/lib/types";
+import { langOf } from "@/lib/lang";
 
 export const revalidate = 3600;
 
 export async function generateMetadata({ params }: PageProps<"/[lang]">): Promise<Metadata> {
-  const lang = (await params).lang as Lang;
+  const lang = langOf((await params).lang);
   const { title, description } = homeSeo(lang, (await getSettings()).store.seo);
   return {
     title: { absolute: title },
@@ -28,7 +30,7 @@ export async function generateMetadata({ params }: PageProps<"/[lang]">): Promis
  * and add rows of hand-picked products (Settings › Home page); with neither, the page is just the grid.
  */
 export default async function Home({ params }: PageProps<"/[lang]">) {
-  const lang = (await params).lang as Lang;
+  const lang = langOf((await params).lang);
   const d = t(lang);
   const [all, settings] = await Promise.all([getProducts(), getSettings()]);
   const { home } = settings;
@@ -51,7 +53,7 @@ export default async function Home({ params }: PageProps<"/[lang]">) {
       {showHero && (
         <section className="container-page pt-6 sm:pt-8">
           <div className="relative isolate flex min-h-72 items-end overflow-hidden rounded-xl bg-footer text-fg-footer sm:min-h-96">
-            {hero.image && <img src={hero.image} alt="" fetchPriority="high" style={blurStyle(heroBlur)} className="absolute inset-0 -z-20 size-full object-cover" />}
+            {hero.image && <img {...sized(hero.image, "(min-width: 1440px) 1328px, 100vw")} alt="" fetchPriority="high" style={blurStyle(heroBlur)} className="absolute inset-0 -z-20 size-full object-cover" />}
             <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
             <div className="flex max-w-3xl flex-col items-start gap-4 p-6 sm:p-12">
               <h1 className="text-h2 sm:text-h1">{hero.title[lang]}</h1>
