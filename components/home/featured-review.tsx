@@ -34,7 +34,7 @@ export function FeaturedReview({ lang, settings, products }: { lang: Lang; setti
             <img {...sized(review.avatar, "64px")} alt="" loading="lazy" className="size-16 rounded-full border-2 border-fg-footer/80 object-cover" />
           ) : (
             <span aria-hidden className="grid size-16 place-items-center rounded-full border-2 border-fg-footer/60 font-display text-h4">
-              {review.name.trim().charAt(0).toUpperCase()}
+              {review.name.trim().split(/\s+/).slice(0, 2).map((w) => w.charAt(0).toUpperCase()).join("")}
             </span>
           )}
           <span className="font-semibold">

@@ -328,10 +328,20 @@ export async function deleteProduct(id: string): Promise<Saved> {
   if (!product) return { ok: false, error: "Product not found." };
   try {
     await saveProducts(products.filter((p) => p.id !== product.id));
-    // Home sections that listed it drop it too, so the settings page doesn't count a ghost.
+    // Home sections that listed it drop it too, so the settings page doesn't count a ghost, and the featured review
+    // stops naming it.
     const settings = await loadSettings();
-    if (settings.home.sections.some((sec) => sec.productIds.includes(product.id))) {
-      await saveSettings({ ...settings, home: { ...settings.home, sections: settings.home.sections.map((sec) => ({ ...sec, productIds: sec.productIds.filter((id) => id !== product.id) })) } });
+    const inSections = settings.home.sections.some((sec) => sec.productIds.includes(product.id));
+    const inReview = settings.home.review.productId === product.id;
+    if (inSections || inReview) {
+      await saveSettings({
+        ...settings,
+        home: {
+          ...settings.home,
+          sections: settings.home.sections.map((sec) => ({ ...sec, productIds: sec.productIds.filter((id) => id !== product.id) })),
+          review: inReview ? { ...settings.home.review, productId: "" } : settings.home.review,
+        },
+      });
     }
   } catch (error) {
     return failed(error);
@@ -433,6 +443,10 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
     subtitle: text(section.subtitle, 200),
     productIds: [...new Set((section.productIds ?? []).map(String))].filter((id) => productIds.has(id)).slice(0, 24),
   }));
+  // Ids are the home page's keys and anchors, so two sections never share one (a new one could take a deleted one's).
+  sections.forEach((s, i) => {
+    if (sections.findIndex((other) => other.id === s.id) < i) s.id = `${s.id}-${i + 1}`;
+  });
   if (sections.some((s) => !s.title.bn || !s.title.en)) return { ok: false, error: "Give every home section a title in both languages." };
   const heroTitle = text(hero.title, 120);
   if (hero.enabled && (!heroTitle.bn || !heroTitle.en)) return { ok: false, error: "Give the hero a title in both languages, or switch it off." };
