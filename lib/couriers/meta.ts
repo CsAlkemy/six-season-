@@ -139,3 +139,6 @@ export interface Place {
   id: number;
   name: string;
 }
+
+/** A pickup store on the courier's side. Only an approved one can send parcels; a rejected one won't be approved by waiting. */
+export type PickupStore = Place & { approved: boolean; rejected?: boolean };

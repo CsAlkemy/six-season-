@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { readVault, writeVault } from "../vault";
-import { type Place, stageOf } from "./meta";
+import { type PickupStore, type Place, stageOf } from "./meta";
 import { type Booked, call, fail, messageOf, num, type Parcel, places, type Result, type StatusNow } from "./http";
 
 /**
@@ -92,7 +92,7 @@ async function authed(a: PathaoAccount, path: string, init: RequestInit & { time
 const inner = (body: Record<string, unknown> | null) => (body?.data ?? null) as Record<string, unknown> | null;
 
 /** Checks the login and lists the merchant's stores, to pick the one parcels are picked up from. */
-export async function check(a: PathaoAccount): Promise<Result<{ stores: (Place & { approved: boolean })[] }>> {
+export async function check(a: PathaoAccount): Promise<Result<{ stores: PickupStore[] }>> {
   const t = await token(a, true);
   if (!t.ok) return t;
   const r = await authed(a, "/stores");

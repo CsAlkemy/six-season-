@@ -1,4 +1,4 @@
-import { type Place, stageOf } from "./meta";
+import { type PickupStore, type Place, stageOf } from "./meta";
 import { type Booked, call, fail, messageOf, num, type Parcel, places, type Result, type StatusNow } from "./http";
 
 /**
@@ -33,7 +33,7 @@ function failure(status: number, body: Record<string, unknown> | null): { ok: fa
 }
 
 /** Checks the keys by listing the pickup stores; CarryBee approves a store before it can send parcels. */
-export async function check(a: CarrybeeAccount): Promise<Result<{ stores: (Place & { approved: boolean })[] }>> {
+export async function check(a: CarrybeeAccount): Promise<Result<{ stores: PickupStore[] }>> {
   const r = await call("carrybee", url(a, "/stores"), { headers: auth(a) });
   if (!r.ok) return r;
   const { status, body } = r.value;
@@ -41,7 +41,7 @@ export async function check(a: CarrybeeAccount): Promise<Result<{ stores: (Place
   if (status !== 200 || body?.error === true || !Array.isArray(list)) return failure(status, body);
   const stores = (list as Record<string, unknown>[]).flatMap((s) => {
     const id = num(s.id);
-    return id === undefined ? [] : [{ id, name: String(s.name ?? `Store ${id}`), approved: s.status === undefined || s.status === "approved" }];
+    return id === undefined ? [] : [{ id, name: String(s.name ?? `Store ${id}`), approved: s.status === undefined || s.status === "approved", rejected: s.status === "rejected" }];
   });
   return { ok: true, value: { stores } };
 }

@@ -3,7 +3,7 @@
 import { useId, useState, useTransition } from "react";
 
 import { connectCourier, type CourierKeysInput, disconnectCourier, saveCourierDefaults } from "@/app/admin/actions";
-import { COURIER_NAME, type CouriersView, type CourierView, type Place } from "@/lib/couriers/meta";
+import { COURIER_NAME, type CouriersView, type CourierView, type PickupStore } from "@/lib/couriers/meta";
 import type { CourierId } from "@/lib/types";
 
 import { Modal, RowMenu, SwitchRow, toast } from "./controls";
@@ -151,7 +151,7 @@ function ConnectModal({ courier, onClose, onConnected }: { courier: CourierView;
   const { id } = courier;
   const name = COURIER_NAME[id].en;
   const [form, setForm] = useState<CourierKeysInput>({ courier: id, sandbox: courier.sandbox, clientId: courier.fields.clientId ?? "", username: courier.fields.username ?? "", storeId: courier.fields.storeId ?? "" });
-  const [stores, setStores] = useState<(Place & { approved: boolean })[] | null>(null);
+  const [stores, setStores] = useState<PickupStore[] | null>(null);
   const [error, setError] = useState("");
   const [busy, start] = useTransition();
   const set = (patch: Partial<CourierKeysInput>) => {
@@ -160,6 +160,10 @@ function ConnectModal({ courier, onClose, onConnected }: { courier: CourierView;
     if (!("storeId" in patch)) setStores(null);
   };
   const kept = (key: string) => (courier.saved.includes(key) ? "Saved. Leave empty to keep it." : undefined);
+  // The keys work but no store can send parcels yet: say why rather than letting Save fetch the same list again.
+  const stuck = stores !== null && stores.length > 0 && !stores.some((s) => s.approved);
+  const waiting = stuck ? stores.filter((s) => !s.rejected) : [];
+  const quoted = (list: PickupStore[]) => list.map((s) => `“${s.name}”`).join(", ");
 
   const submit = () =>
     start(async () => {
@@ -182,7 +186,7 @@ function ConnectModal({ courier, onClose, onConnected }: { courier: CourierView;
       onOpenChange={(o) => !o && onClose()}
       title={courier.connected ? name : `Connect ${name}`}
       description={HELP[id].keys}
-      footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button loading={busy} onClick={submit}>{stores ? "Save" : "Check and save"}</Button></>}
+      footer={<><Button variant="outline" onClick={onClose}>{stuck ? "Close" : "Cancel"}</Button><Button loading={busy} disabled={Boolean(stores) && !form.storeId} onClick={submit}>{stores ? "Save" : "Check and save"}</Button></>}
     >
       <div className="flex flex-col gap-4">
         {HELP[id].sandbox && <SwitchRow label="Sandbox (test) account" description="Parcels booked in the sandbox are never picked up. Use your live keys to ship." checked={form.sandbox} onCheckedChange={(sandbox) => set({ sandbox })} />}
@@ -208,11 +212,20 @@ function ConnectModal({ courier, onClose, onConnected }: { courier: CourierView;
         {stores && (
           <FormField label="Pickup store" htmlFor="pickup-store" hint="Where the courier collects parcels. Add or change stores in the courier's panel.">
             <select id="pickup-store" value={form.storeId} onChange={(e) => set({ storeId: e.target.value })} className="field">
-              {stores.map((s) => <option key={s.id} value={String(s.id)} disabled={!s.approved}>{s.name}{s.approved ? "" : " (not approved yet)"}</option>)}
+              {!form.storeId && <option value="" disabled>{stuck ? "No store can send parcels yet" : "Pick a store"}</option>}
+              {stores.map((s) => <option key={s.id} value={String(s.id)} disabled={!s.approved}>{s.name}{s.approved ? "" : s.rejected ? " (rejected)" : " (waiting for approval)"}</option>)}
             </select>
           </FormField>
         )}
-        {stores && <p className="text-caption text-fg-success">The keys work. Pick the store, then save.</p>}
+        {stores && !stuck && <p className="text-caption text-fg-success">The keys work. Pick the store, then save.</p>}
+        {stuck && (
+          <Callout>
+            <strong className="text-fg-primary">The keys work, but {name} can&apos;t pick up parcels yet.</strong>{" "}
+            {waiting.length > 0
+              ? `${name} is still reviewing your pickup store ${quoted(waiting)}. Ask ${name} to approve it, then come back and connect again. Nothing is saved until then.`
+              : `${name} rejected your pickup store ${quoted(stores)}. Fix the store, or add a new one, in the ${name} panel, then come back and connect again.`}
+          </Callout>
+        )}
         {error && <Callout tone="error">{error}</Callout>}
       </div>
     </Modal>

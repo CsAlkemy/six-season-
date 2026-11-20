@@ -9,7 +9,7 @@ import { deleteImages, putImage } from "@/lib/blob";
 import { htmlText, type Post, type PostText, today } from "@/lib/blog";
 import { CATEGORIES } from "@/lib/categories";
 import { book as bookWithCourier, cancel as cancelWithCourier, canCancelByApi, carrybee, type CourierAccounts, couriersView, DEFAULT_WEIGHT_KG, detectPlace, listPlaces, loadAccounts, needsPlace, newSecret, placeRequired, openAccounts, pathao, saveAccounts, steadfast } from "@/lib/couriers";
-import { COURIER_NAME, type CouriersView, FINAL_STAGES, isActive, type Place, stageOf, trackingUrl } from "@/lib/couriers/meta";
+import { COURIER_NAME, type CouriersView, FINAL_STAGES, isActive, type PickupStore, type Place, stageOf, trackingUrl } from "@/lib/couriers/meta";
 import { resetWhatsApp } from "@/lib/account-mail";
 import { createReset, listCustomerOrders, loadCustomer } from "@/lib/customers";
 import { loadAllOrders, loadOrder, loadPosts, loadProducts, loadSettings, refreshStorefront, saveOrder, savePosts, saveProducts, saveSettings } from "@/lib/data";
@@ -623,7 +623,7 @@ export interface CourierKeysInput {
 export type CourierConnected =
   | { ok: true; view: CouriersView; message: string }
   /** The keys work; now pick the pickup store. */
-  | { ok: true; stores: (Place & { approved: boolean })[] }
+  | { ok: true; stores: PickupStore[] }
   | { ok: false; error: string };
 
 /**
@@ -652,7 +652,7 @@ export async function connectCourier(input: CourierKeysInput): Promise<CourierCo
     const sameAccount = prev && prev.sandbox === Boolean(input.sandbox) && prev.clientId === (field(input.clientId) || prev.clientId);
     const keep = (typed: unknown, saved: string | undefined) => field(typed) || (sameAccount ? saved ?? "" : "");
     const storeId = field(input.storeId, 40);
-    let stores: (Place & { approved: boolean })[];
+    let stores: PickupStore[];
     if (id === "pathao") {
       const p = accounts.pathao;
       const account: pathao.PathaoAccount = {
@@ -689,7 +689,7 @@ export async function connectCourier(input: CourierKeysInput): Promise<CourierCo
       stores = r.value.stores;
       const store = stores.find((s) => String(s.id) === storeId);
       if (!store) return stores.length ? { ok: true, stores } : { ok: false, error: "The keys work, but this CarryBee account has no store yet. Add one in the CarryBee panel first." };
-      if (!store.approved) return { ok: false, error: `CarryBee hasn't approved “${store.name}” yet, so it can't send parcels. Pick an approved store.` };
+      if (!store.approved) return { ok: false, error: store.rejected ? `CarryBee rejected “${store.name}”. Fix it in the CarryBee panel, or pick another store.` : `CarryBee hasn't approved “${store.name}” yet, so it can't send parcels. Pick an approved store.` };
       next = { ...accounts, carrybee: { ...account, storeName: store.name } };
     }
   }
