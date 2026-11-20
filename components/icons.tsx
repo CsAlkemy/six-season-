@@ -48,6 +48,19 @@ export const ArrowRightIcon = ({ className = "size-5" }: IconProps) => (
   </svg>
 );
 
+export const ShieldIcon = ({ className = "size-5" }: IconProps) => (
+  <svg {...base} className={className}>
+    <path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z" />
+    <path d="m9 12 2 2 4-4" />
+  </svg>
+);
+
+export const PhoneIcon = ({ className = "size-5" }: IconProps) => (
+  <svg {...base} className={className}>
+    <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" />
+  </svg>
+);
+
 export const CheckIcon = ({ className = "size-5" }: IconProps) => (
   <svg {...base} className={className}>
     <path d="m5 12 5 5L20 7" />

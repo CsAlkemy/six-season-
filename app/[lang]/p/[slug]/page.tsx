@@ -8,6 +8,7 @@ import { PostCard } from "@/components/post-card";
 import { ProductGallery } from "@/components/product-gallery";
 import { ratingLabel, ReviewsSection } from "@/components/reviews";
 import { Stars } from "@/components/stars";
+import { Faq } from "@/components/home/faq";
 import { JsonLd } from "@/components/json-ld";
 import { TrackProductView } from "@/components/track-product-view";
 import { isLive, newestFirst, postCover } from "@/lib/blog";
@@ -158,6 +159,11 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug
       )}
 
       <ReviewsSection productId={product.id} reviews={reviews} summary={summary} lang={lang} d={d} />
+
+      {/* Delivery, payment and what if something's wrong, answered where people decide; the same as the home page's. */}
+      <div className="mx-auto w-full max-w-240">
+        <Faq lang={lang} settings={settings} />
+      </div>
     </div>
   );
 }

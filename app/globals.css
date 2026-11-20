@@ -966,3 +966,49 @@ html:has(dialog.cart-drawer[open]) {
     transition: none;
   }
 }
+
+/* The home page's hero panel: the season's card colour, so it sits in the sky like the cards below it. */
+.home-hero {
+  background: var(--season-card);
+  border: 1px solid var(--season-line);
+}
+
+/*
+ * The home page's product tiles, one colour per product tone. Darker text on the light tones and light text on the
+ * dark ones, so the name and price read easily on every tile (at least 4.5:1).
+ */
+.tile-butter {
+  background: #f2cf6b;
+  color: #3d2a14;
+}
+
+.tile-mustard {
+  background: #df9f1f;
+  color: #2b1c05;
+}
+
+.tile-soil {
+  background: #6f4a30;
+  color: #fff8ef;
+}
+
+.tile-leaf {
+  background: #3f7a4a;
+  color: #f3fbf5;
+}
+
+.tile .tile-pill:hover,
+.tile .tile-pill:focus-visible {
+  background: #fff;
+  border-color: #fff;
+  color: #2a1d10;
+}
+
+/* An FAQ answer's first and last paragraph or list sit tight in the card. */
+.faq-answer > :first-child {
+  margin-top: 0;
+}
+
+.faq-answer > :last-child {
+  margin-bottom: 0;
+}
