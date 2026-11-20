@@ -213,8 +213,6 @@ const dict = {
     errRating: "১ থেকে ৫ তারা দিন",
     errReviewShort: "আরেকটু লিখুন (কমপক্ষে ১০ অক্ষর)",
     // Order page extras
-    deliveryNationwide: "সারা দেশে ডেলিভারি",
-    deliveryOnlyTo: "ডেলিভারি: {area}",
     addSomethingElse: "আরও কিছু যোগ করবেন? (ইচ্ছা হলে)",
     addItem: "যোগ করুন",
     browseMore: "আরও পণ্য দেখুন",
@@ -432,8 +430,6 @@ const dict = {
     errRating: "Give it 1 to 5 stars",
     errReviewShort: "Write a little more (at least 10 characters)",
     // Order page extras
-    deliveryNationwide: "Delivery across Bangladesh",
-    deliveryOnlyTo: "Delivery: {area}",
     addSomethingElse: "Add something else? (optional)",
     addItem: "Add",
     browseMore: "Browse more products",

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 
 import { Checkout } from "@/components/checkout";
+import { storeFacts } from "@/components/home/hero";
 import { CashIcon, TruckIcon } from "@/components/icons";
 import { currentCustomer } from "@/lib/customers";
 import { getProducts, getSettings } from "@/lib/data";
 import { type Dict, t } from "@/lib/i18n";
-import { isCash } from "@/lib/payments";
 import { smsEnabled } from "@/lib/sms";
 import type { Lang, Settings } from "@/lib/types";
 import { langOf } from "@/lib/lang";
@@ -15,14 +15,12 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/cart">): P
 }
 
 /**
- * The band's promises, each only when the settings back it: paying at the door while a cash method is on, and where
- * the store delivers. More than one area (inside and outside Dhaka, say) covers the country; one names it.
+ * The band's promises, each only when the settings back it, the same facts as the home page's: paying at the door
+ * while a cash method is on, and the quickest delivery area's time.
  */
 function promises(settings: Settings, lang: Lang, d: Dict) {
-  const zones = settings.delivery.zones.filter((z) => z.active);
-  const cash = settings.payments.methods.some((m) => m.enabled && isCash(m));
-  const coverage = zones.length > 1 ? d.deliveryNationwide : zones[0] ? d.deliveryOnlyTo.replace("{area}", zones[0].name[lang]) : "";
-  return [cash && { icon: CashIcon, text: d.codBody }, coverage && { icon: TruckIcon, text: coverage }].filter((p) => !!p);
+  const { cash, quickest } = storeFacts(settings, lang);
+  return [cash && { icon: CashIcon, text: d.codBody }, quickest && { icon: TruckIcon, text: quickest }].filter((p) => !!p);
 }
 
 export default async function CartPage({ params }: PageProps<"/[lang]/cart">) {
