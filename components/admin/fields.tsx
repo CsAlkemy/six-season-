@@ -7,6 +7,7 @@ import type { Text } from "@/lib/types";
 import { FormField } from "./ui";
 
 /** A labelled text or number input whose label is wired to it. */
+/** The store's own words, never the browser's autofill, so a saved phone number or address can't land in a headline or an answer. */
 export function Input({ label, value, onChange, type = "text", placeholder, hint, prefix, error, autoFocus, inputMode, maxLength }: {
   label: string;
   value: string | number;
@@ -26,7 +27,7 @@ export function Input({ label, value, onChange, type = "text", placeholder, hint
     <FormField label={label} htmlFor={id} hint={hint} error={error}>
       <div className="relative">
         {prefix && <span aria-hidden className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-fg-tertiary">{prefix}</span>}
-        <input id={id} type={type} inputMode={inputMode} min={type === "number" ? 0 : undefined} maxLength={maxLength} autoFocus={autoFocus} value={value} placeholder={placeholder} aria-invalid={error ? true : undefined} onChange={(e) => onChange(e.target.value)} className={prefix ? "field pl-9" : "field"} />
+        <input id={id} type={type} inputMode={inputMode} min={type === "number" ? 0 : undefined} maxLength={maxLength} autoFocus={autoFocus} autoComplete="off" value={value} placeholder={placeholder} aria-invalid={error ? true : undefined} onChange={(e) => onChange(e.target.value)} className={prefix ? "field pl-9" : "field"} />
       </div>
     </FormField>
   );
@@ -36,7 +37,7 @@ export function TextArea({ label, value, onChange, placeholder, rows = 3, hint, 
   const id = useId();
   return (
     <FormField label={label} htmlFor={id} hint={hint}>
-      <textarea id={id} rows={rows} maxLength={maxLength} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="field" />
+      <textarea id={id} rows={rows} maxLength={maxLength} autoComplete="off" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} className="field" />
     </FormField>
   );
 }

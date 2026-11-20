@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { STORE_NAME, t } from "./i18n";
-import { LANGS, type Lang, type Settings } from "./types";
+import { type Lang, type Settings, STORE_LANG, STORE_LANGS } from "./types";
 
 /**
  * The live store. Canonical links, the sitemap, structured data and share images all point here, so previews and
@@ -15,13 +15,14 @@ export const absolute = (path: string) => new URL(path, SITE_URL).toString();
 const OG_LOCALE: Record<Lang, string> = { bn: "bn_BD", en: "en_US" };
 
 /**
- * A page's canonical URL, and hreflang for each language it exists in (both, unless a post is written in only one),
- * with Bangla, or else the one language, for everyone else.
+ * A page's canonical URL. The store is in one language (STORE_LANG), so there are no other-language versions to
+ * name; `langs` stays so a page could list them again if a second language came back.
  */
-export function alternates(lang: Lang, path: (lang: Lang) => string, langs: Lang[] = LANGS): Metadata["alternates"] {
+export function alternates(lang: Lang, path: (lang: Lang) => string, langs: Lang[] = STORE_LANGS): Metadata["alternates"] {
+  const shown = langs.filter((l) => STORE_LANGS.includes(l));
   return {
     canonical: path(lang),
-    languages: { ...Object.fromEntries(langs.map((l) => [l, path(l)])), "x-default": path(langs.includes("bn") ? "bn" : langs[0]!) },
+    ...(shown.length > 1 && { languages: { ...Object.fromEntries(shown.map((l) => [l, path(l)])), "x-default": path(STORE_LANG) } }),
   };
 }
 
@@ -33,7 +34,7 @@ export const openGraph = (lang: Lang, page: { url: string; title?: string; descr
   type: "website",
   siteName: STORE_NAME[lang],
   locale: OG_LOCALE[lang],
-  alternateLocale: LANGS.filter((l) => l !== lang).map((l) => OG_LOCALE[l]),
+  alternateLocale: STORE_LANGS.filter((l) => l !== lang).map((l) => OG_LOCALE[l]),
   ...page,
 });
 

@@ -5,6 +5,7 @@ import { sized } from "@/lib/photo-sizes";
 import type { Lang, Product } from "@/lib/types";
 import { defaultVariant, itemId, savingPercent, variantsOf } from "@/lib/variants";
 
+import { BanglaName } from "../bangla-name";
 import { LeafIcon } from "../icons";
 import { TileBuy } from "./tile-buy";
 
@@ -41,11 +42,14 @@ export function ProductTiles({ products, lang, eagerFirst = false }: { products:
                 </span>
               )}
             </Link>
-            <h3 className="mt-1 font-display text-h4 leading-tight text-balance">
-              <Link href={href} className="hover:underline hover:underline-offset-4">
-                {product.name[lang]}
-              </Link>
-            </h3>
+            <div>
+              <h3 className="mt-1 font-display text-h4 leading-tight text-balance">
+                <Link href={href} className="hover:underline hover:underline-offset-4">
+                  {product.name[lang]}
+                </Link>
+              </h3>
+              <BanglaName name={product.name} lang={lang} className="mt-0.5 text-body-md opacity-90" />
+            </div>
             {line && <p className="text-body-sm opacity-85 sm:text-body-md">{line}</p>}
             <div className="mt-auto pt-1">
               <TileBuy

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { openReset, RESET_COOKIE } from "@/lib/customers";
+import { STORE_LANG } from "@/lib/types";
 
 /**
  * A password reset link: /r/<token>, short enough for WhatsApp. The token goes into a short-lived cookie and the visitor
@@ -9,7 +10,7 @@ import { openReset, RESET_COOKIE } from "@/lib/customers";
 export async function GET(request: Request, ctx: RouteContext<"/r/[token]">) {
   const { token } = await ctx.params;
   const reset = await openReset(token).catch(() => null);
-  const lang = reset?.lang ?? "bn";
+  const lang = reset?.lang ?? STORE_LANG;
   if (!reset) return NextResponse.redirect(new URL(`/${lang}/account?reset=expired`, request.url), 303);
   const response = NextResponse.redirect(new URL(`/${lang}/account?reset=1`, request.url), 303);
   response.cookies.set(RESET_COOKIE, token, {

@@ -3,9 +3,14 @@ import type { NextConfig } from "next";
 const config: NextConfig = {
   // No "x-powered-by: Next.js" on every answer.
   poweredByHeader: false,
-  // Bangla is the default storefront; English lives at /en.
+  // The store is in English (lib/types.ts STORE_LANG). Old Bangla addresses, in search results and shared links, go to
+  // the same page in English for good.
   async redirects() {
-    return [{ source: "/", destination: "/bn", permanent: false }];
+    return [
+      { source: "/", destination: "/en", permanent: false },
+      { source: "/bn", destination: "/en", permanent: true },
+      { source: "/bn/:path*", destination: "/en/:path*", permanent: true },
+    ];
   },
   // Browsers take files only as the type they're sent as, never show the store inside another site's frame, and tell
   // other sites only which domain a visitor came from.

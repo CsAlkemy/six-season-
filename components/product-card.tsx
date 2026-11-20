@@ -5,6 +5,7 @@ import type { Lang, Product } from "@/lib/types";
 import { defaultVariant, itemId, variantsOf } from "@/lib/variants";
 
 import { CardActions } from "./add-to-cart";
+import { BanglaName } from "./bangla-name";
 import { SeasonIcon } from "./icons";
 import { ProductMedia } from "./product-media";
 
@@ -45,11 +46,14 @@ export function ProductCard({ product, lang, priority = false }: { product: Prod
       </div>
 
       <div className="season-card-body @container flex flex-1 flex-col gap-2 p-4 sm:p-5">
-        <h3 className="line-clamp-2 pr-10 text-h4 leading-snug font-semibold">
-          <Link href={href} className="transition-colors hover:text-fg-brand">
-            {product.name[lang]}
-          </Link>
-        </h3>
+        <div className="pr-10">
+          <h3 className="line-clamp-2 text-h4 leading-snug font-semibold">
+            <Link href={href} className="transition-colors hover:text-fg-brand">
+              {product.name[lang]}
+            </Link>
+          </h3>
+          <BanglaName name={product.name} lang={lang} className="mt-0.5 text-body-md text-fg-secondary" />
+        </div>
         {sizes > 1 ? (
           <p className="flex flex-wrap items-baseline gap-x-2.5">
             <span className="font-display text-h4 font-bold">{fromPrice(variant.price, lang)}</span>

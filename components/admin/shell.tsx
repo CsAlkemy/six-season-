@@ -72,7 +72,7 @@ export function AdminShell({ newOrders, logout, children }: { newOrders: number;
           ))}
         </nav>
         <div className="mt-auto flex flex-col">
-          <Link href="/bn" target="_blank" className={cn(itemClass, "text-fg-secondary hover:bg-muted hover:text-fg-primary")}><Icon name="external" className="size-4.5 text-neutral-400" strokeWidth={2.5} />View store</Link>
+          <Link href="/en" target="_blank" className={cn(itemClass, "text-fg-secondary hover:bg-muted hover:text-fg-primary")}><Icon name="external" className="size-4.5 text-neutral-400" strokeWidth={2.5} />View store</Link>
           <NavItem href="/admin/settings" label="Settings" icon="settings" active={active === "/admin/settings"} />
           {logoutForm("")}
         </div>
@@ -116,7 +116,7 @@ export function AdminShell({ newOrders, logout, children }: { newOrders: number;
           <div className="adm-pop absolute inset-y-0 right-0 flex w-72 max-w-[85%] flex-col gap-1 bg-surface p-4">
             <div className="flex items-center justify-between pb-3"><Badge /><button type="button" aria-label="Close" onClick={() => setMenu(false)} className="grid size-9 place-items-center rounded-full hover:bg-muted"><Icon name="x" className="size-5" /></button></div>
             {ALL.map((item) => <NavItem key={item.href} {...item} active={item.href === active} onNavigate={() => setMenu(false)} badge={item.href === "/admin/orders" ? newOrders : undefined} />)}
-            <Link href="/bn" target="_blank" className={cn(itemClass, "text-fg-secondary hover:bg-muted")}><Icon name="external" className="size-4.5 text-neutral-400" strokeWidth={2.5} />View store</Link>
+            <Link href="/en" target="_blank" className={cn(itemClass, "text-fg-secondary hover:bg-muted")}><Icon name="external" className="size-4.5 text-neutral-400" strokeWidth={2.5} />View store</Link>
             <div className="mt-auto">{logoutForm("")}</div>
           </div>
         </div>

@@ -46,7 +46,7 @@ interface Draft {
 
 const DRAFT_KEY = "mt-admin-order-draft";
 const blankDraft = (zones: DeliveryZone[], methods: PaymentMethod[]): Draft => ({
-  lang: "bn", phone: "", name: "", address: "", note: "", lines: [], zoneId: zones[0]?.id ?? "", methodId: methods.find((m) => m.enabled)?.id ?? "cod", trxId: "", adminNote: "", startConfirmed: true, sendSms: true,
+  lang: "en", phone: "", name: "", address: "", note: "", lines: [], zoneId: zones[0]?.id ?? "", methodId: methods.find((m) => m.enabled)?.id ?? "cod", trxId: "", adminNote: "", startConfirmed: true, sendSms: true,
 });
 const maxFor = (o: ProductOption) => Math.min(99, o.stock ?? 99);
 

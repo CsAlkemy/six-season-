@@ -5,11 +5,11 @@ import { STORE_NAME, t } from "@/lib/i18n";
 /** For "Add to Home screen" on phones: the store's name, sprout icon and colours. */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: `${STORE_NAME.bn} · ${STORE_NAME.en}`,
-    short_name: STORE_NAME.bn,
-    description: t("bn").about,
-    lang: "bn",
-    start_url: "/bn",
+    name: `${STORE_NAME.en} · ${STORE_NAME.bn}`,
+    short_name: STORE_NAME.en,
+    description: t("en").about,
+    lang: "en",
+    start_url: "/en",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#168456",

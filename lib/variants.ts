@@ -28,7 +28,7 @@ export function defaultVariant(product: Product): Variant {
  */
 export const itemId = (product: Pick<Product, "id">, variant: Pick<Variant, "id">) => `${product.id}-${variant.id}`;
 
-/** The query that opens a product page on one size: `/bn/p/ghee?size=v-eb76ba`. Google links each size this way. */
+/** The query that opens a product page on one size: `/en/p/ghee?size=v-eb76ba`. Google links each size this way. */
 export const SIZE_PARAM = "size";
 
 /** The size an address asks for (`?size=`), when the product has it. */

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 
 import { t } from "@/lib/i18n";
-import { LANGS, type Lang } from "@/lib/types";
+import { type Lang, STORE_LANG, STORE_LANGS } from "@/lib/types";
 
 /**
  * A missing product, category, post or page inside the store: the header and footer stay, in the shopper's language,
@@ -12,7 +12,7 @@ import { LANGS, type Lang } from "@/lib/types";
  */
 export default function NotFound() {
   const { lang: raw } = useParams<{ lang?: string }>();
-  const lang: Lang = LANGS.includes(raw as Lang) ? (raw as Lang) : "bn";
+  const lang: Lang = STORE_LANGS.includes(raw as Lang) ? (raw as Lang) : STORE_LANG;
   const d = t(lang);
   return (
     <div className="container-page flex flex-col items-center py-20 text-center sm:py-28">

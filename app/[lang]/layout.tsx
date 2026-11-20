@@ -14,13 +14,13 @@ import { fontVars } from "@/lib/fonts";
 import { STORE_NAME, t } from "@/lib/i18n";
 import { SEASON_SCRIPT, seasonAt } from "@/lib/season";
 import { openGraph, SITE_URL } from "@/lib/site";
-import { LANGS, type Lang, type Product } from "@/lib/types";
+import { type Lang, type Product, STORE_LANGS } from "@/lib/types";
 import { shellLang } from "@/lib/lang";
 import { photosOf, variantsOf } from "@/lib/variants";
 
 // Only bn and en are prebuilt; the layout itself 404s any other language. (dynamicParams = false here would also stop
 // product pages added after the last build from rendering until the route list catches up.)
-export const generateStaticParams = () => LANGS.map((lang) => ({ lang }));
+export const generateStaticParams = () => STORE_LANGS.map((lang) => ({ lang }));
 
 /**
  * What every storefront page starts from. Canonical links and hreflang are set by each page that search should

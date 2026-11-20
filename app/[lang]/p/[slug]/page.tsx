@@ -8,6 +8,7 @@ import { PostCard } from "@/components/post-card";
 import { ProductGallery } from "@/components/product-gallery";
 import { ratingLabel, ReviewsSection } from "@/components/reviews";
 import { Stars } from "@/components/stars";
+import { BanglaName } from "@/components/bangla-name";
 import { Faq } from "@/components/home/faq";
 import { JsonLd } from "@/components/json-ld";
 import { TrackProductView } from "@/components/track-product-view";
@@ -105,7 +106,10 @@ export default async function ProductPage({ params }: PageProps<"/[lang]/p/[slug
 
           <div className="flex flex-col gap-7">
             <div className="flex flex-col gap-3">
-              <h1 className="text-h2 lg:text-h1">{product.name[lang]}</h1>
+              <div>
+                <h1 className="text-h2 lg:text-h1">{product.name[lang]}</h1>
+                <BanglaName name={product.name} lang={lang} className="mt-1 text-h4 text-fg-secondary" />
+              </div>
               {summary.count > 0 && (
                 <a href="#reviews" className="flex w-fit items-center gap-2 rounded-sm hover:underline">
                   <Stars value={summary.average} label={ratingLabel(summary, lang, d)} />

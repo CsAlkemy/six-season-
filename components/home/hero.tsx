@@ -65,7 +65,12 @@ export async function HomeHero({ lang, settings, products, target }: { lang: Lan
       )}
       <div className="container-page grid items-center gap-10 py-10 sm:py-14 lg:min-h-[min(82vh,46rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:py-16">
         <div className="flex flex-col items-start gap-6 lg:gap-7">
-          {hero.badge[lang] && <span className="hero-badge">{hero.badge[lang]}</span>}
+          {/* The sticker is one of the places the English store speaks Bangla. */}
+          {(hero.badge.bn || hero.badge[lang]) && (
+            <span className="hero-badge" lang={hero.badge.bn ? "bn" : undefined}>
+              {hero.badge.bn || hero.badge[lang]}
+            </span>
+          )}
           <h1 className="hero-title">
             {lines ? (
               <>

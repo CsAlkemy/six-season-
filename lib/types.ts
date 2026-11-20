@@ -1,4 +1,12 @@
 export type Lang = "bn" | "en";
+
+/**
+ * The language the storefront is in: English, at /en (old /bn addresses redirect there, next.config.ts). Content is
+ * still kept in both, so the store can show Bangla where it helps: each product's Bangla name under its English one,
+ * and the hero's sticker.
+ */
+export const STORE_LANG: Lang = "en";
+export const STORE_LANGS: Lang[] = [STORE_LANG];
 export const LANGS: Lang[] = ["bn", "en"];
 
 /** Copy the storefront shows in both languages. */
@@ -137,7 +145,7 @@ export interface HomeSettings {
     image: string | null;
     /** Up to 4 short reasons to buy, a checklist under the title. Claims the store stands behind; empty shows none. */
     points: Text[];
-    /** A few words on a tilted sticker over the title ("খামার থেকে সরাসরি"); empty hides it. */
+    /** A few words on a tilted sticker over the title ("খামার থেকে সরাসরি"), shown in Bangla on the English store; empty hides it. */
     badge: Text;
   };
   sections: HomeSection[];

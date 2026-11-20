@@ -247,7 +247,7 @@ export function HomeTab({ home, products, onChange }: { home: Home; products: Pi
       <ContentCard padding="md" title="Hero" subtitle="The top of the home page: sticker, headline, checklist, button and photo." action={<Switch aria-label="Show hero" checked={home.hero.enabled} onCheckedChange={(enabled) => setHero({ enabled })} />}>
         <HeroPreview hero={home.hero} />
         <div className={cn("flex flex-col gap-4 transition-opacity", !home.hero.enabled && "opacity-50")}>
-          <TextPair label="Sticker (empty hides it)" maxLength={30} value={home.hero.badge} onChange={(badge) => setHero({ badge })} placeholder={{ bn: "খামার থেকে সরাসরি", en: "Straight from the farm" }} />
+          <TextPair label="Sticker (the store shows the Bangla; empty hides it)" maxLength={30} value={home.hero.badge} onChange={(badge) => setHero({ badge })} placeholder={{ bn: "খামার থেকে সরাসরি", en: "Straight from the farm" }} />
           <TextPair label="Title" value={home.hero.title} onChange={(title) => setHero({ title })} />
           <p className="-mt-2 text-caption text-fg-tertiary">A comma splits it over two lines, the first outlined like a sticker: মাটির টানে, খাঁটি খাবার.</p>
           <TextPair label="Subtitle" value={home.hero.subtitle} onChange={(subtitle) => setHero({ subtitle })} />
