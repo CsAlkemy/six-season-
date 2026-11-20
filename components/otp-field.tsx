@@ -42,7 +42,7 @@ export function OtpField({ d, phone, value, onChange, onResend, onChangeNumber, 
         className="field text-center text-h4 tracking-[0.5em] tabular-nums"
       />
       <div className="mt-2 flex justify-between text-body-sm">
-        <button type="button" onClick={onChangeNumber} className="text-fg-secondary underline hover:text-fg-brand">
+        <button type="button" onClick={onChangeNumber} className="min-h-11 text-fg-secondary underline hover:text-fg-brand">
           {d.changeNumber}
         </button>
         <button
@@ -52,7 +52,7 @@ export function OtpField({ d, phone, value, onChange, onResend, onChangeNumber, 
             setWait(RESEND_SECONDS);
             onResend();
           }}
-          className="font-semibold text-fg-brand underline disabled:text-fg-tertiary disabled:no-underline"
+          className="min-h-11 font-semibold text-fg-brand underline disabled:text-fg-tertiary disabled:no-underline"
         >
           {d.resend}
           {wait > 0 && ` (${wait})`}
