@@ -128,7 +128,7 @@ export function SettingsForm({ initial, products, initialTab, email, couriers }:
             </div>
           )}
 
-          {tab === "home" && <HomeTab home={settings.home} products={products} onChange={(home) => setSettings((s) => ({ ...s, home }))} />}
+          {tab === "home" && <HomeTab home={settings.home} products={products} onChange={(update) => setSettings((s) => ({ ...s, home: update(s.home) }))} />}
 
           {tab === "delivery" && (
             <div className="flex flex-col gap-4">
