@@ -1,16 +1,32 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
-import type { HomeSection, Settings } from "@/lib/types";
+import type { FaqItem, HomeSection, Settings, Text } from "@/lib/types";
 
 import { Modal, RowMenu, SearchField, Switch, toast } from "./controls";
-import { TextPair } from "./fields";
+import { Input, TextArea, TextPair } from "./fields";
 import { uploadPhoto } from "./image-upload";
-import { Button, cn, ContentCard, FormField, Icon, StatusPill } from "./ui";
+import { Avatar, Button, Callout, cn, ContentCard, FormField, Icon, StatusPill } from "./ui";
 
 export type PickerProduct = { id: string; name: { bn: string; en: string }; image: string | null; active: boolean };
 type Home = Settings["home"];
+type Review = Home["review"];
+
+/** saveStoreSettings keeps no more than these. */
+const MAX_POINTS = 4;
+const MAX_FAQ = 12;
+
+const blankText = (): Text => ({ bn: "", en: "" });
+const iconButton = "grid size-8 place-items-center rounded-full text-fg-secondary transition-colors hover:bg-muted hover:text-fg-primary disabled:opacity-30 disabled:hover:bg-transparent";
+const removeButton = cn(iconButton, "hover:bg-error-soft hover:text-fg-error");
+
+/** The list with item i swapped for its neighbour; callers disable the move at either end. */
+function moved<T>(list: T[], i: number, by: -1 | 1): T[] {
+  const next = [...list];
+  [next[i], next[i + by]] = [next[i + by]!, next[i]!];
+  return next;
+}
 
 /** The hero as the store draws it, small: the photo or green behind the title, so the admin sees what they're typing. */
 function HeroPreview({ hero }: { hero: Home["hero"] }) {
@@ -27,12 +43,14 @@ function HeroPreview({ hero }: { hero: Home["hero"] }) {
   );
 }
 
-function HeroImage({ url, onChange }: { url: string | null; onChange: (url: string | null) => void }) {
+/** Uploads to the home folder; the old photo is deleted from storage only once Save drops it. */
+function PhotoField({ label, hint, url, onChange, thumb }: { label: string; hint: string; url: string | null; onChange: (url: string | null) => void; thumb?: React.ReactNode }) {
   const [busy, setBusy] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   return (
-    <FormField label="Background photo (optional)" hint="A wide photo works best. It's shrunk to WebP before it uploads.">
+    <FormField label={label} hint={hint}>
       <div className="flex flex-wrap items-center gap-3">
+        {thumb}
         <Button variant="outline" size="sm" loading={busy} onClick={() => input.current?.click()}>{url ? "Replace photo" : "+ Add photo"}</Button>
         {url && !busy && <Button variant="link" size="inline" className="text-fg-error" onClick={() => onChange(null)}>Remove</Button>}
       </div>
@@ -50,18 +68,179 @@ function HeroImage({ url, onChange }: { url: string | null; onChange: (url: stri
   );
 }
 
-/** Hero and the hand-picked product rows that sit above the full list on the store's home page. */
-export function HomeTab({ home, products, onChange }: { home: Home; products: PickerProduct[]; onChange: (home: Home) => void }) {
-  const [editing, setEditing] = useState<{ index: number | null; section: HomeSection } | null>(null);
-  const setHero = (patch: Partial<Home["hero"]>) => onChange({ ...home, hero: { ...home.hero, ...patch } });
-  const setSections = (sections: HomeSection[]) => onChange({ ...home, sections });
-  const byId = new Map(products.map((p) => [p.id, p]));
+/** The ticks under the hero's title: a line in each language per point, in the order they show. */
+function HeroPoints({ points, onChange }: { points: Text[]; onChange: (points: Text[]) => void }) {
+  const set = (i: number, lang: keyof Text, value: string) => onChange(points.map((p, j) => (j === i ? { ...p, [lang]: value } : p)));
+  return (
+    <FormField label={`Checklist · ${points.length} of ${MAX_POINTS}`} hint="Short reasons to buy that the store stands behind, shown as ticks under the title.">
+      {points.length > 0 && (
+        <ol className="flex flex-col gap-3">
+          {points.map((p, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <span aria-hidden className="mt-3 grid size-6 shrink-0 place-items-center rounded-full bg-brand-soft text-fg-brand max-sm:hidden"><Icon name="check" className="size-3.5" strokeWidth={3} /></span>
+              <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
+                <input aria-label={`Point ${i + 1} in Bangla`} value={p.bn} maxLength={70} placeholder="বাংলা" onChange={(e) => set(i, "bn", e.target.value)} className="field" />
+                <input aria-label={`Point ${i + 1} in English`} value={p.en} maxLength={70} placeholder="English" onChange={(e) => set(i, "en", e.target.value)} className="field" />
+              </div>
+              {/* Stacked beside the stacked inputs on phones, so the inputs keep their width. */}
+              <div className="flex h-12 shrink-0 items-center max-sm:h-auto max-sm:flex-col max-sm:pt-1">
+                <button type="button" disabled={i === 0} onClick={() => onChange(moved(points, i, -1))} aria-label={`Move point ${i + 1} up`} className={iconButton}><Icon name="chevronUp" /></button>
+                <button type="button" disabled={i === points.length - 1} onClick={() => onChange(moved(points, i, 1))} aria-label={`Move point ${i + 1} down`} className={iconButton}><Icon name="chevronDown" /></button>
+                <button type="button" onClick={() => onChange(points.filter((_, j) => j !== i))} aria-label={`Remove point ${i + 1}`} className={removeButton}><Icon name="x" /></button>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+      <div>
+        <Button variant="secondary" size="sm" disabled={points.length >= MAX_POINTS} onClick={() => onChange([...points, blankText()])}>+ Add point</Button>
+      </div>
+    </FormField>
+  );
+}
 
-  const move = (i: number, by: -1 | 1) => {
-    const list = [...home.sections];
-    [list[i], list[i + by]] = [list[i + by]!, list[i]!];
-    setSections(list);
+/** One customer's own words, who they are and where they said it, with the pictures they agreed to show. */
+function ReviewCard({ review, products, onChange }: { review: Review; products: PickerProduct[]; onChange: (patch: Partial<Review>) => void }) {
+  const id = useId();
+  return (
+    <ContentCard
+      padding="md"
+      title="Featured review"
+      subtitle="Use a real customer's words as they wrote them, with their permission to show their name and picture."
+      action={<Switch aria-label="Show featured review" checked={review.enabled} onCheckedChange={(enabled) => onChange({ enabled })} />}
+    >
+      <div className={cn("flex flex-col gap-4 transition-opacity", !review.enabled && "opacity-50")}>
+        <TextArea label="Their words" rows={4} maxLength={600} value={review.text} onChange={(text) => onChange({ text })} hint="Exactly as they wrote it, in whichever language. Up to 600 characters." />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Input label="Customer's name" maxLength={60} value={review.name} onChange={(name) => onChange({ name })} />
+          <Input label="Where they said it" maxLength={30} value={review.source} placeholder="Facebook, WhatsApp…" onChange={(source) => onChange({ source })} />
+          <FormField label="Rating" htmlFor={`${id}-rating`}>
+            <select id={`${id}-rating`} value={review.rating} onChange={(e) => onChange({ rating: Number(e.target.value) })} className="field">
+              {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} {n === 1 ? "star" : "stars"}</option>)}
+            </select>
+          </FormField>
+        </div>
+        <TextPair label="Your one-line summary" maxLength={80} value={review.title} onChange={(title) => onChange({ title })} placeholder={{ bn: "স্বাদ আর ডেলিভারি, দুটোতেই খুশি", en: "Happy with the taste and the delivery" }} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <PhotoField
+            label="Their profile picture (optional)"
+            hint="Without one, their initials show."
+            url={review.avatar}
+            onChange={(avatar) => onChange({ avatar })}
+            thumb={review.avatar ? <img src={review.avatar} alt="" className="size-12 shrink-0 rounded-full object-cover" /> : <Avatar name={review.name} className="size-12" />}
+          />
+          <PhotoField
+            label="Their photo of the product (optional)"
+            hint="Without one, their words run full width."
+            url={review.photo}
+            onChange={(photo) => onChange({ photo })}
+            thumb={review.photo ? <img src={review.photo} alt="" className="size-12 shrink-0 rounded-md object-cover" /> : <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-md bg-muted text-fg-tertiary"><Icon name="image" className="size-5" /></span>}
+          />
+        </div>
+        <FormField label="Product it's about" htmlFor={`${id}-product`} hint="Named on their photo and linked to its page.">
+          <select id={`${id}-product`} value={review.productId} onChange={(e) => onChange({ productId: e.target.value })} className="field">
+            <option value="">None</option>
+            {products.map((p) => <option key={p.id} value={p.id}>{p.name.en} · {p.name.bn}{p.active ? "" : " (hidden)"}</option>)}
+          </select>
+        </FormField>
+      </div>
+    </ContentCard>
+  );
+}
+
+/** The store's own questions as a list like the sections': edit one in a dialog, reorder or delete from its menu. */
+function FaqCard({ faq, onChange }: { faq: FaqItem[]; onChange: (faq: FaqItem[]) => void }) {
+  const [editing, setEditing] = useState<{ index: number | null; item: FaqItem } | null>(null);
+  return (
+    <>
+      <ContentCard
+        padding="md"
+        title="Questions & answers"
+        subtitle={`Your own questions on the home page, up to ${MAX_FAQ}.`}
+        // Like a new section, a new question gets its id from the save action.
+        action={<Button variant="secondary" disabled={faq.length >= MAX_FAQ} onClick={() => setEditing({ index: null, item: { id: "", question: blankText(), answer: blankText() } })}>+ Add question</Button>}
+      >
+        <Callout>The home page already answers where you deliver and what it costs, how to pay, what happens if something is wrong, and the confirmation call, from your other settings. Add the questions only you can answer: which product suits whom, how to store it, where it comes from.</Callout>
+        {faq.length === 0 ? (
+          <p className="rounded-md border border-dashed border-border-strong px-6 py-8 text-center text-body-sm text-fg-secondary">No questions of your own yet. The home page shows only the ones it answers from your settings.</p>
+        ) : (
+          <ul className="flex flex-col gap-4">
+            {faq.map((item, i) => {
+              const label = item.question.en || item.question.bn || "Untitled question";
+              return (
+                <li key={i} className="flex flex-wrap items-center gap-x-4 gap-y-3">
+                  <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-md border border-border bg-muted text-label-md text-fg-secondary">{i + 1}</span>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-label-md text-fg-primary">{label}</span>
+                    <span className="truncate text-caption text-fg-secondary">{item.answer.en || item.answer.bn}</span>
+                  </div>
+                  <Button variant="outline" size="sm" aria-label={`Edit ${label}`} onClick={() => setEditing({ index: i, item: structuredClone(item) })}>Edit</Button>
+                  <RowMenu
+                    label={`More for ${label}`}
+                    items={[
+                      { label: "Move up", disabled: i === 0, onSelect: () => onChange(moved(faq, i, -1)) },
+                      { label: "Move down", disabled: i === faq.length - 1, onSelect: () => onChange(moved(faq, i, 1)) },
+                      { separator: true },
+                      { label: "Delete", destructive: true, onSelect: () => confirm(`Delete “${label}”?`) && onChange(faq.filter((_, j) => j !== i)) },
+                    ]}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </ContentCard>
+
+      {editing && (
+        <FaqModal
+          key={editing.index ?? "new"}
+          item={editing.item}
+          isNew={editing.index === null}
+          onCancel={() => setEditing(null)}
+          onApply={(item) => {
+            onChange(editing.index === null ? [...faq, item] : faq.map((f, j) => (j === editing.index ? item : f)));
+            setEditing(null);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+/** A question and its answer in both languages; Save would refuse one missing any of the four, so Apply does too. */
+function FaqModal({ item, isNew, onCancel, onApply }: { item: FaqItem; isNew: boolean; onCancel: () => void; onApply: (item: FaqItem) => void }) {
+  const [f, setF] = useState(item);
+  const [error, setError] = useState("");
+  const apply = () => {
+    if (![f.question.bn, f.question.en, f.answer.bn, f.answer.en].every((t) => t.trim())) return setError("Write the question and its answer in both languages.");
+    onApply(f);
   };
+  return (
+    <Modal
+      open
+      onOpenChange={(o) => !o && onCancel()}
+      title={isNew ? "Add a question" : f.question.en || "Edit question"}
+      description="Applied when you press Save changes."
+      footer={<><Button variant="outline" onClick={onCancel}>Cancel</Button><Button onClick={apply}>{isNew ? "Add question" : "Apply"}</Button></>}
+    >
+      <div className="flex flex-col gap-4">
+        <TextPair label="Question" maxLength={160} value={f.question} onChange={(question) => setF({ ...f, question })} placeholder={{ bn: "ঘি কীভাবে রাখব?", en: "How should I keep the ghee?" }} />
+        <TextPair label="Answer" rows={5} maxLength={800} value={f.answer} onChange={(answer) => setF({ ...f, answer })} />
+        {error && <Callout tone="error">{error}</Callout>}
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Hero, the hand-picked product rows, a customer's review and the store's own questions on the home page. Changes
+ * arrive as updates to the latest draft, so a photo that finishes uploading doesn't undo what was typed meanwhile.
+ */
+export function HomeTab({ home, products, onChange }: { home: Home; products: PickerProduct[]; onChange: (update: (home: Home) => Home) => void }) {
+  const [editing, setEditing] = useState<{ index: number | null; section: HomeSection } | null>(null);
+  const setHero = (patch: Partial<Home["hero"]>) => onChange((h) => ({ ...h, hero: { ...h.hero, ...patch } }));
+  const setSections = (sections: HomeSection[]) => onChange((h) => ({ ...h, sections }));
+  const byId = new Map(products.map((p) => [p.id, p]));
 
   return (
     <div className="flex flex-col gap-4">
@@ -71,7 +250,8 @@ export function HomeTab({ home, products, onChange }: { home: Home; products: Pi
           <TextPair label="Title" value={home.hero.title} onChange={(title) => setHero({ title })} />
           <TextPair label="Subtitle" value={home.hero.subtitle} onChange={(subtitle) => setHero({ subtitle })} />
           <TextPair label="Button (empty hides it)" value={home.hero.cta} onChange={(cta) => setHero({ cta })} />
-          <HeroImage url={home.hero.image} onChange={(image) => setHero({ image })} />
+          <PhotoField label="Background photo (optional)" hint="A wide photo works best. It's shrunk to WebP before it uploads." url={home.hero.image} onChange={(image) => setHero({ image })} />
+          <HeroPoints points={home.hero.points} onChange={(points) => setHero({ points })} />
         </div>
       </ContentCard>
 
@@ -101,8 +281,8 @@ export function HomeTab({ home, products, onChange }: { home: Home; products: Pi
                   <RowMenu
                     label={`More for ${label}`}
                     items={[
-                      { label: "Move up", disabled: i === 0, onSelect: () => move(i, -1) },
-                      { label: "Move down", disabled: i === home.sections.length - 1, onSelect: () => move(i, 1) },
+                      { label: "Move up", disabled: i === 0, onSelect: () => setSections(moved(home.sections, i, -1)) },
+                      { label: "Move down", disabled: i === home.sections.length - 1, onSelect: () => setSections(moved(home.sections, i, 1)) },
                       { separator: true },
                       { label: "Delete", destructive: true, onSelect: () => confirm(`Delete “${label}”?`) && setSections(home.sections.filter((_, j) => j !== i)) },
                     ]}
@@ -113,6 +293,9 @@ export function HomeTab({ home, products, onChange }: { home: Home; products: Pi
           </ul>
         )}
       </ContentCard>
+
+      <ReviewCard review={home.review} products={products} onChange={(patch) => onChange((h) => ({ ...h, review: { ...h.review, ...patch } }))} />
+      <FaqCard faq={home.faq} onChange={(faq) => onChange((h) => ({ ...h, faq }))} />
 
       {editing && (
         <SectionModal
@@ -140,13 +323,8 @@ function SectionModal({ section, isNew, products, onCancel, onApply }: { section
   const chosen = s.productIds.map((id) => byId.get(id)).filter((p): p is PickerProduct => Boolean(p));
   const term = query.trim().toLowerCase();
   const results = products.filter((p) => !s.productIds.includes(p.id) && (!term || p.name.en.toLowerCase().includes(term) || p.name.bn.includes(term)));
-  const shift = (i: number, by: -1 | 1) => {
-    const ids = [...s.productIds];
-    [ids[i], ids[i + by]] = [ids[i + by]!, ids[i]!];
-    setS({ ...s, productIds: ids });
-  };
+  const shift = (i: number, by: -1 | 1) => setS({ ...s, productIds: moved(s.productIds, i, by) });
   const thumb = (p: PickerProduct) => (p.image ? <img src={p.image} alt="" className="size-10 shrink-0 rounded-sm object-cover" /> : <span className="size-10 shrink-0 rounded-sm bg-muted" />);
-  const iconButton = "grid size-8 place-items-center rounded-full text-fg-secondary transition-colors hover:bg-muted hover:text-fg-primary disabled:opacity-30 disabled:hover:bg-transparent";
 
   return (
     <Modal
@@ -171,7 +349,7 @@ function SectionModal({ section, isNew, products, onCancel, onApply }: { section
                   <span className="min-w-0 flex-1 truncate text-body-sm">{p.name.en}{!p.active && <span className="ml-2 text-caption text-fg-tertiary">hidden</span>}</span>
                   <button type="button" disabled={i === 0} onClick={() => shift(i, -1)} aria-label="Move earlier" className={iconButton}><Icon name="chevronLeft" /></button>
                   <button type="button" disabled={i === chosen.length - 1} onClick={() => shift(i, 1)} aria-label="Move later" className={iconButton}><Icon name="chevronRight" /></button>
-                  <button type="button" onClick={() => setS({ ...s, productIds: s.productIds.filter((id) => id !== p.id) })} aria-label={`Remove ${p.name.en}`} className={cn(iconButton, "hover:bg-error-soft hover:text-fg-error")}><Icon name="x" /></button>
+                  <button type="button" onClick={() => setS({ ...s, productIds: s.productIds.filter((id) => id !== p.id) })} aria-label={`Remove ${p.name.en}`} className={removeButton}><Icon name="x" /></button>
                 </li>
               ))}
             </ul>

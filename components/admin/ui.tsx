@@ -23,6 +23,7 @@ const ICONS = {
   logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
   search: "m21 21-4.3-4.3M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z",
   chevronDown: "m6 9 6 6 6-6",
+  chevronUp: "m18 15-6-6-6 6",
   chevronLeft: "m15 18-6-6 6-6",
   chevronRight: "m9 18 6-6-6-6",
   x: "M18 6 6 18M6 6l12 12",
