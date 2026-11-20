@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/[page]">):
   };
 }
 
-/** About, contact, delivery and privacy: a heading and text in the blog's reading column. */
+/** About, contact, delivery, returns and privacy: a heading and text in the blog's reading column. */
 export default async function InfoPage({ params }: PageProps<"/[lang]/[page]">) {
   const { lang: l, page: slug } = await params;
   const lang = langOf(l);

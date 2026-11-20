@@ -146,13 +146,13 @@ export function SettingsForm({ initial, products, initialTab, email, couriers }:
                 ))}
               </Table>
             </ContentCard>
-            <ContentCard padding="md" title="Returns and refunds" subtitle="Shown on the Delivery & returns page, and given to Google as the store's return policy.">
+            <ContentCard padding="md" title="Returns and refunds" subtitle="Shown on the Returns & refunds and Delivery pages, and given to Google as the store's return policy.">
               <Input
                 label="Days to report a problem"
                 type="number"
                 value={settings.returns.days}
                 onChange={(v) => setSettings((s) => ({ ...s, returns: { days: Math.min(Number(v) || 0, 30) } }))}
-                hint="How many days after delivery a customer can report a damaged, spoiled or wrong item for a replacement or refund. 0 promises no number: the page just says to tell you as soon as possible, and Google gets no return policy."
+                hint="How many days after delivery a customer can report a damaged, spoiled or wrong item for a replacement or refund, or return a sealed one they've changed their mind about (eggs: same day, always). 0 promises no number: the pages say to tell you as soon as possible, and Google gets no return policy."
               />
             </ContentCard>
             </div>

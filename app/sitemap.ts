@@ -14,7 +14,7 @@ export const revalidate = 3600;
 /**
  * Every page search should list, in each language it exists in, naming its other-language twin: the home page,
  * the categories that have something to buy, products with their photos, the store's own pages (about, contact,
- * delivery, privacy), and the blog with its published posts (dated, so a change brings crawlers back).
+ * delivery, returns, privacy), and the blog with its published posts (dated, so a change brings crawlers back).
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [all, saved] = await Promise.all([getProducts(), getPosts()]);

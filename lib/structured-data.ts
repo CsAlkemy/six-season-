@@ -60,8 +60,9 @@ export function storeJsonLd(lang: Lang, settings: Settings) {
 }
 
 /**
- * Google's merchant return policy for the days the store promises to take a damaged, spoiled or wrong item back
- * (Settings › Delivery & zones). Left out while that's 0: no promise, no markup. Delivery isn't marked up: its
+ * Google's merchant return policy, as the returns page states it (content/pages.tsx): returns within the days set in
+ * Settings › Delivery & zones, sent back by courier at the customer's cost unless the item was damaged, spoiled or
+ * wrong. Left out while the days are 0: no promise, no markup. Delivery isn't marked up: its
  * charges depend on "inside Dhaka city", which schema.org can't say, so they belong in the Merchant Center account.
  */
 const returnPolicy = (lang: Lang, days: number) =>
@@ -72,7 +73,9 @@ const returnPolicy = (lang: Lang, days: number) =>
           applicableCountry: "BD",
           returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
           merchantReturnDays: days,
-          merchantReturnLink: absolute(`/${lang}/delivery`),
+          returnMethod: "https://schema.org/ReturnByMail",
+          returnFees: "https://schema.org/ReturnFeesCustomerResponsibility",
+          merchantReturnLink: absolute(`/${lang}/returns`),
         },
       }
     : {};

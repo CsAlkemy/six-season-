@@ -1,19 +1,20 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 import { postDate } from "@/lib/blog";
 import { shopCategories } from "@/lib/categories";
+import { isCash } from "@/lib/payments";
 import { intlPhone, waNumber } from "@/lib/site";
 import { t, taka } from "@/lib/i18n";
 import { type DeliveryZone, type Lang, type Product, type Settings, SOCIAL_NAME, SOCIALS, type Text } from "@/lib/types";
 
 /**
- * The store's plain pages: who we are, how to reach us, delivery and returns, privacy. Google, Meta's and Google's ad
+ * The store's plain pages: who we are, how to reach us, delivery and payment, returns and refunds, privacy. Google, Meta's and Google's ad
  * accounts and shoppers all look for them. They say only what the store already says elsewhere or what the code does;
  * the numbers (delivery fees and times, payment methods, the days to report a problem) come from the admin's settings.
  * The owner should read the wording once, particularly "If something is wrong", and change what isn't how the store works.
  */
-export const PAGE_SLUGS = ["about", "contact", "delivery", "privacy"] as const;
+export const PAGE_SLUGS = ["about", "contact", "delivery", "returns", "privacy"] as const;
 export type PageSlug = (typeof PAGE_SLUGS)[number];
 
 export interface PageContext {
@@ -33,6 +34,8 @@ export interface InfoPage {
 
 /** The day the privacy page's wording last changed. */
 const PRIVACY_UPDATED = "2026-11-03";
+/** The day the returns page's wording last changed; each order follows the policy of the day it was placed. */
+const RETURNS_UPDATED = "2026-11-20";
 
 const days = (n: number, lang: Lang) => (lang === "bn" ? n.toLocaleString("bn-BD") : String(n));
 
@@ -83,6 +86,17 @@ function contactItems({ lang, settings }: PageContext) {
   ].filter(Boolean);
 }
 
+/** Phone, WhatsApp and email only: where to send an order number and a photo of the problem. */
+const reachItems = (ctx: PageContext) => contactItems(ctx).filter((item) => item && ["phone", "whatsapp", "email"].includes(String((item as ReactElement).key)));
+
+/** "বিকাশ বা নগদ": the mobile wallets the store takes payments with (Settings › Payments), which refunds go back to. */
+function wallets(settings: Settings, lang: Lang) {
+  const names = settings.payments.methods.filter((m) => m.enabled && !isCash(m)).map((m) => m.name[lang]);
+  const or = lang === "bn" ? " বা " : " or ";
+  if (!names.length) return lang === "bn" ? "মোবাইল ব্যাংকিং (যেমন বিকাশ বা নগদ)" : "mobile wallet (bKash or Nagad, for example)";
+  return names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")}${or}${names.at(-1)}`;
+}
+
 export const PAGES: Record<PageSlug, InfoPage> = {
   about: {
     title: { bn: "আমাদের কথা", en: "About us" },
@@ -124,7 +138,7 @@ export const PAGES: Record<PageSlug, InfoPage> = {
           </ul>
           <blockquote>
             <p>
-              অর্ডার, ডেলিভারি বা যেকোনো প্রশ্নে <Link href="/bn/contact">যোগাযোগ</Link> করুন। ডেলিভারির চার্জ, সময় আর পেমেন্টের উপায় আছে <Link href="/bn/delivery">ডেলিভারি ও ফেরত</Link> পাতায়।
+              অর্ডার, ডেলিভারি বা যেকোনো প্রশ্নে <Link href="/bn/contact">যোগাযোগ</Link> করুন। ডেলিভারির চার্জ, সময় আর পেমেন্টের উপায় আছে <Link href="/bn/delivery">ডেলিভারি ও পেমেন্ট</Link> পাতায়, আর পণ্য বদল বা ফেরতের নিয়ম <Link href="/bn/returns">ফেরত ও রিফান্ড নীতি</Link> পাতায়।
             </p>
           </blockquote>
         </>
@@ -161,7 +175,7 @@ export const PAGES: Record<PageSlug, InfoPage> = {
           </ul>
           <blockquote>
             <p>
-              For orders, delivery or any question, <Link href="/en/contact">contact us</Link>. Delivery charges, times and ways to pay are on the <Link href="/en/delivery">delivery &amp; returns</Link> page.
+              For orders, delivery or any question, <Link href="/en/contact">contact us</Link>. Delivery charges, times and ways to pay are on the <Link href="/en/delivery">delivery &amp; payment</Link> page, and replacements and refunds on the <Link href="/en/returns">returns &amp; refunds</Link> page.
             </p>
           </blockquote>
         </>
@@ -184,7 +198,7 @@ export const PAGES: Record<PageSlug, InfoPage> = {
             <p>অর্ডার, ডেলিভারি বা পণ্য নিয়ে কোনো প্রশ্ন থাকলে আমাদের জানান। অর্ডার নিয়ে লিখলে অর্ডার নম্বরটা (যেমন MT-…) দিলে আমরা দ্রুত খুঁজে পাই।</p>
             {items.length > 0 ? <ul>{items}</ul> : <p>অর্ডার করলে আমরা আপনাকে ফোন করে নিশ্চিত করি।</p>}
             <p>
-              ডেলিভারি, পেমেন্ট আর পণ্যে সমস্যা হলে কী করবেন, সেটা আছে <Link href="/bn/delivery">ডেলিভারি ও ফেরত</Link> পাতায়।
+              ডেলিভারি আর পেমেন্টের তথ্য আছে <Link href="/bn/delivery">ডেলিভারি ও পেমেন্ট</Link> পাতায়, আর পণ্যে সমস্যা হলে কী করবেন তা <Link href="/bn/returns">ফেরত ও রিফান্ড নীতি</Link> পাতায়।
             </p>
           </>
         );
@@ -196,7 +210,7 @@ export const PAGES: Record<PageSlug, InfoPage> = {
             <p>If you have a question about an order, a delivery or a product, tell us. When you write about an order, include its number (like MT-…) and we can find it quickly.</p>
             {items.length > 0 ? <ul>{items}</ul> : <p>When you place an order, we call you to confirm it.</p>}
             <p>
-              Delivery, payment and what to do if something is wrong are on the <Link href="/en/delivery">delivery &amp; returns</Link> page.
+              Delivery and payment are on the <Link href="/en/delivery">delivery &amp; payment</Link> page, and what to do if something is wrong on the <Link href="/en/returns">returns &amp; refunds</Link> page.
             </p>
           </>
         );
@@ -205,7 +219,7 @@ export const PAGES: Record<PageSlug, InfoPage> = {
   },
 
   delivery: {
-    title: { bn: "ডেলিভারি ও ফেরত", en: "Delivery & returns" },
+    title: { bn: "ডেলিভারি ও পেমেন্ট", en: "Delivery & payment" },
     description: {
       bn: "মাটির টান-এর ডেলিভারি এলাকা, চার্জ ও সময়, পেমেন্টের উপায়, আর পণ্যে সমস্যা হলে কী করবেন।",
       en: "Matir Taan's delivery areas, charges and times, ways to pay, and what to do if something is wrong with your order.",
@@ -237,8 +251,9 @@ export const PAGES: Record<PageSlug, InfoPage> = {
             </ul>
             <h2>পণ্যে সমস্যা হলে</h2>
             <p>
-              পণ্য ক্ষতিগ্রস্ত, নষ্ট বা ভুল এলে ছবিসহ আমাদের ফোন বা হোয়াটসঅ্যাপে জানান। আমরা পণ্য বদলে দেব বা টাকা ফেরত দেব।{" "}
-              {window > 0 ? `পণ্য হাতে পাওয়ার ${days(window, "bn")} দিনের মধ্যে জানাতে হবে।` : "পণ্য হাতে পাওয়ার পর যত দ্রুত সম্ভব জানান।"}
+              ডেলিভারিম্যান থাকতেই পণ্য দেখে নিন। পণ্য ক্ষতিগ্রস্ত, নষ্ট বা ভুল এলে ছবিসহ আমাদের ফোন বা হোয়াটসঅ্যাপে জানান, আমরা পণ্য বদলে দেব বা টাকা ফেরত দেব।{" "}
+              {window > 0 ? `পণ্য হাতে পাওয়ার ${days(window, "bn")} দিনের মধ্যে জানাতে হবে।` : "পণ্য হাতে পাওয়ার পর যত দ্রুত সম্ভব জানান।"} পুরো নিয়ম আছে{" "}
+              <Link href="/bn/returns">ফেরত ও রিফান্ড নীতি</Link> পাতায়।
             </p>
             <p>
               ফোন, হোয়াটসঅ্যাপ আর ইমেইল পাবেন <Link href="/bn/contact">যোগাযোগ</Link> পাতায়।
@@ -271,12 +286,129 @@ export const PAGES: Record<PageSlug, InfoPage> = {
             </ul>
             <h2>If something is wrong</h2>
             <p>
-              If your order arrives damaged, spoiled or not what you ordered, send us a photo by phone or WhatsApp. We'll replace it or refund you.{" "}
-              {window > 0 ? `Tell us within ${window} ${window === 1 ? "day" : "days"} of receiving it.` : "Tell us as soon as you can after it arrives."}
+              Check your order while the delivery person is there. If it arrives damaged, spoiled or not what you ordered, send us a photo by phone or WhatsApp and we'll replace it or refund you.{" "}
+              {window > 0 ? `Tell us within ${window} ${window === 1 ? "day" : "days"} of receiving it.` : "Tell us as soon as you can after it arrives."} The full policy is on the{" "}
+              <Link href="/en/returns">returns &amp; refunds</Link> page.
             </p>
             <p>
               Our phone, WhatsApp and email are on the <Link href="/en/contact">contact</Link> page.
             </p>
+          </>
+        );
+      },
+    },
+  },
+
+  returns: {
+    title: { bn: "ফেরত ও রিফান্ড নীতি", en: "Returns & refunds" },
+    description: {
+      bn: "মাটির টান-এ পণ্য বদল, ফেরত আর টাকা ফেরতের নিয়ম: কখন জানাবেন, কীভাবে, আর টাকা কত দিনে পাবেন।",
+      en: "How replacements, returns and refunds work at Matir Taan: when to tell us, how, and how soon the money comes back.",
+    },
+    schema: "WebPage",
+    body: {
+      bn: (ctx) => {
+        const window = ctx.settings.returns.days;
+        const reach = reachItems(ctx);
+        return (
+          <>
+            <p>
+              খাঁটি খাবার ঠিকঠাক আপনার হাতে পৌঁছানো আমাদের দায়িত্ব। পণ্যে সমস্যা হলে আমরা বদলে দিই বা টাকা ফেরত দিই। কখন, কীভাবে আর কত দিনে, সেটা নিচে। শেষ হালনাগাদ: {postDate(RETURNS_UPDATED, "bn")}।
+            </p>
+            <h2>ডেলিভারির সময় দেখে নিন</h2>
+            <ul>
+              <li>ডেলিভারিম্যান থাকতেই প্যাকেট খুলে দেখুন: বোতল বা বয়াম ভাঙা কি না, তেল বা ঘি গড়িয়ে পড়ছে কি না, ডিম ভাঙা কি না, আর যা অর্ডার করেছেন তা-ই এসেছে কি না।</li>
+              <li>কিছু ভাঙা বা ভুল থাকলে সেটা না নিয়ে ডেলিভারিম্যানকে ফেরত দিন, অথবা নিয়ে সঙ্গে সঙ্গে ছবি তুলে আমাদের জানান। সেই পণ্যের দাম আপনাকে দিতে হবে না।</li>
+            </ul>
+            <h2>পরে সমস্যা পেলে</h2>
+            <p>{window > 0 ? `পণ্য হাতে পাওয়ার ${days(window, "bn")} দিনের মধ্যে` : "পণ্য হাতে পাওয়ার পর যত দ্রুত সম্ভব"} আমাদের জানান, যদি:</p>
+            <ul>
+              <li>পণ্য নষ্ট বা খাওয়ার অযোগ্য হয়, যেমন গন্ধ, স্বাদ বা রং স্বাভাবিক না।</li>
+              <li>অর্ডারের কোনো পণ্য না আসে, বা কম আসে।</li>
+              <li>ভুল পণ্য আসে।</li>
+            </ul>
+            <p>এসব ক্ষেত্রে প্যাকেট খোলা হলেও আমরা দেখব। পণ্যটি ফেলে দেবেন না, আমাদের দেখার দরকার হতে পারে। ডিমের মতো তাড়াতাড়ি নষ্ট হওয়া পণ্যে সমস্যা পেলে পাওয়ার দিনই জানান।</p>
+            <h2>মত বদলালে</h2>
+            <p>
+              {window > 0 ? `সিল না খোলা পণ্য (যেমন ঘি, তেল বা গুড়) হাতে পাওয়ার ${days(window, "bn")} দিনের মধ্যে ফেরত দিতে পারেন।` : "সিল না খোলা পণ্য মত বদলে ফেরত দিতে চাইলে আগে আমাদের সঙ্গে কথা বলুন।"} ফেরত পাঠানোর কুরিয়ার খরচ আপনার, আর প্রথম ডেলিভারির চার্জ ফেরত হয় না।
+            </p>
+            <p>খাবারের নিরাপত্তার জন্য খোলা বা কিছুটা ব্যবহার করা পণ্য, আর ডিম, মত বদলে ফেরত নেওয়া যায় না।</p>
+            <h2>কীভাবে জানাবেন</h2>
+            <ol>
+              <li>অর্ডার নম্বর (যেমন MT-…) আর সমস্যার ছবি বা ভিডিও পাঠান{reach.length ? ":" : "।"}</li>
+              <li>আমরা দেখে জানাব পণ্য বদলে দেব নাকি টাকা ফেরত দেব, আর কিছু ফেরত পাঠাতে হলে কীভাবে পাঠাবেন।</li>
+              <li>আমাদের সঙ্গে কথা না বলে কোনো পণ্য পাঠাবেন না। না জানিয়ে পাঠানো পার্সেল আমাদের হাতে না-ও পৌঁছাতে পারে।</li>
+            </ol>
+            {reach.length > 0 ? <ul>{reach}</ul> : <p><Link href="/bn/contact">যোগাযোগ</Link> পাতায় আমাদের ফোন আর হোয়াটসঅ্যাপ পাবেন।</p>}
+            <h2>বদল আর টাকা ফেরত</h2>
+            <ul>
+              <li>পণ্য ক্ষতিগ্রস্ত, নষ্ট বা ভুল হলে আমরা একই পণ্য আবার পাঠাই, অথবা আপনি চাইলে ডেলিভারি চার্জসহ পুরো টাকা ফেরত দিই। পণ্য আনা-নেওয়ার কুরিয়ার খরচ আমাদের।</li>
+              <li>অর্ডারের কিছু অংশে সমস্যা হলে শুধু সেই অংশ বদলে দিই, বা তার টাকা ফেরত দিই।</li>
+              <li>মত বদলে ফেরত দিলে, পণ্য সিল করা অবস্থায় আমাদের কাছে পৌঁছালে পণ্যের দাম ফেরত দিই।</li>
+            </ul>
+            <h2>টাকা কীভাবে, কবে পাবেন</h2>
+            <ul>
+              <li>টাকা যায় আপনার {wallets(ctx.settings, "bn")} নম্বরে। ক্যাশ অন ডেলিভারিতে দাম দিয়ে থাকলে যে নম্বর দেবেন, সেখানে পাঠাই।</li>
+              <li>ফেরত ঠিক হওয়ার পর ৩ থেকে ৫ কর্মদিবসের মধ্যে টাকা পাঠাই।</li>
+              <li>৫ কর্মদিবসের মধ্যে না পেলে অর্ডার নম্বরসহ আমাদের জানান।</li>
+            </ul>
+            <h2>অর্ডার বাতিল</h2>
+            <p>পণ্য পাঠানোর আগে ফোন বা হোয়াটসঅ্যাপে জানিয়ে যেকোনো সময় অর্ডার বাতিল করতে পারেন, কোনো খরচ নেই। আগে টাকা দিয়ে থাকলে পুরোটা ওপরের নিয়মে ফেরত পাবেন।</p>
+            <h2>এই নীতি বদলালে</h2>
+            <p>নতুন নিয়ম তারিখসহ এই পাতায় দেব। কোনো অর্ডারে সেই নিয়মই চলবে, যা অর্ডার করার দিন এখানে ছিল।</p>
+          </>
+        );
+      },
+      en: (ctx) => {
+        const window = ctx.settings.returns.days;
+        const reach = reachItems(ctx);
+        const within = `within ${window} ${window === 1 ? "day" : "days"} of receiving it`;
+        return (
+          <>
+            <p>
+              Getting pure food to you in good shape is our job. If something is wrong with an order, we replace it or refund you. Below is when, how and how soon. Last updated: {postDate(RETURNS_UPDATED, "en")}.
+            </p>
+            <h2>Check it at the door</h2>
+            <ul>
+              <li>Open the parcel while the delivery person is still there and check it: no broken bottle or jar, no ghee or oil leaking, no broken eggs, and what you ordered is what came.</li>
+              <li>If something is broken or wrong, hand it back to the delivery person, or keep it, take a photo straight away and tell us. You don't pay for that item.</li>
+            </ul>
+            <h2>If you find a problem later</h2>
+            <p>Tell us {window > 0 ? within : "as soon as you can after it arrives"} if:</p>
+            <ul>
+              <li>A product is spoiled or not fit to eat, for example its smell, taste or colour isn't right.</li>
+              <li>Something in your order is missing, or there's less of it.</li>
+              <li>You received the wrong product.</li>
+            </ul>
+            <p>We'll look into these even if the pack is open. Please don't throw the product away; we may need to see it. For things that spoil quickly, like eggs, tell us the same day.</p>
+            <h2>If you change your mind</h2>
+            <p>
+              {window > 0 ? `You can return a product whose seal is unbroken (ghee, oil or gur, for example) ${within}.` : "If you'd like to return a sealed product because you've changed your mind, talk to us first."} You pay the courier to send it back, and the original delivery charge isn't refunded.
+            </p>
+            <p>To keep food safe, opened or partly used products, and eggs, can't be returned because of a change of mind.</p>
+            <h2>How to tell us</h2>
+            <ol>
+              <li>Send your order number (like MT-…) and a photo or video of the problem{reach.length ? ":" : "."}</li>
+              <li>We'll check and tell you whether we'll replace it or refund you, and how to send anything back if needed.</li>
+              <li>Please don't send anything back before talking to us. A parcel sent without telling us may never reach us.</li>
+            </ol>
+            {reach.length > 0 ? <ul>{reach}</ul> : <p>Our phone and WhatsApp are on the <Link href="/en/contact">contact</Link> page.</p>}
+            <h2>Replacements and refunds</h2>
+            <ul>
+              <li>If a product is damaged, spoiled or wrong, we send the same product again or, if you'd rather, refund the whole amount including delivery. We pay the courier both ways.</li>
+              <li>If only part of an order has a problem, we replace or refund just that part.</li>
+              <li>For a change-of-mind return, we refund the product's price once it reaches us still sealed.</li>
+            </ul>
+            <h2>How and when you're refunded</h2>
+            <ul>
+              <li>Refunds go to your {wallets(ctx.settings, "en")} number. If you paid cash on delivery, we send it to the number you give us.</li>
+              <li>We send the money within 3 to 5 working days of agreeing the refund.</li>
+              <li>If it hasn't arrived after 5 working days, tell us with your order number.</li>
+            </ul>
+            <h2>Cancelling an order</h2>
+            <p>You can cancel any time before we send the order by calling us or messaging us on WhatsApp, at no cost. If you paid in advance, you get all of it back as above.</p>
+            <h2>If this policy changes</h2>
+            <p>We'll post the new version here with its date. Each order follows the policy that was here on the day it was placed.</p>
           </>
         );
       },

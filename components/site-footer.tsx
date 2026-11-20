@@ -61,7 +61,12 @@ export function SiteFooter({ lang, settings, categories }: { lang: Lang; setting
               </li>
               <li>
                 <Link href={`/${lang}/delivery`} className={LINK}>
-                  {d.deliveryReturns}
+                  {d.deliveryPayment}
+                </Link>
+              </li>
+              <li>
+                <Link href={`/${lang}/returns`} className={LINK}>
+                  {d.returnsRefunds}
                 </Link>
               </li>
               <li>
