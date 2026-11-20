@@ -914,3 +914,55 @@ dialog.adm-dialog::backdrop {
     display: none !important;
   }
 }
+
+/*
+ * The cart drawer (components/cart-drawer.tsx): a modal <dialog> over the whole screen that dims in, with the panel
+ * sliding in from the right, as wide as a phone and never wider than 28rem. The page behind doesn't scroll meanwhile.
+ */
+dialog.cart-drawer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  background: transparent;
+  color: inherit;
+  transition: background-color 0.25s ease;
+}
+
+dialog.cart-drawer::backdrop {
+  background: transparent;
+}
+
+dialog.cart-drawer[data-shown] {
+  background: #1d1d1b66;
+}
+
+.cart-drawer-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: min(100%, 28rem);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+
+dialog.cart-drawer[data-shown] .cart-drawer-panel {
+  transform: none;
+}
+
+html:has(dialog.cart-drawer[open]) {
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.cart-drawer,
+  .cart-drawer-panel {
+    transition: none;
+  }
+}

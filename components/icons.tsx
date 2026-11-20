@@ -36,6 +36,18 @@ export const TrashIcon = ({ className = "size-4" }: IconProps) => (
   </svg>
 );
 
+export const CloseIcon = ({ className = "size-5" }: IconProps) => (
+  <svg {...base} className={className}>
+    <path d="M6 6l12 12M18 6 6 18" />
+  </svg>
+);
+
+export const ArrowRightIcon = ({ className = "size-5" }: IconProps) => (
+  <svg {...base} className={className}>
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </svg>
+);
+
 export const CheckIcon = ({ className = "size-5" }: IconProps) => (
   <svg {...base} className={className}>
     <path d="m5 12 5 5L20 7" />

@@ -8,12 +8,13 @@ import { trackAddToCart, type TrackedItem } from "@/lib/analytics";
 import { useCart } from "./cart-provider";
 import { CheckIcon, MinusIcon, PlusIcon } from "./icons";
 
-/** Adds to the cart and flips the button to "Added" for a moment. */
+/** Adds to the cart, opens the cart drawer and flips the button to "Added" for a moment. */
 function useAdd() {
-  const { add } = useCart();
+  const { add, openDrawer } = useCart();
   const [added, setAdded] = useState(false);
   const addNow = (id: string, variant: string | undefined, qty = 1) => {
     add(id, variant, qty);
+    openDrawer();
     setAdded(true);
     setTimeout(() => setAdded(false), 1400);
   };

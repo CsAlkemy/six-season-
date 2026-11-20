@@ -15,6 +15,10 @@ interface CartApi {
   add: (id: string, variant: string | undefined, qty?: number) => void;
   setQty: (id: string, variant: string | undefined, qty: number) => void;
   clear: () => void;
+  /** The cart drawer (components/cart-drawer.tsx): opened by Add to cart and the header's bag. */
+  drawer: boolean;
+  openDrawer: () => void;
+  closeDrawer: () => void;
 }
 
 /** Two sizes of one product are two lines. */
@@ -27,6 +31,10 @@ const CartContext = createContext<CartApi | null>(null);
 /** The cart is only product ids, sizes and quantities in localStorage; prices always come from the server. */
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
+  const [drawer, setDrawer] = useState(false);
+  // Stable, so effects can list them without re-running on every cart change.
+  const openDrawer = useCallback(() => setDrawer(true), []);
+  const closeDrawer = useCallback(() => setDrawer(false), []);
 
   useEffect(() => {
     try {
@@ -58,8 +66,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setQty: (id, variant, qty) =>
         update((prev) => prev.map((l) => (same(l, id, variant) ? { ...l, qty: Math.min(MAX_QTY, qty) } : l))),
       clear: () => update(() => []),
+      drawer,
+      openDrawer,
+      closeDrawer,
     }),
-    [lines, update],
+    [lines, update, drawer, openDrawer, closeDrawer],
   );
 
   return <CartContext value={api}>{children}</CartContext>;
