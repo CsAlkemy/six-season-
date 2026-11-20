@@ -28,7 +28,7 @@ import { createSession, passwordMatches, SESSION_COOKIE, SESSION_DAYS } from "@/
 import { absolute, waNumber } from "@/lib/site";
 import { moveStock, summarize, withStock } from "@/lib/stock";
 import { taka } from "@/lib/i18n";
-import { COURIERS, type CourierId, LANGS, MAX_PHOTOS, SEASONS, SOCIALS, type Shipment, type HomeSection, type Lang, type Order, type PaymentKind, type PaymentMethod, type Product, type Settings, type Text, type Tone, type Variant } from "@/lib/types";
+import { COURIERS, type CourierId, LANGS, MAX_PHOTOS, SEASONS, SOCIALS, type FaqItem, type HomeReview, type Shipment, type HomeSection, type Lang, type Order, type PaymentKind, type PaymentMethod, type Product, type Settings, type Text, type Tone, type Variant } from "@/lib/types";
 
 export type Saved = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -251,6 +251,8 @@ export interface ProductDraft {
   category: string;
   /** HTML from the editor, one per language. */
   details: Text;
+  /** The home page tile's one line; optional, so an older form leaves it as it was. */
+  tagline?: Text;
   seo: { title: Text; description: Text };
   active: boolean;
   lowStockAt: number;
@@ -301,6 +303,7 @@ export async function saveProduct(draft: ProductDraft): Promise<Saved> {
     // "" rather than missing when none is chosen, so a starter product can be taken out of its category too.
     category: CATEGORIES.some((c) => c.id === draft.category) ? draft.category : "",
     details,
+    tagline: draft.tagline ? text(draft.tagline, 60) : (existing?.tagline ?? { bn: "", en: "" }),
     seo: { title: text(draft.seo?.title, 70), description: text(draft.seo?.description, 200) },
     inStock: true,
     active: Boolean(draft.active),
@@ -433,6 +436,33 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
   if (sections.some((s) => !s.title.bn || !s.title.en)) return { ok: false, error: "Give every home section a title in both languages." };
   const heroTitle = text(hero.title, 120);
   if (hero.enabled && (!heroTitle.bn || !heroTitle.en)) return { ok: false, error: "Give the hero a title in both languages, or switch it off." };
+  // Checklist lines with words in either language; one written in only one shows only on that language's page.
+  const points = (Array.isArray(hero.points) ? hero.points : []).slice(0, 4).map((p) => text(p, 70)).filter((p) => p.bn || p.en);
+
+  // The featured review: a real customer's words, so it needs them, their name and a rating before it can show.
+  const r = raw.home?.review ?? DEFAULT_SETTINGS.home.review;
+  const review: HomeReview = {
+    enabled: Boolean(r.enabled),
+    title: text(r.title, 80),
+    text: String(r.text ?? "").trim().slice(0, 600),
+    name: String(r.name ?? "").trim().slice(0, 60),
+    source: String(r.source ?? "").trim().slice(0, 30),
+    rating: Math.min(5, Math.max(1, Math.round(Number(r.rating) || 5))),
+    avatar: isImage(r.avatar) ? r.avatar : null,
+    photo: isImage(r.photo) ? r.photo : null,
+    productId: productIds.has(String(r.productId ?? "")) ? String(r.productId) : "",
+  };
+  if (review.enabled && (!review.text || !review.name)) return { ok: false, error: "Add the customer's words and name to the featured review, or switch it off." };
+
+  const faq: FaqItem[] = (Array.isArray(raw.home?.faq) ? raw.home.faq : []).slice(0, 12).map((item, i) => ({
+    id: slugify(String(item?.id ?? "")) || `faq-${i + 1}`,
+    question: text(item?.question, 160),
+    answer: text(item?.answer, 800),
+  }));
+  faq.forEach((f, i) => {
+    if (faq.findIndex((other) => other.id === f.id) < i) f.id = `${f.id}-${i + 1}`;
+  });
+  if (faq.some((f) => !f.question.bn || !f.question.en || !f.answer.bn || !f.answer.en)) return { ok: false, error: "Give every question and its answer in both languages." };
 
   const store = raw.store ?? DEFAULT_SETTINGS.store;
   const previous = await loadSettings();
@@ -456,8 +486,11 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
         subtitle: text(hero.subtitle, 300),
         cta: text(hero.cta, 40),
         image: isImage(hero.image) ? hero.image : null,
+        points,
       },
       sections,
+      review,
+      faq,
     },
   };
   try {
@@ -465,8 +498,10 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
   } catch (error) {
     return failed(error);
   }
-  const oldHero = previous.home.hero.image;
-  if (oldHero && oldHero !== settings.home.hero.image) await dropUploads([oldHero]);
+  // Photos taken off the hero or the review are deleted from storage.
+  const kept = new Set([settings.home.hero.image, settings.home.review.avatar, settings.home.review.photo]);
+  const dropped = [previous.home.hero.image, previous.home.review.avatar, previous.home.review.photo].filter((src): src is string => Boolean(src) && !kept.has(src));
+  if (dropped.length) await dropUploads(dropped);
   refreshStorefront();
   return { ok: true };
 }

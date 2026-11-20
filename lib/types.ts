@@ -49,6 +49,8 @@ export interface Product {
   seasons?: Season[];
   /** One of lib/categories.ts, for its category page and the links to it; "" for none. Missing on older saves, where the starter products' ids stand in. */
   category?: string;
+  /** One short line under the name on the home page's tiles: "দানাদার, সুগন্ধি". Missing or empty shows its sizes. */
+  tagline?: Text;
   /** Longer text under the buy box (where it's from, how to use and keep it, what people ask): HTML from the editor, cleaned like a post's but with no photos. */
   details?: Text;
   /** The product's title and description in Google and shared links; empty uses its name and the start of its description. */
@@ -133,8 +135,39 @@ export interface HomeSettings {
     /** Button text; empty hides the button. It scrolls to the products. */
     cta: Text;
     image: string | null;
+    /** Up to 4 short reasons to buy, a checklist under the title. Claims the store stands behind; empty shows none. */
+    points: Text[];
   };
   sections: HomeSection[];
+  /** One real customer's words on the home page, as they wrote them (a Facebook comment, a message). */
+  review: HomeReview;
+  /** The store's own questions, after the ones the home page works out from the settings (delivery, payment, returns). */
+  faq: FaqItem[];
+}
+
+export interface HomeReview {
+  enabled: boolean;
+  /** The store's one-line summary over it: "স্বাদ আর ডেলিভারি, দুটোতেই খুশি". */
+  title: Text;
+  /** The customer's words, unedited, in whatever language they wrote. */
+  text: string;
+  name: string;
+  /** Where they said it: "Facebook", "WhatsApp"… */
+  source: string;
+  /** 1–5. */
+  rating: number;
+  /** Their profile picture, with their permission; null shows their initial. */
+  avatar: string | null;
+  /** Their photo of what they got; null leaves the quote full width. */
+  photo: string | null;
+  /** The product it's about: named on the photo and linked. "" for none. */
+  productId: string;
+}
+
+export interface FaqItem {
+  id: string;
+  question: Text;
+  answer: Text;
 }
 
 export interface HomeSection {

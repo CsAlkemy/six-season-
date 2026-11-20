@@ -152,7 +152,15 @@ export const DEFAULT_SETTINGS: Settings = {
       subtitle: { bn: "", en: "" },
       cta: { bn: "পণ্য দেখুন", en: "Shop now" },
       image: null,
+      // What the store already says of itself (its description, the product page's promises).
+      points: [
+        { bn: "নিজেদের খামার আর চেনা কৃষকদের কাছ থেকে", en: "From our own farm and farmers we know" },
+        { bn: "কোনো ভেজাল, রং বা প্রিজারভেটিভ নেই", en: "No adulteration, colour or preservatives" },
+        { bn: "মাঝে কোনো মধ্যস্বত্বভোগী নেই", en: "No middlemen in between" },
+      ],
     },
     sections: [],
+    review: { enabled: false, title: { bn: "", en: "" }, text: "", name: "", source: "Facebook", rating: 5, avatar: null, photo: null, productId: "" },
+    faq: [],
   },
 };
