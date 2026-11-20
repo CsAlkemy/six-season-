@@ -7,17 +7,18 @@ import { useForm, type FieldError } from "react-hook-form";
 
 import { requestCode, verifyCode } from "@/app/[lang]/account/actions";
 import { placeOrder } from "@/app/[lang]/cart/actions";
-import { trackBeginCheckout, trackPurchase } from "@/lib/analytics";
+import { trackAddToCart, trackBeginCheckout, trackPurchase } from "@/lib/analytics";
 import { type Dict, t, taka } from "@/lib/i18n";
 import { orderFormSchema, type OrderFormInput, type OrderFormValues } from "@/lib/order-schema";
 import { isCash } from "@/lib/payments";
+import { sized } from "@/lib/photo-sizes";
 import { deliveryFee, methodAvailable } from "@/lib/pricing";
 import type { Lang, Product, Settings } from "@/lib/types";
-import { findVariant, itemId } from "@/lib/variants";
+import { defaultVariant, findVariant, itemId, variantsOf } from "@/lib/variants";
 
 import { QtyStepper } from "./add-to-cart";
 import { useCart } from "./cart-provider";
-import { CheckIcon, TrashIcon } from "./icons";
+import { CashIcon, CheckIcon, LeafIcon, PhoneIcon, PlusIcon, ReturnIcon, TrashIcon } from "./icons";
 import { OtpField } from "./otp-field";
 import { ProductMedia } from "./product-media";
 
@@ -41,6 +42,8 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
   /** The number a code went to; set while the shopper is typing the code in. */
   const [otpPhone, setOtpPhone] = useState("");
   const [code, setCode] = useState("");
+  /** The last suggestion added, read out to screen readers: its card goes once it's in the cart. */
+  const [added, setAdded] = useState("");
 
   const zones = delivery.zones.filter((z) => z.active);
   const {
@@ -83,6 +86,9 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
   const tracked = lines.map((l) => ({ id: itemId(l.product, l.variant), name: l.product.name[lang], variant: l.variant.label[lang], price: l.variant.price, qty: l.qty }));
   const available = methods.filter((m) => methodAvailable(m, total));
   const selected = available.find((m) => m.id === method) ?? available[0];
+  // Products with nothing in the cart yet, each in the size a shopper starts on, so a second item needs no detour.
+  const inCart = new Set(cart.lines.map((l) => l.id));
+  const extras = products.filter((p) => p.active && !inCart.has(p.id) && variantsOf(p).some((v) => v.inStock)).slice(0, 4);
 
   // A method can drop out as the total changes; keep the form on the one the shopper sees selected.
   useEffect(() => {
@@ -157,6 +163,14 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
     }
   };
 
+  // No drawer here: the new line shows up in the list just above.
+  const addExtra = (product: Product) => {
+    const variant = defaultVariant(product);
+    cart.add(product.id, variant.id);
+    trackAddToCart({ id: itemId(product, variant), name: product.name[lang], variant: variant.label[lang], price: variant.price, qty: 1 });
+    setAdded(`${product.name[lang]}: ${d.added}`);
+  };
+
   const sendCode = async (phone: string) => {
     const result = await requestCode(phone, lang).catch(() => null);
     if (result?.ok) {
@@ -188,7 +202,8 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="grid items-start gap-8 lg:grid-cols-[1fr_380px]">
-      <div className="space-y-8">
+      {/* min-w-0: the sideways suggestion row scrolls inside the column instead of widening the page. */}
+      <div className="min-w-0 space-y-8">
         {unavailable > 0 && <p className="rounded-md bg-mustard-100 p-4 text-body-sm text-soil-700" role="status">{d.cartUnavailable}</p>}
         <section className="card divide-y divide-border">
           {lines.map(({ product, variant, line, qty }) => (
@@ -209,14 +224,48 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
               </div>
             </div>
           ))}
+          <Link href={`/${lang}#products`} className="flex min-h-13 items-center gap-2 rounded-b-xl px-4 text-label-md text-fg-brand transition-colors hover:bg-brand-subtle">
+            <PlusIcon className="size-4.5" />
+            {d.browseMore}
+          </Link>
         </section>
+
+        {extras.length > 0 && (
+          <section aria-labelledby="extras-title">
+            <h2 id="extras-title" className="mb-2 text-body-lg font-semibold">{d.addSomethingElse}</h2>
+            {/* Phones: one row that scrolls sideways, so the form isn't pushed down; two columns from 640px. Padded so the cards' shadows aren't cut off. */}
+            <ul className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pt-1 pb-3 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:p-0">
+              {extras.map((product) => {
+                const variant = defaultVariant(product);
+                return (
+                  <li key={product.id} className="card flex w-64 shrink-0 snap-start flex-col gap-3 p-3 sm:w-auto">
+                    <div className="flex items-center gap-3">
+                      <span className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-md bg-muted text-fg-tertiary">
+                        {product.image ? <img {...sized(product.image, "64px")} alt="" loading="lazy" className="size-full object-cover" /> : <LeafIcon className="size-6" />}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="line-clamp-2 font-semibold leading-snug">{product.name[lang]}</p>
+                        <p className="font-display text-body-sm text-fg-secondary">{variant.label[lang]}</p>
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => addExtra(product)} className="btn-secondary h-11 w-full px-3 text-label-md sm:px-3">
+                      <PlusIcon />
+                      {d.addItem} · {taka(variant.price, lang)}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+        <p role="status" className="sr-only">{added}</p>
 
         <section>
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             <h2 className="text-h4">{d.yourDetails}</h2>
             {/* Guests can log in and come straight back, with their details filled in. */}
             {!customer && (
-              <Link href={`/${lang}/account?next=/${lang}/cart`} className="text-body-sm text-fg-secondary underline underline-offset-4 hover:text-fg-brand">
+              <Link href={`/${lang}/account?next=/${lang}/cart`} className="inline-flex min-h-11 items-center text-body-sm text-fg-secondary underline underline-offset-4 hover:text-fg-brand">
                 {d.haveAccount}
               </Link>
             )}
@@ -287,6 +336,23 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
       </div>
 
       <aside className="card space-y-3 p-6 lg:sticky lg:top-24">
+        <h2 className="text-h4">{d.orderSummary}</h2>
+        {/* Only where the chosen area ships free above an amount: how much more gets there, then that it has. */}
+        {zone && zone.freeAbove > 0 &&
+          (subtotal >= zone.freeAbove ? (
+            <p className="flex items-center gap-2 rounded-lg bg-brand-soft px-3 py-2.5 text-label-md text-fg-success">
+              <CheckIcon className="size-5 shrink-0" />
+              {d.freeDeliveryReached}
+            </p>
+          ) : (
+            <div className="rounded-lg bg-brand-soft px-3 py-3">
+              <p className="text-body-sm font-medium">{d.freeDeliveryNudge.replace("{amount}", taka(zone.freeAbove - subtotal, lang))}</p>
+              {/* For the eye only; the sentence says it. */}
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface" aria-hidden>
+                <div className="h-full rounded-full bg-brand transition-[width] duration-300" style={{ width: `${(subtotal / zone.freeAbove) * 100}%` }} />
+              </div>
+            </div>
+          ))}
         <Row label={d.subtotal} value={taka(subtotal, lang)} />
         <Row label={d.delivery} value={fee === 0 && zone ? d.free : taka(fee, lang)} />
         <div className="border-t border-border pt-3">
@@ -314,6 +380,26 @@ export function Checkout({ lang, products, delivery, methods, customer, sms }: P
         <button type="submit" disabled={pending || !selected || !zone} className="btn-primary w-full">
           {pending ? (direct || verifying ? d.placing : d.sending) : verifying ? d.verifyAndOrder : direct ? d.placeOrder : d.sendCode}
         </button>
+        <ul className="flex flex-col gap-2.5 border-t border-border pt-4 text-body-sm text-fg-secondary">
+          {/* Cash only while it's on offer for this total, as in the payment choices. */}
+          {available.some(isCash) && (
+            <li className="flex gap-2.5">
+              <CashIcon className="mt-0.5 size-5 shrink-0 text-fg-brand" />
+              {d.codReassure}
+            </li>
+          )}
+          <li className="flex gap-2.5">
+            <PhoneIcon className="mt-0.5 size-5 shrink-0 text-fg-brand" />
+            {d.callToConfirm}
+          </li>
+          <li>
+            {/* In a new tab, so what's typed in the form isn't lost. */}
+            <Link href={`/${lang}/returns`} target="_blank" className="flex min-h-11 items-center gap-2.5 underline underline-offset-4 hover:text-fg-brand">
+              <ReturnIcon className="size-5 shrink-0 text-fg-brand" />
+              {d.returnsRefunds}
+            </Link>
+          </li>
+        </ul>
       </aside>
     </form>
   );

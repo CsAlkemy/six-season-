@@ -1,32 +1,63 @@
 import type { Metadata } from "next";
 
 import { Checkout } from "@/components/checkout";
+import { CashIcon, TruckIcon } from "@/components/icons";
 import { currentCustomer } from "@/lib/customers";
 import { getProducts, getSettings } from "@/lib/data";
-import { t } from "@/lib/i18n";
+import { type Dict, t } from "@/lib/i18n";
+import { isCash } from "@/lib/payments";
 import { smsEnabled } from "@/lib/sms";
-import type { Lang } from "@/lib/types";
+import type { Lang, Settings } from "@/lib/types";
 import { langOf } from "@/lib/lang";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/cart">): Promise<Metadata> {
   return { title: t(langOf((await params).lang)).checkout, robots: { index: false } };
 }
 
+/**
+ * The band's promises, each only when the settings back it: paying at the door while a cash method is on, and where
+ * the store delivers. More than one area (inside and outside Dhaka, say) covers the country; one names it.
+ */
+function promises(settings: Settings, lang: Lang, d: Dict) {
+  const zones = settings.delivery.zones.filter((z) => z.active);
+  const cash = settings.payments.methods.some((m) => m.enabled && isCash(m));
+  const coverage = zones.length > 1 ? d.deliveryNationwide : zones[0] ? d.deliveryOnlyTo.replace("{area}", zones[0].name[lang]) : "";
+  return [cash && { icon: CashIcon, text: d.codBody }, coverage && { icon: TruckIcon, text: coverage }].filter((p) => !!p);
+}
+
 export default async function CartPage({ params }: PageProps<"/[lang]/cart">) {
   const lang = langOf((await params).lang);
+  const d = t(lang);
   const [products, settings, customer] = await Promise.all([getProducts(), getSettings(), currentCustomer()]);
+  const lines = promises(settings, lang, d);
 
   return (
-    <div className="container-page pt-8 sm:pt-12">
-      <h1 className="mb-8 text-h2 sm:text-h1">{t(lang).checkout}</h1>
-      <Checkout
-        lang={lang}
-        products={products.map(({ blur: _blur, ...product }) => product)}
-        delivery={settings.delivery}
-        methods={settings.payments.methods}
-        customer={customer && { name: customer.name, phone: customer.phone, address: customer.address }}
-        sms={smsEnabled()}
-      />
-    </div>
+    <>
+      <header className="border-b border-border bg-sage-soft">
+        <div className="container-page flex flex-col gap-3 py-6 sm:py-10">
+          <h1 className="text-h2 sm:text-h1">{d.checkout}</h1>
+          {lines.length > 0 && (
+            <ul className="flex flex-wrap gap-x-6 gap-y-1.5 font-display text-body-md font-medium text-fg-sage">
+              {lines.map(({ icon: Icon, text }) => (
+                <li key={text} className="flex items-center gap-2">
+                  <Icon className="size-5 shrink-0" />
+                  {text}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </header>
+      <div className="container-page pt-6 sm:pt-10">
+        <Checkout
+          lang={lang}
+          products={products.map(({ blur: _blur, ...product }) => product)}
+          delivery={settings.delivery}
+          methods={settings.payments.methods}
+          customer={customer && { name: customer.name, phone: customer.phone, address: customer.address }}
+          sms={smsEnabled()}
+        />
+      </div>
+    </>
   );
 }

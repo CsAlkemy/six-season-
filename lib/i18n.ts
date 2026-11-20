@@ -193,6 +193,17 @@ const dict = {
     reviewApprovalNote: "রিভিউ যাচাইয়ের পর প্রকাশ করা হয়।",
     errRating: "১ থেকে ৫ তারা দিন",
     errReviewShort: "আরেকটু লিখুন (কমপক্ষে ১০ অক্ষর)",
+    // Order page extras
+    deliveryNationwide: "সারা দেশে ডেলিভারি",
+    deliveryOnlyTo: "ডেলিভারি: {area}",
+    addSomethingElse: "আরও কিছু যোগ করবেন? (ইচ্ছা হলে)",
+    addItem: "যোগ করুন",
+    browseMore: "আরও পণ্য দেখুন",
+    orderSummary: "অর্ডার সামারি",
+    freeDeliveryNudge: "আর {amount}-এর পণ্য নিলে ডেলিভারি ফ্রি",
+    freeDeliveryReached: "ডেলিভারি ফ্রি",
+    codReassure: "পণ্য হাতে পেয়ে টাকা দিন (ক্যাশ অন ডেলিভারি)",
+    callToConfirm: "অর্ডারের পর আমরা ফোন করে কনফার্ম করি",
   },
   en: {
     tagline: "Pure food, from the soil",
@@ -382,6 +393,17 @@ const dict = {
     reviewApprovalNote: "Reviews are checked before they're published.",
     errRating: "Give it 1 to 5 stars",
     errReviewShort: "Write a little more (at least 10 characters)",
+    // Order page extras
+    deliveryNationwide: "Delivery across Bangladesh",
+    deliveryOnlyTo: "Delivery: {area}",
+    addSomethingElse: "Add something else? (optional)",
+    addItem: "Add",
+    browseMore: "Browse more products",
+    orderSummary: "Order summary",
+    freeDeliveryNudge: "Add {amount} more for free delivery",
+    freeDeliveryReached: "Free delivery",
+    codReassure: "Pay when it reaches you (cash on delivery)",
+    callToConfirm: "We call you to confirm after you order",
   },
 } satisfies Record<Lang, Record<string, string>>;
 
