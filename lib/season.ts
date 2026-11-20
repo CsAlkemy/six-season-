@@ -32,8 +32,9 @@ export const MOTION_KEY = "mt-motion";
 
 /**
  * Runs in <head> before the first paint: sets <html data-season data-motion> from ?season= (a preview, not saved),
- * the saved choice, else today's season. The page animation (the sky and what drifts through it) is off unless the
- * visitor switched it on in the season picker; the footer grass sways either way.
+ * the saved choice, else today's season. The sky, sun and clouds are always drawn, still; the animation (the sky moving
+ * and what drifts through it) is off unless the visitor switched it on in the season picker. The footer grass sways
+ * either way.
  */
 export const SEASON_SCRIPT = `(function(){var h=document.documentElement,s,m;try{s=localStorage.getItem(${JSON.stringify(SEASON_KEY)});m=localStorage.getItem(${JSON.stringify(MOTION_KEY)})}catch(e){}
 s=new URLSearchParams(location.search).get("season")||s;

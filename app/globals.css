@@ -353,8 +353,8 @@
 
 /*
  * The six seasons. <html data-season> (set before paint by lib/season.ts) picks the footer's plants and grass
- * colours and the sky. <html data-motion="on"> (the visitor switched the animation on) brings in the WebGL scene of
- * what drifts across the page; the footer grass sways either way. Everything that moves animates transform only, so
+ * colours and the sky, whose sun and clouds are always there, still. <html data-motion="on"> (the visitor switched the
+ * animation on) sets the sky moving and brings in what drifts across the page; the footer grass sways either way. Everything that moves animates transform only, so
  * the browser keeps it on the GPU and never re-lays out the page.
  */
 
@@ -539,9 +539,11 @@ html:not([data-season="basanta"]) [data-season-only="basanta"] {
 }
 
 /*
- * The season across the whole page: lib/season-scene.ts draws the sky and what drifts through it on two fixed
- * canvases, one behind the content and one in front of it under the header. The same sky as a CSS gradient shows
- * until three.js has loaded, or for good without WebGL.
+ * The season across the whole page. Behind the content, always: the sky with its sun, clouds and fog, painted once
+ * (lib/season-sky.ts, the still canvas). With the animation on, lib/season-scene.ts draws the same sky moving and
+ * what drifts through it on two more fixed canvases, one behind the content over the still sky and one in front of
+ * it under the header. The sky's colours as a CSS gradient show until the still sky is painted, or for good without
+ * WebGL.
  *
  * Both are as tall as the large viewport (100lvh, not 100%) so that nothing about them changes when a phone's
  * toolbars slide away and back mid-scroll: a resize there would clear the canvas and shift the whole sky.
@@ -556,6 +558,15 @@ html:not([data-season="basanta"]) [data-season-only="basanta"] {
   pointer-events: none;
   opacity: 0;
   transition: opacity 1.2s ease;
+}
+
+/* Under the moving scene's back canvas (later in the page, same layer), so switching on fades the motion in over it. */
+.season-canvas-still {
+  z-index: -1;
+}
+
+[data-sky="on"] .season-canvas-still {
+  opacity: 1;
 }
 
 .season-canvas-back {

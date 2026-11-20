@@ -1,11 +1,13 @@
 /**
- * The season across the whole page, drawn with three.js. Two canvases share this code: the back one holds the sky
- * (gradient, sun, clouds, fog, lightning) and the season's particles at every depth; the front one, over the content
+ * The season across the whole page, moving, drawn with three.js while the page animation is on (with it off, the
+ * sky is painted once by lib/season-sky.ts). Two canvases share this code: the back one holds the sky (gradient, sun,
+ * clouds, fog, lightning) and the season's particles at every depth; the front one, over the content
  * but under the header, carries a few large, near, soft ones so the season reaches past the cards. Particles move
  * entirely in the vertex shader from a seed and the clock, so a frame costs the CPU a handful of uniforms.
  */
 import * as THREE from "three";
 
+import { SKIES, type Sky, SKY_FRAG } from "./season-sky";
 import type { Season } from "./types";
 
 // The shaders work in plain sRGB, the same space the hex colours below are written in.
@@ -32,26 +34,11 @@ interface Drift {
   alpha: number;
 }
 
-interface Sky {
-  top: string;
-  bottom: string;
-  sun: [number, number];
-  sunColor: string;
-  sunSize: number;
-  sunStrength: number;
-  cloud: number;
-  cloudColor: string;
-  cloudSpeed: number;
-  fog: number;
-  fogColor: string;
-  /** Chance of a lightning flash per second. */
-  storm: number;
-}
 
 export const SCENES: Record<Season, { sky: Sky; drifts: Drift[] }> = {
   // Grishma: a white-hot sun, haze, and kalboishakhi gusts throwing krishnachura petals and dust across the page.
   grishma: {
-    sky: { top: "#f9d8a6", bottom: "#fff6e6", sun: [0.84, 0.1], sunColor: "#ffb04a", sunSize: 0.38, sunStrength: 1, cloud: 0.12, cloudColor: "#fff3dc", cloudSpeed: 0.02, fog: 0.18, fogColor: "#ffe9c4", storm: 0 },
+    sky: SKIES.grishma,
     drifts: [
       { tex: "petal", count: 70, front: 8, size: [12, 26], fall: [140, 55], sway: [40, 0.5], spin: 2.2, flip: true, colors: ["#e4572e", "#f08a24"], alpha: 0.95 },
       { tex: "leaf", count: 18, front: 3, size: [18, 32], fall: [170, 70], sway: [50, 0.4], spin: 2.6, flip: true, colors: ["#6a9440", "#8aa84a"], alpha: 0.9 },
@@ -60,7 +47,7 @@ export const SCENES: Record<Season, { sky: Sky; drifts: Drift[] }> = {
   },
   // Barsha: a low, moving overcast, slanting rain at every depth, and now and then lightning.
   barsha: {
-    sky: { top: "#8fa1b2", bottom: "#dfe6ec", sun: [0.5, -0.4], sunColor: "#dfe8f0", sunSize: 0.3, sunStrength: 0, cloud: 0.8, cloudColor: "#6f7f8e", cloudSpeed: 0.06, fog: 0.35, fogColor: "#e6edf2", storm: 0.06 },
+    sky: SKIES.barsha,
     drifts: [
       { tex: "streak", count: 650, front: 50, size: [22, 58], fall: [-140, 1150], sway: [0, 0], spin: 0, align: true, colors: ["#4f6f8c", "#7d98b0"], alpha: 0.55 },
       { tex: "dot", count: 50, front: 0, size: [2, 5], fall: [-40, 300], sway: [6, 1], spin: 0, colors: ["#b7c8d6", "#ffffff"], alpha: 0.5 },
@@ -68,7 +55,7 @@ export const SCENES: Record<Season, { sky: Sky; drifts: Drift[] }> = {
   },
   // Sharat: the clearest blue of the year, white clouds sailing, kash fluff floating up.
   sharat: {
-    sky: { top: "#7fbbe8", bottom: "#f1f8fd", sun: [0.14, 0.08], sunColor: "#fff6d8", sunSize: 0.28, sunStrength: 0.7, cloud: 0.55, cloudColor: "#ffffff", cloudSpeed: 0.015, fog: 0.08, fogColor: "#ffffff", storm: 0 },
+    sky: SKIES.sharat,
     drifts: [
       { tex: "fluff", count: 60, front: 6, size: [14, 34], fall: [28, -38], sway: [36, 0.25], spin: 0.4, colors: ["#ffffff", "#efe7d4"], alpha: 0.95 },
       { tex: "dot", count: 60, front: 0, size: [2, 6], fall: [18, -20], sway: [20, 0.2], spin: 0, colors: ["#ffffff", "#fff6d8"], alpha: 0.8 },
@@ -76,7 +63,7 @@ export const SCENES: Record<Season, { sky: Sky; drifts: Drift[] }> = {
   },
   // Hemanta: low golden light after the harvest, a little haze, dry leaves and paddy chaff coming down.
   hemanta: {
-    sky: { top: "#efc27a", bottom: "#fbf0da", sun: [0.76, 0.28], sunColor: "#ff9f3d", sunSize: 0.42, sunStrength: 0.85, cloud: 0.22, cloudColor: "#ffe2b0", cloudSpeed: 0.01, fog: 0.3, fogColor: "#fbe6c0", storm: 0 },
+    sky: SKIES.hemanta,
     drifts: [
       { tex: "leaf", count: 55, front: 6, size: [16, 32], fall: [40, 75], sway: [70, 0.35], spin: 1.2, flip: true, colors: ["#c98a2b", "#b5652a"], alpha: 0.95 },
       { tex: "dot", count: 90, front: 0, size: [3, 7], fall: [20, 35], sway: [25, 0.4], spin: 0, colors: ["#e6b443", "#fbe3a0"], alpha: 0.75 },
@@ -84,7 +71,7 @@ export const SCENES: Record<Season, { sky: Sky; drifts: Drift[] }> = {
   },
   // Sheet: a pale sun behind thick morning fog rolling over the fields, dew in the air, mustard petals.
   sheet: {
-    sky: { top: "#d4dce3", bottom: "#f6f7f6", sun: [0.5, 0.16], sunColor: "#fff1d0", sunSize: 0.3, sunStrength: 0.45, cloud: 0.15, cloudColor: "#ffffff", cloudSpeed: 0.008, fog: 0.85, fogColor: "#ffffff", storm: 0 },
+    sky: SKIES.sheet,
     drifts: [
       { tex: "dot", count: 160, front: 0, size: [2, 7], fall: [10, 22], sway: [18, 0.2], spin: 0, colors: ["#ffffff", "#dbe6ee"], alpha: 0.9 },
       { tex: "petal", count: 24, front: 3, size: [9, 16], fall: [30, 45], sway: [40, 0.3], spin: 1, flip: true, colors: ["#f2cf6b", "#e9b928"], alpha: 0.9 },
@@ -92,7 +79,7 @@ export const SCENES: Record<Season, { sky: Sky; drifts: Drift[] }> = {
   },
   // Basanta: a pink-gold morning, shimul and palash petals falling, pollen in the light.
   basanta: {
-    sky: { top: "#f9cfc4", bottom: "#fbf8ee", sun: [0.2, 0.14], sunColor: "#ffd27a", sunSize: 0.34, sunStrength: 0.75, cloud: 0.25, cloudColor: "#fff1ea", cloudSpeed: 0.012, fog: 0.12, fogColor: "#fff4ec", storm: 0 },
+    sky: SKIES.basanta,
     drifts: [
       { tex: "petal", count: 75, front: 8, size: [12, 26], fall: [35, 70], sway: [55, 0.35], spin: 1.4, flip: true, colors: ["#d4402f", "#e8673c"], alpha: 0.95 },
       { tex: "dot", count: 90, front: 0, size: [2, 6], fall: [15, -12], sway: [25, 0.3], spin: 0, colors: ["#f2cf6b", "#ffffff"], alpha: 0.8 },
@@ -209,49 +196,6 @@ const DRIFT_FRAG = /* glsl */ `
   }
 `;
 
-const SKY_FRAG = /* glsl */ `
-  uniform vec3 uTop, uBottom, uSunColor, uCloudColor, uFogColor;
-  uniform vec2 uSun, uRes;
-  uniform float uTime, uSunSize, uSunStrength, uCloud, uCloudSpeed, uFog, uFlash, uScroll;
-  varying vec2 vUv;
-  float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-  float noise(vec2 p) {
-    vec2 i = floor(p), f = fract(p);
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    return mix(mix(hash(i), hash(i + vec2(1, 0)), u.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), u.x), u.y);
-  }
-  float fbm(vec2 p) {
-    float v = 0.0, a = 0.5;
-    for (int i = 0; i < 5; i++) { v += a * noise(p); p = p * 2.03 + 17.0; a *= 0.5; }
-    return v;
-  }
-  void main() {
-    vec2 uv = vec2(vUv.x, 1.0 - vUv.y);
-    float aspect = uRes.x / uRes.y;
-    vec3 col = mix(uTop, uBottom, smoothstep(0.0, 1.0, uv.y));
-    // Sun: a soft core and a wide glow, breathing slowly.
-    vec2 ds = (uv - uSun) * vec2(aspect, 1.0);
-    float r = length(ds);
-    float breathe = 1.0 + 0.06 * sin(uTime * 0.6);
-    float glow = exp(-r / (uSunSize * 0.45 * breathe)) * 0.75 + smoothstep(uSunSize * 0.16, uSunSize * 0.1, r);
-    float rays = 0.5 + 0.5 * sin(atan(ds.y, ds.x) * 14.0 + uTime * 0.15);
-    glow += exp(-r / uSunSize) * rays * 0.18;
-    col = mix(col, uSunColor, clamp(glow * uSunStrength, 0.0, 1.0));
-    // Clouds drift with the time and lift a little as the page scrolls; thicker toward the top.
-    vec2 q = vec2(uv.x * aspect, uv.y) * 2.2 + vec2(uTime * uCloudSpeed, uScroll * 0.0004);
-    float n = fbm(q + fbm(q * 0.5 + uTime * uCloudSpeed * 0.5));
-    float band = mix(1.0, 0.45, uv.y);
-    float cl = smoothstep(1.0 - uCloud * 0.75, 1.05 - uCloud * 0.35, n * band + uCloud * 0.25);
-    vec3 cloudCol = mix(uCloudColor, uCloudColor * 1.25 + 0.05, smoothstep(0.4, 0.9, n));
-    col = mix(col, cloudCol, cl * clamp(uCloud * 1.4, 0.0, 0.95));
-    // Fog banks roll along the lower half.
-    float f = fbm(vec2(uv.x * aspect * 1.4 - uTime * 0.02, uv.y * 3.0 + uTime * 0.01));
-    float fogMask = smoothstep(0.15, 1.0, uv.y) * smoothstep(0.3, 0.75, f);
-    col = mix(col, uFogColor, fogMask * uFog);
-    col += uFlash * vec3(0.55, 0.6, 0.7);
-    gl_FragColor = vec4(col, 1.0);
-  }
-`;
 
 interface Layer {
   points: THREE.Points;

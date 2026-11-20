@@ -27,7 +27,7 @@ function savedChoice(): Choice {
 
 /**
  * The header's season button: follow the calendar or pick a season, and switch the page animation on (it's off until
- * the visitor asks; the footer grass sways regardless). The head script already set <html data-season data-motion>
+ * the visitor asks: the sky, sun and clouds stay, still, and nothing drifts; the footer grass sways regardless). The head script already set <html data-season data-motion>
  * before paint, so the button reads those and CSS shows the right icon.
  */
 export function SeasonPicker({ lang, labels }: { lang: Lang; labels: Labels }) {

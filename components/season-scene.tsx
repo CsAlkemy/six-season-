@@ -3,16 +3,23 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { Stage } from "@/lib/season-scene";
+import { paintSky, type StillSky } from "@/lib/season-sky";
 import { SEASONS, type Season } from "@/lib/types";
 
 /** As long as the canvases' CSS fade, so switching off lets the sky fade out before it's taken down. */
 const FADE_MS = 1200;
 
+const seasonNow = () => {
+  const s = document.documentElement.dataset.season;
+  return SEASONS.includes(s as Season) ? (s as Season) : "sheet";
+};
+
 /**
- * The season over the whole page: a WebGL sky and drifts behind the content, and a few near, soft ones in front of it.
- * It's off unless the visitor switches the animation on in the season picker (<html data-motion="on">): until then
- * nothing loads, and the CSS sky gradient on <html> is the sky. Switching on loads three.js and fades the scene in;
- * switching off fades it out and frees the GPU, so a visitor who turns it off gets a page that costs what it did before.
+ * The season over the whole page. Always: its sky, sun, clouds and fog, painted once behind the content (StillSky,
+ * no three.js, no animation frames). With the animation switched on in the season picker (<html data-motion="on">):
+ * three.js's moving scene fades in over it, the sky drifting and the season's leaves, petals or rain falling behind
+ * the content and a few in front. Switching off fades the moving scene out to the still sky and frees its GPU, so the
+ * page costs what it did before.
  */
 export function SeasonScene() {
   const [on, setOn] = useState(false);
@@ -34,7 +41,55 @@ export function SeasonScene() {
     return () => clearTimeout(timer);
   }, [on]);
 
-  return mounted ? <Scene visible={on} /> : null;
+  return (
+    <>
+      <Still />
+      {mounted && <Scene visible={on} />}
+    </>
+  );
+}
+
+/**
+ * The still sky. Painted once the page has loaded and the browser is idle, so it never holds up the first paint or
+ * the product photos; it fades in over the CSS gradient, which is the same sky's colours. Repainted only when the
+ * season or the window size changes.
+ */
+function Still() {
+  const canvas = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const html = document.documentElement;
+    let sky: StillSky | null = null;
+    let observer: MutationObserver | undefined;
+    const paint = () => {
+      if (!canvas.current) return;
+      let current = seasonNow();
+      sky = paintSky(canvas.current, current);
+      if (!sky) return;
+      html.dataset.sky = "on";
+      observer = new MutationObserver(() => {
+        if (seasonNow() === current) return;
+        current = seasonNow();
+        sky?.setSeason(current);
+      });
+      observer.observe(html, { attributes: true, attributeFilter: ["data-season"] });
+    };
+    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 300));
+    const cancelIdle = window.cancelIdleCallback ?? window.clearTimeout;
+    let handle = 0;
+    const start = () => (handle = idle(paint, { timeout: 2000 }) as number);
+    if (document.readyState === "complete") start();
+    else window.addEventListener("load", start, { once: true });
+    return () => {
+      window.removeEventListener("load", start);
+      cancelIdle(handle);
+      observer?.disconnect();
+      sky?.dispose();
+      delete html.dataset.sky;
+    };
+  }, []);
+
+  return <canvas ref={canvas} className="season-canvas season-canvas-still" aria-hidden />;
 }
 
 /** The two canvases, from the moment the animation is switched on until it has faded out after being switched off. */
@@ -52,7 +107,6 @@ function Scene({ visible }: { visible: boolean }) {
 
   useEffect(() => {
     const html = document.documentElement;
-    const season = () => (SEASONS.includes(html.dataset.season as Season) ? (html.dataset.season as Season) : "sheet");
     let stages: Stage[] = [];
     let observer: MutationObserver | undefined;
     let cancelled = false;
@@ -61,15 +115,15 @@ function Scene({ visible }: { visible: boolean }) {
       .then(({ createStage }) => {
         if (cancelled || !back.current || !front.current) return;
         stages = [createStage(back.current, false), createStage(front.current, true)];
-        let current = season();
+        let current = seasonNow();
         for (const s of stages) {
           s.setSeason(current, true);
           s.setMotion(true);
         }
         setReady(true);
         observer = new MutationObserver(() => {
-          if (season() === current) return;
-          current = season();
+          if (seasonNow() === current) return;
+          current = seasonNow();
           stages.forEach((s) => s.setSeason(current));
         });
         observer.observe(html, { attributes: true, attributeFilter: ["data-season"] });
