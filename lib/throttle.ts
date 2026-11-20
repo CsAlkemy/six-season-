@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { headers } from "next/headers";
 
 import { listKeys, writeJson } from "./blob";
+import { visitorIp } from "./client-ip";
 import { sign } from "./session";
 
 /**
@@ -18,7 +19,7 @@ export async function withinLimit(bucket: string, key: string, limit: number, wi
   return recent.length <= limit;
 }
 
-/** The visitor's address: Vercel sets x-forwarded-for to the client's own. */
+/** The visitor's address, also when Cloudflare sits in front of Vercel (lib/client-ip.ts). */
 export async function clientIp(): Promise<string> {
-  return (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  return visitorIp(await headers());
 }
