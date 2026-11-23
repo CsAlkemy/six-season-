@@ -75,7 +75,7 @@ export default async function StoreLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="flex min-h-dvh flex-col">
         <SeasonScene />
-        <CartProvider>
+        <CartProvider firstSize={Object.fromEntries(products.map((p) => [p.id, variantsOf(p)[0]!.id]))}>
           <SiteHeader lang={lang} />
           <main className="flex-1">{children}</main>
           <SiteFooter lang={lang} settings={settings} categories={shopCategories(products)} />
