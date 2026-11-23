@@ -7,7 +7,6 @@ import { CartProvider } from "@/components/cart-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SeasonScene } from "@/components/season-scene";
 import { SiteHeader } from "@/components/site-header";
-import { WhatsAppFloat } from "@/components/whatsapp-float";
 import { shopCategories } from "@/lib/categories";
 import { getProducts, getSettings } from "@/lib/data";
 import { fontVars } from "@/lib/fonts";
@@ -81,7 +80,6 @@ export default async function StoreLayout({ children }: LayoutProps<"/">) {
           <main className="flex-1">{children}</main>
           <SiteFooter lang={lang} settings={settings} categories={shopCategories(products)} />
           <CartDrawer lang={lang} products={cartProducts(products)} labels={cartLabels(lang)} />
-          <WhatsAppFloat number={settings.store.whatsapp} label={t(lang).chatWhatsApp} />
         </CartProvider>
         <Analytics />
       </body>

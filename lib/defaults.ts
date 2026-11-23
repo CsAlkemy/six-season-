@@ -147,8 +147,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // Off until the admin fills it in, so the store opens on the products as before.
   home: {
     hero: {
-      // On from the start: the hero is the first thing a visitor sees (Settings › Home page can switch it off).
-      enabled: true,
+      enabled: false,
       title: { bn: "মাটির টানে, খাঁটি খাবার", en: "Pure food, from the soil" },
       subtitle: { bn: "", en: "" },
       cta: { bn: "পণ্য দেখুন", en: "Shop now" },

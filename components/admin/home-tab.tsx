@@ -1,20 +1,18 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import type { FaqItem, HomeSection, Settings, Text } from "@/lib/types";
 
 import { Modal, RowMenu, SearchField, Switch, toast } from "./controls";
-import { Input, TextArea, TextPair } from "./fields";
+import { TextPair } from "./fields";
 import { uploadPhoto } from "./image-upload";
-import { Avatar, Button, Callout, cn, ContentCard, FormField, Icon, StatusPill } from "./ui";
+import { Button, Callout, cn, ContentCard, FormField, Icon, StatusPill } from "./ui";
 
 export type PickerProduct = { id: string; name: { bn: string; en: string }; image: string | null; active: boolean };
 type Home = Settings["home"];
-type Review = Home["review"];
 
-/** saveStoreSettings keeps no more than these. */
-const MAX_POINTS = 4;
+/** saveStoreSettings keeps no more than this many. */
 const MAX_FAQ = 12;
 
 const blankText = (): Text => ({ bn: "", en: "" });
@@ -44,13 +42,12 @@ function HeroPreview({ hero }: { hero: Home["hero"] }) {
 }
 
 /** Uploads to the home folder; the old photo is deleted from storage only once Save drops it. */
-function PhotoField({ label, hint, url, onChange, thumb }: { label: string; hint: string; url: string | null; onChange: (url: string | null) => void; thumb?: React.ReactNode }) {
+function PhotoField({ label, hint, url, onChange }: { label: string; hint: string; url: string | null; onChange: (url: string | null) => void }) {
   const [busy, setBusy] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   return (
     <FormField label={label} hint={hint}>
       <div className="flex flex-wrap items-center gap-3">
-        {thumb}
         <Button variant="outline" size="sm" loading={busy} onClick={() => input.current?.click()}>{url ? "Replace photo" : "+ Add photo"}</Button>
         {url && !busy && <Button variant="link" size="inline" className="text-fg-error" onClick={() => onChange(null)}>Remove</Button>}
       </div>
@@ -65,86 +62,6 @@ function PhotoField({ label, hint, url, onChange, thumb }: { label: string; hint
         else toast.error(r.error);
       }} />
     </FormField>
-  );
-}
-
-/** The ticks under the hero's title: a line in each language per point, in the order they show. */
-function HeroPoints({ points, onChange }: { points: Text[]; onChange: (points: Text[]) => void }) {
-  const set = (i: number, lang: keyof Text, value: string) => onChange(points.map((p, j) => (j === i ? { ...p, [lang]: value } : p)));
-  return (
-    <FormField label={`Checklist · ${points.length} of ${MAX_POINTS}`} hint="Short reasons to buy that the store stands behind, shown as ticks under the title.">
-      {points.length > 0 && (
-        <ol className="flex flex-col gap-3">
-          {points.map((p, i) => (
-            <li key={i} className="flex items-start gap-2">
-              <span aria-hidden className="mt-3 grid size-6 shrink-0 place-items-center rounded-full bg-brand-soft text-fg-brand max-sm:hidden"><Icon name="check" className="size-3.5" strokeWidth={3} /></span>
-              <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
-                <input aria-label={`Point ${i + 1} in Bangla`} value={p.bn} maxLength={70} placeholder="বাংলা" onChange={(e) => set(i, "bn", e.target.value)} className="field" />
-                <input aria-label={`Point ${i + 1} in English`} value={p.en} maxLength={70} placeholder="English" onChange={(e) => set(i, "en", e.target.value)} className="field" />
-              </div>
-              {/* Stacked beside the stacked inputs on phones, so the inputs keep their width. */}
-              <div className="flex h-12 shrink-0 items-center max-sm:h-auto max-sm:flex-col max-sm:pt-1">
-                <button type="button" disabled={i === 0} onClick={() => onChange(moved(points, i, -1))} aria-label={`Move point ${i + 1} up`} className={iconButton}><Icon name="chevronUp" /></button>
-                <button type="button" disabled={i === points.length - 1} onClick={() => onChange(moved(points, i, 1))} aria-label={`Move point ${i + 1} down`} className={iconButton}><Icon name="chevronDown" /></button>
-                <button type="button" onClick={() => onChange(points.filter((_, j) => j !== i))} aria-label={`Remove point ${i + 1}`} className={removeButton}><Icon name="x" /></button>
-              </div>
-            </li>
-          ))}
-        </ol>
-      )}
-      <div>
-        <Button variant="secondary" size="sm" disabled={points.length >= MAX_POINTS} onClick={() => onChange([...points, blankText()])}>+ Add point</Button>
-      </div>
-    </FormField>
-  );
-}
-
-/** One customer's own words, who they are and where they said it, with the pictures they agreed to show. */
-function ReviewCard({ review, products, onChange }: { review: Review; products: PickerProduct[]; onChange: (patch: Partial<Review>) => void }) {
-  const id = useId();
-  return (
-    <ContentCard
-      padding="md"
-      title="Featured review"
-      subtitle="Use a real customer's words as they wrote them, with their permission to show their name and picture."
-      action={<Switch aria-label="Show featured review" checked={review.enabled} onCheckedChange={(enabled) => onChange({ enabled })} />}
-    >
-      <div className={cn("flex flex-col gap-4 transition-opacity", !review.enabled && "opacity-50")}>
-        <TextArea label="Their words" rows={4} maxLength={600} value={review.text} onChange={(text) => onChange({ text })} hint="Exactly as they wrote it, in whichever language. Up to 600 characters." />
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Input label="Customer's name" maxLength={60} value={review.name} onChange={(name) => onChange({ name })} />
-          <Input label="Where they said it" maxLength={30} value={review.source} placeholder="Facebook, WhatsApp…" onChange={(source) => onChange({ source })} />
-          <FormField label="Rating" htmlFor={`${id}-rating`}>
-            <select id={`${id}-rating`} value={review.rating} onChange={(e) => onChange({ rating: Number(e.target.value) })} className="field">
-              {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} {n === 1 ? "star" : "stars"}</option>)}
-            </select>
-          </FormField>
-        </div>
-        <TextPair label="Your one-line summary" maxLength={80} value={review.title} onChange={(title) => onChange({ title })} placeholder={{ bn: "স্বাদ আর ডেলিভারি, দুটোতেই খুশি", en: "Happy with the taste and the delivery" }} />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <PhotoField
-            label="Their profile picture (optional)"
-            hint="Without one, their initials show."
-            url={review.avatar}
-            onChange={(avatar) => onChange({ avatar })}
-            thumb={review.avatar ? <img src={review.avatar} alt="" className="size-12 shrink-0 rounded-full object-cover" /> : <Avatar name={review.name} className="size-12" />}
-          />
-          <PhotoField
-            label="Their photo of the product (optional)"
-            hint="Without one, their words run full width."
-            url={review.photo}
-            onChange={(photo) => onChange({ photo })}
-            thumb={review.photo ? <img src={review.photo} alt="" className="size-12 shrink-0 rounded-md object-cover" /> : <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-md bg-muted text-fg-tertiary"><Icon name="image" className="size-5" /></span>}
-          />
-        </div>
-        <FormField label="Product it's about" htmlFor={`${id}-product`} hint="Named on their photo and linked to its page.">
-          <select id={`${id}-product`} value={review.productId} onChange={(e) => onChange({ productId: e.target.value })} className="field">
-            <option value="">None</option>
-            {products.map((p) => <option key={p.id} value={p.id}>{p.name.en} · {p.name.bn}{p.active ? "" : " (hidden)"}</option>)}
-          </select>
-        </FormField>
-      </div>
-    </ContentCard>
   );
 }
 
@@ -233,7 +150,7 @@ function FaqModal({ item, isNew, onCancel, onApply }: { item: FaqItem; isNew: bo
 }
 
 /**
- * Hero, the hand-picked product rows, a customer's review and the store's own questions on the home page. Changes
+ * Hero, the hand-picked product rows and the store's own questions on the home page. Changes
  * arrive as updates to the latest draft, so a photo that finishes uploading doesn't undo what was typed meanwhile.
  */
 export function HomeTab({ home, products, onChange }: { home: Home; products: PickerProduct[]; onChange: (update: (home: Home) => Home) => void }) {
@@ -244,16 +161,13 @@ export function HomeTab({ home, products, onChange }: { home: Home; products: Pi
 
   return (
     <div className="flex flex-col gap-4">
-      <ContentCard padding="md" title="Hero" subtitle="The top of the home page: sticker, headline, checklist, button and photo." action={<Switch aria-label="Show hero" checked={home.hero.enabled} onCheckedChange={(enabled) => setHero({ enabled })} />}>
+      <ContentCard padding="md" title="Hero" subtitle="The top of the home page: headline, button and photo." action={<Switch aria-label="Show hero" checked={home.hero.enabled} onCheckedChange={(enabled) => setHero({ enabled })} />}>
         <HeroPreview hero={home.hero} />
         <div className={cn("flex flex-col gap-4 transition-opacity", !home.hero.enabled && "opacity-50")}>
-          <TextPair label="Sticker (the store shows the Bangla; empty hides it)" maxLength={30} value={home.hero.badge} onChange={(badge) => setHero({ badge })} placeholder={{ bn: "খামার থেকে সরাসরি", en: "Straight from the farm" }} />
           <TextPair label="Title" value={home.hero.title} onChange={(title) => setHero({ title })} />
-          <p className="-mt-2 text-caption text-fg-tertiary">A comma splits it over two lines, the first outlined like a sticker: মাটির টানে, খাঁটি খাবার.</p>
           <TextPair label="Subtitle" value={home.hero.subtitle} onChange={(subtitle) => setHero({ subtitle })} />
           <TextPair label="Button (empty hides it)" value={home.hero.cta} onChange={(cta) => setHero({ cta })} />
           <PhotoField label="Background photo (optional)" hint="A wide photo works best. It's shrunk to WebP before it uploads." url={home.hero.image} onChange={(image) => setHero({ image })} />
-          <HeroPoints points={home.hero.points} onChange={(points) => setHero({ points })} />
         </div>
       </ContentCard>
 
@@ -296,7 +210,6 @@ export function HomeTab({ home, products, onChange }: { home: Home; products: Pi
         )}
       </ContentCard>
 
-      <ReviewCard review={home.review} products={products} onChange={(patch) => onChange((h) => ({ ...h, review: { ...h.review, ...patch } }))} />
       <FaqCard faq={home.faq} onChange={(faq) => onChange((h) => ({ ...h, faq }))} />
 
       {editing && (

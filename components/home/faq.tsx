@@ -2,11 +2,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { t, taka } from "@/lib/i18n";
+import { storeFacts } from "@/lib/store-facts";
 import type { Lang, Settings } from "@/lib/types";
 
 import { CashIcon, PhoneIcon, PlusIcon, ShieldIcon } from "../icons";
 import { FaqAccordion } from "./faq-accordion";
-import { storeFacts } from "./hero";
 
 interface Item {
   id: string;
@@ -141,9 +141,6 @@ export function Faq({ lang, settings, full = false }: { lang: Lang; settings: Se
           <a href="#products" className="btn-primary h-13 min-w-64 text-label-md max-sm:w-full">
             {d.faqCta}
           </a>
-          <Link href={`/returns`} className="text-body-md text-soil-700 underline underline-offset-4 hover:text-fg-brand">
-            {d.readReturns}
-          </Link>
         </div>
       </div>
     </section>

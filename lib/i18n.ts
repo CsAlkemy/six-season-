@@ -164,12 +164,8 @@ const dict = {
     notFoundTitle: "পাতাটি খুঁজে পাওয়া যায়নি",
     notFoundBody: "ঠিকানাটা হয়তো বদলে গেছে, বা লিখতে ভুল হয়েছে। আমাদের সব পণ্য এক জায়গায় দেখুন।",
     // Home page
-    navShop: "পণ্য",
-    navFaq: "প্রশ্নোত্তর",
-    buy: "কিনুন",
     confirmCall: "অর্ডারের পর ফোনে কনফার্ম",
     returnsShort: "সমস্যা হলে বদল বা টাকা ফেরত",
-    reviewFrom: "{source} রিভিউ",
     faqEyebrow: "প্রশ্নোত্তর",
     faqTitle: "অর্ডারের আগে যা জানতে চান",
     faqCta: "নিশ্চিন্তে অর্ডার করুন",
@@ -181,7 +177,6 @@ const dict = {
     faqProblemQ: "পণ্যে সমস্যা হলে কী হবে?",
     faqProblemA: "ডেলিভারিম্যান থাকতেই প্যাকেট খুলে দেখে নিন। পণ্য ক্ষতিগ্রস্ত, নষ্ট বা ভুল এলে আমরা বদলে দিই বা টাকা ফেরত দিই।",
     faqProblemDays: "পণ্য হাতে পাওয়ার {n} দিনের মধ্যে জানাবেন।",
-    chatWhatsApp: "হোয়াটসঅ্যাপে কথা বলুন",
     // Product page
     codTitle: "ক্যাশ অন ডেলিভারি",
     codBody: "পণ্য হাতে পেয়ে টাকা দিন",
@@ -381,12 +376,8 @@ const dict = {
     notFoundTitle: "We couldn't find that page",
     notFoundBody: "The address may have changed, or have a typo in it. All our products are in one place.",
     // Home page
-    navShop: "Shop",
-    navFaq: "FAQ",
-    buy: "Buy",
     confirmCall: "We call to confirm",
     returnsShort: "Replaced or refunded if something's wrong",
-    reviewFrom: "{source} review",
     faqEyebrow: "Questions",
     faqTitle: "What to know before you order",
     faqCta: "Order with confidence",
@@ -398,7 +389,6 @@ const dict = {
     faqProblemQ: "What if something is wrong?",
     faqProblemA: "Open the parcel while the delivery person is still there. If something arrives damaged, spoiled or wrong, we replace it or refund you.",
     faqProblemDays: "Tell us within {n} days of receiving it.",
-    chatWhatsApp: "Chat on WhatsApp",
     // Product page
     codTitle: "Cash on delivery",
     codBody: "Pay when it reaches you",

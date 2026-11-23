@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { Checkout } from "@/components/checkout";
-import { storeFacts } from "@/components/home/hero";
+import { storeFacts } from "@/lib/store-facts";
 import { CashIcon, TruckIcon } from "@/components/icons";
 import { currentCustomer } from "@/lib/customers";
 import { getProducts, getSettings } from "@/lib/data";

@@ -59,7 +59,7 @@ export function ProductForm({ product }: { product: Product | null }) {
   const set = (patch: Partial<ProductDraft>) => setDraft((d) => ({ ...d, ...patch }));
   const setSeo = (key: "title" | "description", lang: Lang, value: string) => set({ seo: { ...draft.seo, [key]: { ...draft.seo[key], [lang]: value } } });
   const setSize = (i: number, patch: Partial<Size>) => set({ variants: draft.variants.map((v, j) => (j === i ? { ...v, ...patch } : v)) });
-  const setText = (key: "name" | "tagline" | "description", lang: keyof Text, value: string) => set({ [key]: { ...(draft[key] ?? blankText()), [lang]: value } });
+  const setText = (key: "name" | "description", lang: keyof Text, value: string) => set({ [key]: { ...draft[key], [lang]: value } });
 
   useEffect(() => {
     if (!dirty) return;
@@ -121,9 +121,6 @@ export function ProductForm({ product }: { product: Product | null }) {
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField label="Name · বাংলা" htmlFor="name-bn"><input id="name-bn" value={draft.name.bn} onChange={(e) => setText("name", "bn", e.target.value)} className="field" /></FormField>
               <FormField label="Name · English" htmlFor="name-en"><input id="name-en" value={draft.name.en} onChange={(e) => setText("name", "en", e.target.value)} className="field" /></FormField>
-              <FormField label="Tagline · বাংলা" htmlFor="tagline-bn"><input id="tagline-bn" maxLength={60} value={draft.tagline?.bn ?? ""} placeholder="দানাদার, সুগন্ধি" aria-describedby="tagline-hint" onChange={(e) => setText("tagline", "bn", e.target.value)} className="field" /></FormField>
-              <FormField label="Tagline · English" htmlFor="tagline-en"><input id="tagline-en" maxLength={60} value={draft.tagline?.en ?? ""} placeholder="Grainy, fragrant" aria-describedby="tagline-hint" onChange={(e) => setText("tagline", "en", e.target.value)} className="field" /></FormField>
-              <p id="tagline-hint" className="-mt-2 text-caption text-fg-tertiary sm:col-span-2">One short line on the home page&apos;s tiles, e.g. দানাদার, সুগন্ধি. Empty shows its sizes.</p>
               <FormField label="Description · বাংলা" htmlFor="desc-bn"><textarea id="desc-bn" rows={5} value={draft.description.bn} onChange={(e) => setText("description", "bn", e.target.value)} className="field" /></FormField>
               <FormField label="Description · English" htmlFor="desc-en"><textarea id="desc-en" rows={5} value={draft.description.en} onChange={(e) => setText("description", "en", e.target.value)} className="field" /></FormField>
             </div>
