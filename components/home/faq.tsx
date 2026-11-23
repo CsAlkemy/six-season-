@@ -5,6 +5,7 @@ import { t, taka } from "@/lib/i18n";
 import type { Lang, Settings } from "@/lib/types";
 
 import { CashIcon, PhoneIcon, PlusIcon, ShieldIcon } from "../icons";
+import { FaqAccordion } from "./faq-accordion";
 import { storeFacts } from "./hero";
 
 interface Item {
@@ -78,8 +79,9 @@ function items(lang: Lang, settings: Settings): Item[] {
 
 /**
  * Questions and answers as an accordion, one open at a time, the first open. Plain <details>, so it works before
- * any script loads and screen readers know what it is. `full` is the home page's band: a heading over it and, under
- * it, what every order comes with and the way to the products.
+ * any script loads and screen readers know what it is; the script makes them open and close smoothly. An open
+ * card turns green and its plus turns to a cross (globals.css, .faq-item). `full` is the home page's section: a
+ * heading over it and, under it, what every order comes with and the way to the products.
  */
 export function Faq({ lang, settings, full = false }: { lang: Lang; settings: Settings; full?: boolean }) {
   const d = t(lang);
@@ -87,19 +89,19 @@ export function Faq({ lang, settings, full = false }: { lang: Lang; settings: Se
   const { cash } = storeFacts(settings, lang);
 
   const accordion = (
-    <div className="flex flex-col gap-3 sm:gap-4">
+    <FaqAccordion className="flex flex-col gap-3 sm:gap-4">
       {list.map((item, i) => (
-        <details key={item.id} name="faq" open={i === 0} className="faq-item group rounded-xl bg-surface shadow-card open:bg-brand-soft">
+        <details key={item.id} name="faq" open={i === 0} className="faq-item rounded-xl border border-border bg-surface shadow-card">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 sm:px-8 sm:py-6 [&::-webkit-details-marker]:hidden">
             <h3 className="font-display text-body-lg font-semibold sm:text-h4">{item.question}</h3>
-            <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-footer text-fg-footer transition-transform duration-200 group-open:rotate-45 group-open:bg-brand group-open:text-fg-inverse sm:size-11">
+            <span aria-hidden className="faq-icon grid size-10 shrink-0 place-items-center rounded-full bg-footer text-fg-footer sm:size-11">
               <PlusIcon className="size-5" />
             </span>
           </summary>
           <div className="post-body faq-answer px-5 pb-5 text-body-lg sm:px-8 sm:pb-7">{item.answer}</div>
         </details>
       ))}
-    </div>
+    </FaqAccordion>
   );
 
   if (!full) {
@@ -112,7 +114,7 @@ export function Faq({ lang, settings, full = false }: { lang: Lang; settings: Se
   }
 
   return (
-    <section id="faq" aria-labelledby="faq-title" className="scroll-mt-24 bg-soil-100 py-16 sm:py-24">
+    <section id="faq" aria-labelledby="faq-title" className="scroll-mt-24">
       <div className="container-page flex max-w-240 flex-col gap-10">
         <header className="flex flex-col items-center gap-3 text-center">
           <p className="font-display text-label-md text-soil-700">{d.faqEyebrow}</p>

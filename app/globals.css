@@ -1141,6 +1141,38 @@ html:has(dialog.cart-drawer[open]) {
   color: #2a1d10;
 }
 
+/*
+ * An FAQ card (components/home/faq.tsx): an open one turns green and its plus turns to a cross. One that's closing
+ * (data-closing, set by faq-accordion.tsx while it shrinks) lets go of both as it starts, not once it's shut.
+ */
+.faq-item {
+  transition: background-color 250ms ease;
+}
+
+.faq-item[open]:not([data-closing]) {
+  background-color: var(--color-brand-soft);
+}
+
+.faq-icon {
+  transition:
+    rotate 250ms ease,
+    background-color 250ms ease,
+    color 250ms ease;
+}
+
+.faq-item[open]:not([data-closing]) .faq-icon {
+  rotate: 45deg;
+  background-color: var(--color-brand);
+  color: var(--color-fg-inverse);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-item,
+  .faq-icon {
+    transition: none;
+  }
+}
+
 /* An FAQ answer's first and last paragraph or list sit tight in the card. */
 .faq-answer > :first-child {
   margin-top: 0;
