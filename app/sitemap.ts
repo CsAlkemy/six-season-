@@ -30,6 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
   return [
     ...page((lang) => "/"),
+    ...page((lang) => "/shop"),
     ...shopCategories(all).flatMap((c) => page((lang) => `/c/${c.slug}`)),
     ...products.flatMap((p) => page((lang) => `/p/${p.slug}`, { images: photosOf(p).map(absolute) })),
     ...PAGE_SLUGS.flatMap((slug) => page((lang) => `/${slug}`)),

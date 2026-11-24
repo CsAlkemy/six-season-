@@ -344,6 +344,67 @@
   @apply mx-auto w-full max-w-360 px-4 sm:px-8 xl:px-14;
 }
 
+/*
+ * For a row that runs to the window's edges but starts where container-page's content does: --frame is the space
+ * from the window's edge to the frame's content, its gutter plus whatever is beside the 1440px frame. Its 100% is
+ * worked out where it's used, against the full width, so `px-(--frame)` on the row and `left-(--frame)` on what sits
+ * over it both land on the frame's edge.
+ */
+@utility frame-inset {
+  --gutter: 1rem;
+  --frame: max(var(--gutter), calc((100% - 90rem) / 2 + var(--gutter)));
+  @variant sm {
+    --gutter: 2rem;
+  }
+  @variant xl {
+    --gutter: 3.5rem;
+  }
+}
+
+/*
+ * A panel that scrolls on its own with no scroll bar showing: its bottom edge fades out while there's more below,
+ * and its top edge once some has scrolled away, so it still reads as more to see. Nothing fades when it all fits
+ * (the scroll timeline is then inactive). Browsers that can't tie an animation to scrolling (Firefox) get no fade.
+ */
+@property --fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes scroll-fade-y {
+  from {
+    --fade-top: 0px;
+    --fade-bottom: 3rem;
+  }
+  8% {
+    --fade-top: 3rem;
+  }
+  92% {
+    --fade-bottom: 3rem;
+  }
+  to {
+    --fade-top: 3rem;
+    --fade-bottom: 0px;
+  }
+}
+@utility scroll-fade-y {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  @supports (animation-timeline: scroll()) {
+    mask-image: linear-gradient(to bottom, transparent, #000 var(--fade-top), #000 calc(100% - var(--fade-bottom)), transparent);
+    animation: scroll-fade-y linear both;
+    /* After the shorthand, which would reset it. */
+    animation-timeline: scroll(self);
+  }
+}
+
 /* Specks of grit and lighter earth over the footer's soil. */
 @utility soil-texture {
   background-image:
@@ -666,18 +727,17 @@ html[data-season]::before {
     border-color 0.8s ease;
 }
 
-/* A product card in the season's colours, its photo set inside with rounded corners, lifting on hover. */
+/* A product card in the season's colours, its photo set inside with rounded corners, lifting on hover. No border:
+   the card's own colour and its shadow set it off the sky. */
 .season-card {
   background-color: color-mix(in srgb, var(--season-card) 96%, transparent);
-  border: 1px solid color-mix(in srgb, var(--season-line) 70%, transparent);
   box-shadow:
     0 1px 2px #0000000a,
     0 18px 40px -24px var(--season-glow);
   transition:
     transform 0.35s ease,
     box-shadow 0.35s ease,
-    background-color 0.8s ease,
-    border-color 0.8s ease;
+    background-color 0.8s ease;
 }
 
 /* Only where there's a pointer to hover with: on a touch screen :hover sticks to the card the finger landed on, so
@@ -776,7 +836,8 @@ html[data-season]::before {
   color: var(--fg-inverse);
 }
 
-/* What's at its best in the chosen season leads the grid and wears the accent; CSS so the picker moves it at once. */
+/* What's at its best in the chosen season leads the grid with a warmer glow (its badge says why; no outline around
+   it); CSS so the picker moves it at once. */
 html[data-season="grishma"] [data-in-season~="grishma"],
 html[data-season="barsha"] [data-in-season~="barsha"],
 html[data-season="sharat"] [data-in-season~="sharat"],
@@ -784,9 +845,8 @@ html[data-season="hemanta"] [data-in-season~="hemanta"],
 html[data-season="sheet"] [data-in-season~="sheet"],
 html[data-season="basanta"] [data-in-season~="basanta"] {
   order: -1;
-  border-color: var(--season-accent);
   box-shadow:
-    0 0 0 1px var(--season-accent),
+    0 1px 2px #0000000a,
     0 22px 48px -20px var(--season-glow);
 }
 
@@ -982,8 +1042,9 @@ dialog.adm-dialog::backdrop {
 }
 
 /*
- * The cart drawer (components/cart-drawer.tsx): a modal <dialog> over the whole screen that dims in, with the panel
- * sliding in from the right, as wide as a phone and never wider than 28rem. The page behind doesn't scroll meanwhile.
+ * The cart drawer (components/cart-drawer.tsx): a modal <dialog> over the whole screen, dimming the page, with the panel
+ * on the right, as wide as a phone and never wider than 28rem. The page behind doesn't scroll meanwhile. This is the
+ * open state; the slide in and out and the dimming are animated from the component (Web Animations).
  */
 dialog.cart-drawer {
   position: fixed;
@@ -996,17 +1057,12 @@ dialog.cart-drawer {
   padding: 0;
   border: 0;
   overflow: hidden;
-  background: transparent;
+  background: #1d1d1b66;
   color: inherit;
-  transition: background-color 0.25s ease;
 }
 
 dialog.cart-drawer::backdrop {
   background: transparent;
-}
-
-dialog.cart-drawer[data-shown] {
-  background: #1d1d1b66;
 }
 
 .cart-drawer-panel {
@@ -1014,23 +1070,10 @@ dialog.cart-drawer[data-shown] {
   top: 0;
   right: 0;
   width: min(100%, 28rem);
-  transform: translateX(100%);
-  transition: transform 0.25s ease;
-}
-
-dialog.cart-drawer[data-shown] .cart-drawer-panel {
-  transform: none;
 }
 
 html:has(dialog.cart-drawer[open]) {
   overflow: hidden;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  dialog.cart-drawer,
-  .cart-drawer-panel {
-    transition: none;
-  }
 }
 
 /*
@@ -1072,4 +1115,194 @@ html:has(dialog.cart-drawer[open]) {
 
 .faq-answer > :last-child {
   margin-bottom: 0;
+}
+
+/*
+ * The shop (app/(store)/shop/page.tsx) in an order the shopper picked (price, name, best match): what's in season
+ * keeps its badge and glow but not its place at the front, or the order would be wrong.
+ */
+html .shop-grid[data-sorted] > [data-in-season] {
+  order: 0;
+}
+
+/*
+ * The header's search (components/site-search.tsx) and the shop's filters on a phone (components/shop/shop-toolbar.tsx):
+ * modal <dialog>s over the whole screen that dim the page. Search drops in from the top; the filters slide in from the
+ * left, opposite the cart. Both animate in from @starting-style and out by keeping the dialog shown (allow-discrete)
+ * until they're done; a browser without that simply shows and hides them. The page behind doesn't scroll meanwhile.
+ */
+dialog.site-search,
+dialog.shop-drawer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  color: inherit;
+  background: transparent;
+  transition:
+    background-color 0.25s ease,
+    display 0.3s allow-discrete,
+    overlay 0.3s allow-discrete;
+}
+
+dialog.site-search[open],
+dialog.shop-drawer[open] {
+  background: #1d1d1b66;
+}
+
+@starting-style {
+  dialog.site-search[open],
+  dialog.shop-drawer[open] {
+    background: transparent;
+  }
+}
+
+dialog.site-search::backdrop,
+dialog.shop-drawer::backdrop {
+  background: transparent;
+}
+
+html:has(dialog.site-search[open]),
+html:has(dialog.shop-drawer[open]) {
+  overflow: hidden;
+}
+
+.site-search-panel {
+  border-radius: 1.5rem;
+  border: 1px solid #ffffffb3;
+  background: var(--bg-surface);
+  box-shadow:
+    0 24px 60px -16px #00000038,
+    0 8px 20px -12px var(--season-glow);
+  opacity: 0;
+  transform: translateY(-0.75rem) scale(0.98);
+  transition:
+    opacity 0.2s ease,
+    transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+dialog.site-search[open] .site-search-panel {
+  opacity: 1;
+  transform: none;
+}
+
+@starting-style {
+  dialog.site-search[open] .site-search-panel {
+    opacity: 0;
+    transform: translateY(-0.75rem) scale(0.98);
+  }
+}
+
+.shop-drawer-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: min(100% - 2.5rem, 24rem);
+  box-shadow: 0 0 40px #1d1d1b33;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+dialog.shop-drawer[open] .shop-drawer-panel {
+  transform: none;
+}
+
+@starting-style {
+  dialog.shop-drawer[open] .shop-drawer-panel {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.site-search,
+  dialog.shop-drawer,
+  .site-search-panel,
+  .shop-drawer-panel {
+    transition: none;
+  }
+}
+
+/*
+ * The shop's price slider (components/shop/shop-filters.tsx): two range inputs laid over one track, so each handle is
+ * a control of its own for a keyboard. Only the handles take the pointer, so either can be grabbed where they meet.
+ * The input is as tall as its handle, so the handle sits centred without nudging.
+ */
+.price-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 1.375rem;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+  outline: none;
+}
+
+.price-range::-webkit-slider-runnable-track {
+  height: 1.375rem;
+  background: transparent;
+}
+
+.price-range::-moz-range-track {
+  height: 1.375rem;
+  background: transparent;
+}
+
+.price-range::-webkit-slider-thumb {
+  appearance: none;
+  pointer-events: auto;
+  width: 1.375rem;
+  height: 1.375rem;
+  border: 2px solid var(--bg-brand);
+  border-radius: 9999px;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 4px #1d1d1b33;
+  cursor: grab;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.price-range::-moz-range-thumb {
+  pointer-events: auto;
+  box-sizing: border-box;
+  width: 1.375rem;
+  height: 1.375rem;
+  border: 2px solid var(--bg-brand);
+  border-radius: 9999px;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 4px #1d1d1b33;
+  cursor: grab;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.price-range:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  transform: scale(1.12);
+}
+
+.price-range:active::-moz-range-thumb {
+  cursor: grabbing;
+  transform: scale(1.12);
+}
+
+.price-range:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--bg-brand) 35%, transparent),
+    0 1px 4px #1d1d1b33;
+}
+
+.price-range:focus-visible::-moz-range-thumb {
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--bg-brand) 35%, transparent),
+    0 1px 4px #1d1d1b33;
 }

@@ -7,12 +7,13 @@ import { CartProvider } from "@/components/cart-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SeasonScene } from "@/components/season-scene";
 import { SiteHeader } from "@/components/site-header";
+import { WhatsAppFloat } from "@/components/whatsapp-float";
 import { shopCategories } from "@/lib/categories";
 import { getProducts, getSettings } from "@/lib/data";
 import { fontVars } from "@/lib/fonts";
 import { STORE_NAME, t } from "@/lib/i18n";
 import { SEASON_SCRIPT, seasonAt } from "@/lib/season";
-import { openGraph, SITE_URL } from "@/lib/site";
+import { openGraph, SITE_URL, waNumber } from "@/lib/site";
 import { type Lang, type Product, STORE_LANG } from "@/lib/types";
 import { photosOf, variantsOf } from "@/lib/variants";
 
@@ -81,6 +82,7 @@ export default async function StoreLayout({ children }: LayoutProps<"/">) {
           <SiteFooter lang={lang} settings={settings} categories={shopCategories(products)} />
           <CartDrawer lang={lang} products={cartProducts(products)} labels={cartLabels(lang)} />
         </CartProvider>
+        {settings.store.whatsapp && <WhatsAppFloat number={waNumber(settings.store.whatsapp)} label={t(lang).whatsapp} />}
         <Analytics />
       </body>
     </html>

@@ -49,6 +49,8 @@ const ICONS = {
   divider: "M5 12h14",
   undo: "M9 14 4 9l5-5M4 9h10.5a5.5 5.5 0 0 1 0 11H11",
   redo: "m15 14 5-5-5-5M20 9H9.5a5.5 5.5 0 0 0 0 11H13",
+  play: "M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z",
+  messageQuote: "M7.9 20A9 9 0 1 0 4 16.1L2 22ZM8 12a2 2 0 0 0 2-2V8H8M14 12a2 2 0 0 0 2-2V8h-2",
 } as const;
 
 export type IconName = keyof typeof ICONS;

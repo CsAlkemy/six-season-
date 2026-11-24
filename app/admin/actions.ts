@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { requireAdmin } from "@/lib/auth";
-import { deleteImages, putImage } from "@/lib/blob";
+import { deleteImages, putFile } from "@/lib/blob";
 import { htmlText, type Post, type PostText, today } from "@/lib/blog";
 import { CATEGORIES } from "@/lib/categories";
 import { book as bookWithCourier, cancel as cancelWithCourier, canCancelByApi, carrybee, type CourierAccounts, couriersView, DEFAULT_WEIGHT_KG, detectPlace, listPlaces, loadAccounts, needsPlace, newSecret, placeRequired, openAccounts, pathao, saveAccounts, steadfast } from "@/lib/couriers";
@@ -28,7 +28,8 @@ import { createSession, passwordMatches, SESSION_COOKIE, SESSION_DAYS } from "@/
 import { absolute, waNumber } from "@/lib/site";
 import { moveStock, summarize, withStock } from "@/lib/stock";
 import { taka } from "@/lib/i18n";
-import { COURIERS, type CourierId, LANGS, MAX_PHOTOS, SEASONS, SOCIALS, type FaqItem, type HomeReview, type Shipment, type HomeSection, type Lang, type Order, type PaymentKind, type PaymentMethod, type Product, type Settings, type Text, type Tone, type Variant } from "@/lib/types";
+import { MAX_TESTIMONIAL_TEXT, MAX_TESTIMONIALS } from "@/lib/testimonials";
+import { COURIERS, type CourierId, LANGS, MAX_PHOTOS, SEASONS, SOCIALS, type FaqItem, type HomeReview, type Shipment, type HomeSection, type Lang, type Order, type PaymentKind, type PaymentMethod, type Product, type Settings, type Text, type Testimonial, type Tone, type Variant } from "@/lib/types";
 
 export type Saved = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -61,6 +62,12 @@ function pageUrl(raw: unknown): string {
 const isImage = (url: unknown): url is string => typeof url === "string" && /^(https:\/\/[^\s"]+|\/(images|local-uploads)\/[\w./-]+)$/.test(url);
 const dropUploads = deleteImages;
 const failed = (error: unknown): Saved => ({ ok: false, error: error instanceof Error ? error.message : "Couldn't save." });
+
+/** Every upload the home page's settings use, so a save, or a cancelled dialog, deletes only what nothing uses. */
+const homeUploads = (home: Settings["home"]) =>
+  [home.hero.image, home.review.avatar, home.review.photo, ...home.testimonials.flatMap((t) => [t.avatar, t.video, t.poster])].filter((src): src is string => Boolean(src));
+/** An upload in the home folder: Vercel Blob's, or the local folder's in development. */
+const inHomeFolder = (url: string) => /^(https:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\/home\/|\/local-uploads\/home-)/.test(url);
 
 export async function login(_: string | null, form: FormData): Promise<string | null> {
   if (!(await passwordMatches(str(form, "password", 200)))) return "Wrong password.";
@@ -229,7 +236,7 @@ export async function uploadImage(form: FormData): Promise<{ url: string } | { e
   const folder = (["home", "blog"] as const).find((f) => f === str(form, "folder")) ?? "products";
   if (!(file instanceof File) || !file.type.startsWith("image/") || file.size > 4 * 1024 * 1024) return { error: "Upload an image under 4 MB." };
   try {
-    return { url: await putImage(folder, file) };
+    return { url: await putFile(folder, file) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Couldn't upload." };
   }
@@ -478,6 +485,28 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
   });
   if (faq.some((f) => !f.question.bn || !f.question.en || !f.answer.bn || !f.answer.en)) return { ok: false, error: "Give every question and its answer in both languages." };
 
+  // Customer feedback: their words or their video, and who they are. Written feedback keeps no video, and the reverse.
+  const testimonials: Testimonial[] = (Array.isArray(raw.home?.testimonials) ? raw.home.testimonials : []).slice(0, MAX_TESTIMONIALS).map((item, i) => {
+    const kind = item?.kind === "video" ? "video" : "text";
+    return {
+      id: slugify(String(item?.id ?? "")) || `feedback-${i + 1}`,
+      enabled: Boolean(item?.enabled),
+      kind,
+      name: String(item?.name ?? "").trim().slice(0, 60),
+      role: String(item?.role ?? "").trim().slice(0, 60),
+      avatar: isImage(item?.avatar) ? item.avatar : null,
+      text: kind === "text" ? String(item?.text ?? "").trim().slice(0, MAX_TESTIMONIAL_TEXT) : "",
+      video: kind === "video" && isImage(item?.video) ? item.video : null,
+      poster: kind === "video" && isImage(item?.poster) ? item.poster : null,
+    };
+  });
+  testimonials.forEach((t, i) => {
+    if (testimonials.findIndex((other) => other.id === t.id) < i) t.id = `${t.id}-${i + 1}`;
+  });
+  if (testimonials.some((t) => !t.name || !t.role)) return { ok: false, error: "Give every customer feedback a name and a profession." };
+  if (testimonials.some((t) => t.kind === "text" && !t.text)) return { ok: false, error: "Add the customer's words to every written feedback, or delete it." };
+  if (testimonials.some((t) => t.kind === "video" && !t.video)) return { ok: false, error: "Upload the video for every video feedback, or delete it." };
+
   const store = raw.store ?? DEFAULT_SETTINGS.store;
   const previous = await loadSettings();
   const settings: Settings = {
@@ -505,6 +534,7 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
       },
       sections,
       review,
+      testimonials,
       faq,
     },
   };
@@ -513,12 +543,23 @@ export async function saveStoreSettings(raw: Settings): Promise<Saved> {
   } catch (error) {
     return failed(error);
   }
-  // Photos taken off the hero or the review are deleted from storage.
-  const kept = new Set([settings.home.hero.image, settings.home.review.avatar, settings.home.review.photo]);
-  const dropped = [previous.home.hero.image, previous.home.review.avatar, previous.home.review.photo].filter((src): src is string => Boolean(src) && !kept.has(src));
+  // Photos and videos taken off the home page are deleted from storage.
+  const kept = new Set(homeUploads(settings.home));
+  const dropped = homeUploads(previous.home).filter((src) => !kept.has(src));
   if (dropped.length) await dropUploads(dropped);
   refreshStorefront();
   return { ok: true };
+}
+
+/**
+ * Uploads made in a customer feedback dialog that were cancelled or replaced before saving. Only the home folder's,
+ * and never one the saved settings use.
+ */
+export async function discardUploads(urls: string[]): Promise<void> {
+  await requireAdmin();
+  const used = new Set(homeUploads((await loadSettings()).home));
+  const drop = (Array.isArray(urls) ? urls : []).slice(0, 10).filter((url) => isImage(url) && inHomeFolder(url) && !used.has(url));
+  if (drop.length) await dropUploads(drop);
 }
 
 /* Notifications */

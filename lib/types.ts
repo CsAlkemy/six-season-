@@ -151,6 +151,8 @@ export interface HomeSettings {
   sections: HomeSection[];
   /** One real customer's words on the home page, as they wrote them (a Facebook comment, a message). */
   review: HomeReview;
+  /** Customers' feedback, written or on video, in a carousel above the questions; in display order. */
+  testimonials: Testimonial[];
   /** The store's own questions, after the ones the home page works out from the settings (delivery, payment, returns). */
   faq: FaqItem[];
 }
@@ -172,6 +174,28 @@ export interface HomeReview {
   photo: string | null;
   /** The product it's about: named on the photo and linked. "" for none. */
   productId: string;
+}
+
+/**
+ * One customer's feedback for the home page's carousel: their words, or a video they sent (filmed upright, like a
+ * phone's), with who they are. The admin adds only feedback a customer really gave, with their permission.
+ */
+export interface Testimonial {
+  id: string;
+  /** Shown on the store; off keeps it here, hidden. */
+  enabled: boolean;
+  kind: "text" | "video";
+  name: string;
+  /** What they do: "Teacher", "Home cook, Rajshahi". */
+  role: string;
+  /** Their photo; null shows their initials. */
+  avatar: string | null;
+  /** Their words, as they wrote them, in either language; "" for a video. */
+  text: string;
+  /** The video, for a video; null for written feedback. */
+  video: string | null;
+  /** A frame from the video, taken in the browser as it uploaded; null lets the video show its own first frame. */
+  poster: string | null;
 }
 
 export interface FaqItem {

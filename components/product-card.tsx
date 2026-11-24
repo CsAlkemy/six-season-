@@ -15,8 +15,8 @@ export const PRODUCT_GRID = "grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 xl:g
 /**
  * A product as a soft card in the season's colours: the photo set inside it with rounded corners, the name (and its
  * Bangla name), the price, and what to do next. One size buys straight from here; with several, the card shows the
- * lowest price and the sizes there are, and sends the shopper to pick one. What's in season wears the season's
- * badge and accent (globals.css, .season-card), whichever season <html> shows.
+ * lowest price and the sizes there are, and sends the shopper to pick one. What's in season leads the grid and wears
+ * the season's badge (globals.css, .season-card), whichever season <html> shows.
  */
 export function ProductCard({ product, lang, priority = false }: { product: Product; lang: Lang; priority?: boolean }) {
   const d = t(lang);
@@ -34,18 +34,17 @@ export function ProductCard({ product, lang, priority = false }: { product: Prod
         <Link href={href} tabIndex={-1} aria-hidden className="absolute inset-0 transition-transform duration-700 ease-out group-hover:scale-[1.05]">
           <ProductMedia product={product} lang={lang} priority={priority} className={`h-full ${inStock ? "" : "opacity-60 grayscale-[40%]"}`} />
         </Link>
-        <div className="pointer-events-none absolute inset-x-2.5 top-2.5 flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3">
+        {/* Badges stack in the top-right corner: product photos carry the brand's logo top-left. */}
+        <div className="pointer-events-none absolute right-2.5 top-2.5 flex flex-col items-end gap-1.5 sm:right-3 sm:top-3">
           {!inStock ? (
             <span className="rounded-full bg-surface/90 px-2.5 py-1 text-caption font-semibold text-fg-secondary backdrop-blur-sm sm:px-3">{d.outOfStock}</span>
           ) : (
-            <span>
-              {product.seasons?.map((season) => (
-                <span key={season} data-season-only={season} className="season-badge inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-caption font-semibold shadow-card sm:px-3">
-                  <SeasonIcon season={season} className="size-3.5" />
-                  {d.inSeason}
-                </span>
-              ))}
-            </span>
+            product.seasons?.map((season) => (
+              <span key={season} data-season-only={season} className="season-badge inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-caption font-semibold shadow-card sm:px-3">
+                <SeasonIcon season={season} className="size-3.5" />
+                {d.inSeason}
+              </span>
+            ))
           )}
           {inStock && saving && (
             <span className="rounded-full bg-fg-primary px-2.5 py-1 text-caption font-semibold text-fg-inverse sm:px-3">

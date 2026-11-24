@@ -18,7 +18,7 @@ export default function NotFound() {
       <h1 className="mt-2 text-h2 sm:text-h1">{d.notFoundTitle}</h1>
       <p className="mt-4 max-w-md text-body-lg text-fg-secondary">{d.notFoundBody}</p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
-        <Link href={`/#products`} className="btn-primary">
+        <Link href={`/shop`} className="btn-primary">
           {d.allProducts}
         </Link>
         <Link href={`/track`} className="btn border border-border">

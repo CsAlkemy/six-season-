@@ -148,7 +148,7 @@ export function productJsonLd(product: Product, lang: Lang, reviews: Review[], s
           })),
         }),
       },
-      breadcrumb(lang, [...(category ? [{ name: category.name[lang], url: absolute(`/c/${category.slug}`) }] : []), { name: product.name[lang], url }]),
+      breadcrumb(lang, [shopCrumb(lang), ...(category ? [{ name: category.name[lang], url: absolute(`/c/${category.slug}`) }] : []), { name: product.name[lang], url }]),
     ],
   };
 }
@@ -171,7 +171,36 @@ export function pageJsonLd(kind: string, slug: string, title: string, descriptio
   };
 }
 
-/** A category page: the products on it as a list, and store › category. */
+const productList = (products: Product[], lang: Lang) => ({
+  "@type": "ItemList",
+  itemListElement: products.map((p, i) => ({ "@type": "ListItem", position: i + 1, url: absolute(`/p/${p.slug}`), name: p.name[lang] })),
+});
+
+/** The shop, every category's and product's parent in the trail. */
+const shopCrumb = (lang: Lang) => ({ name: t(lang).shop, url: absolute("/shop") });
+
+/** The shop: the products on its page as a list, and store › shop. */
+export function shopJsonLd(products: Product[], lang: Lang) {
+  const { url } = shopCrumb(lang);
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "CollectionPage",
+        "@id": `${url}#page`,
+        name: t(lang).shop,
+        description: t(lang).about,
+        url,
+        inLanguage: lang,
+        isPartOf: { "@id": WEBSITE_ID },
+        mainEntity: productList(products, lang),
+      },
+      breadcrumb(lang, [shopCrumb(lang)]),
+    ],
+  };
+}
+
+/** A category page: the products on it as a list, and store › shop › category. */
 export function categoryJsonLd(category: Category, products: Product[], lang: Lang) {
   const url = absolute(`/c/${category.slug}`);
   return {
@@ -185,12 +214,9 @@ export function categoryJsonLd(category: Category, products: Product[], lang: La
         url,
         inLanguage: lang,
         isPartOf: { "@id": WEBSITE_ID },
-        mainEntity: {
-          "@type": "ItemList",
-          itemListElement: products.map((p, i) => ({ "@type": "ListItem", position: i + 1, url: absolute(`/p/${p.slug}`), name: p.name[lang] })),
-        },
+        mainEntity: productList(products, lang),
       },
-      breadcrumb(lang, [{ name: category.name[lang], url }]),
+      breadcrumb(lang, [shopCrumb(lang), { name: category.name[lang], url }]),
     ],
   };
 }

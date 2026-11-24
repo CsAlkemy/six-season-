@@ -18,6 +18,12 @@ const localFile = (pathname: string) => path.join(LOCAL_DIR, pathname);
 /** True when saves can land somewhere: a Blob store, or the local folder in development. */
 export const hasBlob = () => hasToken() || useLocal();
 
+/** Where an upload goes: the Blob store, the local folder in development, or nowhere until a store is connected. */
+export const uploadMode = (): "blob" | "local" | "off" => (hasToken() ? "blob" : useLocal() ? "local" : "off");
+
+/** File endings by type, where the type's own name isn't one (a phone's .mov is video/quicktime). */
+const EXTENSION: Record<string, string> = { "video/quicktime": "mov" };
+
 /** Latest content from origin, skipping the CDN, or null when it doesn't exist yet. */
 export async function readJson<T>(pathname: string): Promise<T | null> {
   if (useLocal()) {
@@ -92,9 +98,9 @@ export async function listKeys(prefix: string, max = 1000): Promise<string[]> {
   return keys.slice(0, max);
 }
 
-/** Stores a photo and returns the URL the store shows it from. */
-export async function putImage(folder: string, file: File): Promise<string> {
-  const ext = (file.type.split("/")[1] ?? "jpg").replace(/[^a-z0-9]/g, "") || "jpg";
+/** Stores a photo or a video and returns the URL the store shows it from. */
+export async function putFile(folder: string, file: File): Promise<string> {
+  const ext = EXTENSION[file.type] ?? ((file.type.split("/")[1] ?? "jpg").replace(/[^a-z0-9]/g, "") || "jpg");
   if (useLocal()) {
     await mkdir(UPLOADS_DIR, { recursive: true });
     const name = `${folder}-${randomUUID().slice(0, 8)}.${ext}`;
@@ -105,7 +111,7 @@ export async function putImage(folder: string, file: File): Promise<string> {
   return (await put(`${folder}/photo.${ext}`, file, { access: "public", addRandomSuffix: true, contentType: file.type })).url;
 }
 
-/** Removes photos nothing uses any more. The bundled stand-ins under /images aren't uploads and stay. */
+/** Removes photos and videos nothing uses any more. The bundled stand-ins under /images aren't uploads and stay. */
 export async function deleteImages(urls: string[]): Promise<void> {
   await Promise.all(
     urls.map(async (url) => {

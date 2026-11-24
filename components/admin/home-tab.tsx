@@ -7,6 +7,7 @@ import type { FaqItem, HomeSection, Settings, Text } from "@/lib/types";
 import { Modal, RowMenu, SearchField, Switch, toast } from "./controls";
 import { TextPair } from "./fields";
 import { uploadPhoto } from "./image-upload";
+import { TestimonialsCard } from "./testimonials-card";
 import { Button, Callout, cn, ContentCard, FormField, Icon, StatusPill } from "./ui";
 
 export type PickerProduct = { id: string; name: { bn: string; en: string }; image: string | null; active: boolean };
@@ -162,7 +163,8 @@ function FaqModal({ item, isNew, onCancel, onApply }: { item: FaqItem; isNew: bo
 }
 
 /**
- * Hero, the hand-picked product rows and the store's own questions on the home page. Changes
+ * Hero, the hand-picked product rows, customer feedback and the store's own questions on the home page, in the
+ * order the page shows them. Changes
  * arrive as updates to the latest draft, so a photo that finishes uploading doesn't undo what was typed meanwhile.
  */
 export function HomeTab({ home, products, onChange }: { home: Home; products: PickerProduct[]; onChange: (update: (home: Home) => Home) => void }) {
@@ -224,6 +226,8 @@ export function HomeTab({ home, products, onChange }: { home: Home; products: Pi
           </ul>
         )}
       </ContentCard>
+
+      <TestimonialsCard items={home.testimonials} onChange={(testimonials) => onChange((h) => ({ ...h, testimonials }))} />
 
       <FaqCard faq={home.faq} onChange={(faq) => onChange((h) => ({ ...h, faq }))} />
 

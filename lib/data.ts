@@ -42,6 +42,7 @@ function withDefaults(saved: Partial<Settings> | null): Settings {
       hero: { ...DEFAULT_SETTINGS.home.hero, ...s.home?.hero },
       sections: s.home?.sections ?? DEFAULT_SETTINGS.home.sections,
       review: { ...DEFAULT_SETTINGS.home.review, ...s.home?.review },
+      testimonials: s.home?.testimonials ?? DEFAULT_SETTINGS.home.testimonials,
       faq: s.home?.faq ?? DEFAULT_SETTINGS.home.faq,
     },
   };

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import { taka } from "@/lib/i18n";
 import { sized } from "@/lib/photo-sizes";
@@ -34,8 +34,11 @@ export interface CartLabels {
   cartUnavailable: string;
 }
 
-/** As long as the panel's slide (CSS below), so closing finishes on screen before the dialog goes. */
-const SLIDE_MS = 250;
+/** The page behind, dimmed while the drawer is open (as in globals.css). */
+const DIM = "#1d1d1b66";
+/** Opening glides in fast and settles; closing is quicker and gets out of the way. */
+const OPEN = { duration: 320, easing: "cubic-bezier(0.32, 0.72, 0, 1)" };
+const CLOSE = { duration: 220, easing: "cubic-bezier(0.4, 0, 1, 1)" };
 
 /**
  * The cart as a panel from the right, opened by Add to cart and the header's bag: each line with its photo, size,
@@ -48,21 +51,40 @@ export function CartDrawer({ lang, products, labels: l }: { lang: Lang; products
   const cart = useCart();
   const { drawer, closeDrawer } = cart;
   const dialog = useRef<HTMLDialogElement>(null);
-  const [shown, setShown] = useState(false);
+  const motion = useRef<Animation[]>([]);
   const path = usePathname();
 
-  // Open: show the dialog, then slide the panel in on the next frame. Close: slide out, then close the dialog.
+  // Open: show the dialog, slide the panel in and dim the page. Close: the reverse, then close the dialog. Driven by
+  // the Web Animations API rather than a CSS transition: Chrome didn't draw a transition started the frame after
+  // showModal(), so the panel popped in while only the dimming faded. Each slide starts from wherever the panel is, so
+  // closing halfway through opening turns back smoothly.
   useEffect(() => {
     const d = dialog.current;
-    if (!d) return;
-    if (drawer) {
-      if (!d.open) d.showModal();
-      const frame = requestAnimationFrame(() => setShown(true));
-      return () => cancelAnimationFrame(frame);
+    const panel = d?.firstElementChild;
+    if (!d || !(panel instanceof HTMLElement)) return;
+    if (!drawer && !d.open) return;
+
+    const opening = !d.open;
+    if (opening) d.showModal();
+    const from = opening ? { transform: "translateX(100%)", backgroundColor: "transparent" } : { transform: getComputedStyle(panel).transform, backgroundColor: getComputedStyle(d).backgroundColor };
+    const to = drawer ? { transform: "none", backgroundColor: DIM } : { transform: "translateX(100%)", backgroundColor: "transparent" };
+    const timing: KeyframeAnimationOptions = { ...(drawer ? OPEN : CLOSE), fill: "forwards" };
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) timing.duration = 0;
+
+    motion.current.forEach((a) => a.cancel());
+    const slide = panel.animate([{ transform: from.transform }, { transform: to.transform }], timing);
+    const dim = d.animate([{ backgroundColor: from.backgroundColor }, { backgroundColor: to.backgroundColor }], timing);
+    motion.current = [slide, dim];
+    if (!drawer) {
+      slide.finished
+        .then(() => {
+          d.close();
+          slide.cancel();
+          dim.cancel();
+        })
+        // Cancelled: the drawer opened again before it finished closing.
+        .catch(() => {});
     }
-    setShown(false);
-    const timer = setTimeout(() => d.open && d.close(), SLIDE_MS);
-    return () => clearTimeout(timer);
   }, [drawer]);
 
   // Moving to another page (Checkout, a product) closes it.
@@ -84,7 +106,6 @@ export function CartDrawer({ lang, products, labels: l }: { lang: Lang; products
       ref={dialog}
       aria-labelledby="cart-drawer-title"
       className="cart-drawer"
-      data-shown={shown || undefined}
       // Esc: slide out like the close button rather than vanish.
       onCancel={(e) => {
         e.preventDefault();

@@ -84,6 +84,12 @@ export default async function ProductPage({ params }: PageProps<"/p/[slug]">) {
               </Link>
             </li>
             <li aria-hidden>/</li>
+            <li>
+              <Link href={"/shop"} className="transition-colors hover:text-fg-primary">
+                {d.shop}
+              </Link>
+            </li>
+            <li aria-hidden>/</li>
             {category && (
               <>
                 <li>

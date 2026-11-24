@@ -56,6 +56,12 @@ export default async function CategoryPage({ params }: PageProps<"/c/[slug]">) {
               </Link>
             </li>
             <li aria-hidden>/</li>
+            <li>
+              <Link href={"/shop"} className="transition-colors hover:text-fg-primary">
+                {d.shop}
+              </Link>
+            </li>
+            <li aria-hidden>/</li>
             <li aria-current="page">{category.name[lang]}</li>
           </ol>
         </nav>

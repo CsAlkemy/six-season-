@@ -162,6 +162,8 @@ export const DEFAULT_SETTINGS: Settings = {
     },
     sections: [],
     review: { enabled: false, title: { bn: "", en: "" }, text: "", name: "", source: "Facebook", rating: 5, avatar: null, photo: null, productId: "" },
+    // None until the owner adds real ones; the carousel is hidden without any.
+    testimonials: [],
     faq: [],
   },
 };

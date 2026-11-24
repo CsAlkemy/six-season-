@@ -25,7 +25,7 @@ export default function GlobalNotFound() {
         <p className="mt-10 font-display text-h1 text-fg-tertiary">404</p>
         <h1 className="mt-2 text-h2">{en.notFoundTitle}</h1>
         <p className="mt-3 max-w-md text-body-lg text-fg-secondary">{en.notFoundBody}</p>
-        <Link href="/#products" className="btn-primary mt-8">
+        <Link href="/shop" className="btn-primary mt-8">
           {en.allProducts}
         </Link>
       </body>

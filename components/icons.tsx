@@ -18,6 +18,20 @@ export const BagIcon = ({ className = "size-5" }: IconProps) => (
   </svg>
 );
 
+/** An opening quotation mark, filled. */
+export const QuoteIcon = ({ className = "size-10" }: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+    <path d="M18 7h-3l-2 4v6h6v-6h-3l2-4Zm-8 0H7l-2 4v6h6v-6H8l2-4Z" />
+  </svg>
+);
+
+/** A play triangle, filled, its corners softened. */
+export const PlayIcon = ({ className = "size-6" }: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}>
+    <path d="M7 5.2v13.6a1.2 1.2 0 0 0 1.8 1l11-6.8a1.2 1.2 0 0 0 0-2l-11-6.8A1.2 1.2 0 0 0 7 5.2Z" />
+  </svg>
+);
+
 export const PlusIcon = ({ className = "size-4" }: IconProps) => (
   <svg {...base} className={className}>
     <path d="M12 5v14M5 12h14" />
@@ -48,7 +62,30 @@ export const ArrowRightIcon = ({ className = "size-5" }: IconProps) => (
   </svg>
 );
 
-export const ShieldIcon = ({ className = "size-5" }: IconProps) => (
+export const SearchIcon = ({ className = "size-5" }: IconProps) => (
+  <svg {...base} className={className}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="m20 20-3.5-3.5" />
+  </svg>
+);
+
+/** Filters: three sliders. */
+export const FilterIcon = ({ className = "size-5" }: IconProps) => (
+  <svg {...base} className={className}>
+    <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" />
+    <circle cx="15" cy="6" r="2" />
+    <circle cx="9" cy="12" r="2" />
+    <circle cx="17" cy="18" r="2" />
+  </svg>
+);
+
+export const ChevronDownIcon = ({ className = "size-4" }: IconProps) => (
+  <svg {...base} className={className}>
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
+
+export const ShieldIcon =({ className = "size-5" }: IconProps) => (
   <svg {...base} className={className}>
     <path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z" />
     <path d="m9 12 2 2 4-4" />

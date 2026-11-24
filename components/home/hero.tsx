@@ -1,8 +1,11 @@
+import Link from "next/link";
+
 import { blurOf } from "@/lib/blur";
 import { blurStyle } from "@/lib/blur-style";
 import { t } from "@/lib/i18n";
 import { letter, type Lettering } from "@/lib/lettering";
 import { sized } from "@/lib/photo-sizes";
+import { SHOP_PATH } from "@/lib/shop-query";
 import { waNumber } from "@/lib/site";
 import type { Lang, Product, Settings } from "@/lib/types";
 import { photosOf } from "@/lib/variants";
@@ -30,9 +33,9 @@ function Lettered({ lettering, className }: { lettering: Lettering; className: s
  * panel, the products on its right, its left side fading away into the green so the words sit on clean colour, with no
  * line between the two. On a phone the photo sits on top and fades down into the green, with the words under it.
  * Without the admin's photo, the first product's stands in. A line break in the title starts a new line; a Bangla
- * title is lettered in Li Alinur Niladri (lib/lettering.ts).
+ * title is lettered in Li Alinur Niladri (lib/lettering.ts). The button opens the shop.
  */
-export async function HomeHero({ lang, settings, products, target }: { lang: Lang; settings: Settings; products: Product[]; target: string }) {
+export async function HomeHero({ lang, settings, products }: { lang: Lang; settings: Settings; products: Product[] }) {
   const d = t(lang);
   const { hero } = settings.home;
 
@@ -95,12 +98,12 @@ export async function HomeHero({ lang, settings, products, target }: { lang: Lan
           {(cta || whatsapp) && (
             <div className="mt-1 flex flex-wrap items-center gap-x-7 gap-y-3 sm:mt-2">
               {cta && (
-                <a href={`#${target}`} className="hero-cta group/cta inline-flex h-14 items-center gap-3 rounded-full pr-2 pl-6 text-label-button whitespace-nowrap transition-colors sm:h-15 sm:pl-7.5">
+                <Link href={SHOP_PATH} className="hero-cta group/cta inline-flex h-14 items-center gap-3 rounded-full pr-2 pl-6 text-label-button whitespace-nowrap transition-colors sm:h-15 sm:pl-7.5">
                   {cta}
                   <span aria-hidden className="grid size-10 place-items-center rounded-full bg-brand text-fg-inverse transition-transform duration-300 group-hover/cta:translate-x-0.5 sm:size-11">
                     <ArrowRightIcon className="size-4.5 sm:size-5" />
                   </span>
-                </a>
+                </Link>
               )}
               {whatsapp && (
                 <a
