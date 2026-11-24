@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 
 import { deleteProduct, saveProduct, type ProductDraft } from "@/app/admin/actions";
 import { CATEGORIES, categoryOf } from "@/lib/categories";
+import { DEFAULT_TARGET_MARGIN, marketingPerUnit, MAX_TARGET_MARGIN, priceSize, type ProductCosts } from "@/lib/costing";
 import { SEASON_NAME } from "@/lib/season";
 import { DEFAULT_LOW_STOCK } from "@/lib/stock";
 import { LANGS, type Lang, MAX_PHOTOS, SEASONS, type Product, type Text } from "@/lib/types";
@@ -16,12 +17,13 @@ import { RichTextEditor } from "./rich-text-editor";
 import { Button, Callout, cn, ContentCard, FormField, Icon, PageBody, PageHeader, Spinner, StatusPill, Table, Td, Th } from "./ui";
 
 type Size = ProductDraft["variants"][number];
-const blank = (): Size => ({ id: "", label: { bn: "", en: "" }, price: 0, compareAt: null, stock: 0 });
+const blank = (): Size => ({ id: "", label: { bn: "", en: "" }, price: 0, compareAt: null, stock: 0, buy: 0, pack: 0 });
 const blankText = (): Text => ({ bn: "", en: "" });
 const LANG_NAME: Record<Lang, string> = { bn: "বাংলা", en: "English" };
 
-function draftOf(product: Product | null): ProductDraft {
-  if (!product) return { id: "", slug: "", name: blankText(), tagline: blankText(), description: blankText(), images: [], tone: "soil", seasons: [], category: "", details: blankText(), seo: { title: blankText(), description: blankText() }, active: false, lowStockAt: DEFAULT_LOW_STOCK, variants: [blank()] };
+function draftOf(product: Product | null, stored: ProductCosts | null): ProductDraft {
+  const costs = { marketing: stored?.marketing ?? 0, monthlyUnits: stored?.monthlyUnits ?? 0, targetMargin: stored?.targetMargin ?? DEFAULT_TARGET_MARGIN };
+  if (!product) return { id: "", slug: "", name: blankText(), tagline: blankText(), description: blankText(), images: [], tone: "soil", seasons: [], category: "", details: blankText(), seo: { title: blankText(), description: blankText() }, active: false, lowStockAt: DEFAULT_LOW_STOCK, variants: [blank()], costs };
   return {
     id: product.id,
     slug: product.slug,
@@ -38,17 +40,25 @@ function draftOf(product: Product | null): ProductDraft {
     active: product.active,
     lowStockAt: product.lowStockAt ?? DEFAULT_LOW_STOCK,
     // Sizes saved before stock counts start at 10 when they were in stock, for the admin to correct.
-    variants: variantsOf(product).map((v) => ({ id: v.id, label: v.label, price: v.price, compareAt: v.compareAt, stock: v.stock ?? (v.inStock ? 10 : 0) })),
+    variants: variantsOf(product).map((v) => ({ id: v.id, label: v.label, price: v.price, compareAt: v.compareAt, stock: v.stock ?? (v.inStock ? 10 : 0), buy: stored?.sizes[v.id]?.buy ?? 0, pack: stored?.sizes[v.id]?.pack ?? 0 })),
+    costs,
   };
 }
+
+/** "৳1,235.50", "−৳35": costs can have paisa (then shown to two places), and a loss reads as one. */
+const money = (amount: number) => {
+  const whole = Math.round(Math.abs(amount) * 100) % 100 === 0;
+  return `${amount < 0 ? "−" : ""}৳${Math.abs(amount).toLocaleString("en-IN", { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 })}`;
+};
+const percent = (share: number) => `${Math.round(share * 100)}%`;
 
 /** A compact input for a table cell. */
 const cellField = "h-10 w-full rounded-md border border-border-strong bg-surface px-3 text-body-sm text-fg-primary outline-none transition-colors placeholder:text-fg-tertiary focus-visible:border-brand focus-visible:ring-3 focus-visible:ring-brand-soft aria-invalid:border-fg-error";
 
 /** Motherhood's two columns: basic information, photos and sizes on the left; status, season, inventory and search beside them. */
-export function ProductForm({ product }: { product: Product | null }) {
+export function ProductForm({ product, costs }: { product: Product | null; costs: ProductCosts | null }) {
   const router = useRouter();
-  const [saved, setSaved] = useState(() => draftOf(product));
+  const [saved, setSaved] = useState(() => draftOf(product, costs));
   const [draft, setDraft] = useState(saved);
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
   const [pending, start] = useTransition();
@@ -60,6 +70,8 @@ export function ProductForm({ product }: { product: Product | null }) {
   const setSeo = (key: "title" | "description", lang: Lang, value: string) => set({ seo: { ...draft.seo, [key]: { ...draft.seo[key], [lang]: value } } });
   const setSize = (i: number, patch: Partial<Size>) => set({ variants: draft.variants.map((v, j) => (j === i ? { ...v, ...patch } : v)) });
   const setText = (key: "name" | "description", lang: keyof Text, value: string) => set({ [key]: { ...draft[key], [lang]: value } });
+  const setCosts = (patch: Partial<ProductDraft["costs"]>) => set({ costs: { ...draft.costs, ...patch } });
+  const perUnit = marketingPerUnit(draft.costs.marketing, draft.costs.monthlyUnits);
 
   useEffect(() => {
     if (!dirty) return;
@@ -187,6 +199,48 @@ export function ProductForm({ product }: { product: Product | null }) {
               ))}
             </Table>
             <p className="px-6 pt-3 text-caption text-fg-tertiary">Orders take units off and cancelling puts them back. A size at 0 shows as sold out.</p>
+          </ContentCard>
+
+          {/* For setting prices: what each size costs, what it makes at its price, and the price that keeps the target margin. */}
+          <ContentCard title="Costs & pricing" subtitle="Only you see this: it's kept encrypted, never on the store." flush>
+            <div className="grid items-start gap-4 px-6 pb-5 sm:grid-cols-3">
+              <FormField label="Marketing / month (৳)" htmlFor="marketing" hint="Spent promoting it in a month.">
+                <input id="marketing" type="number" min={0} step="any" value={draft.costs.marketing || ""} placeholder="0" onChange={(e) => setCosts({ marketing: Number(e.target.value) })} className="field" />
+              </FormField>
+              <FormField label="Expected sales / month" htmlFor="monthly-units" hint={perUnit > 0 ? `So ${money(perUnit)} of marketing per unit.` : "Units, all sizes together."}>
+                <input id="monthly-units" type="number" min={0} step={1} value={draft.costs.monthlyUnits || ""} placeholder="0" onChange={(e) => setCosts({ monthlyUnits: Number(e.target.value) })} className="field" />
+              </FormField>
+              <FormField label="Target margin (%)" htmlFor="target-margin" hint="The share of the price kept as profit.">
+                <input id="target-margin" type="number" min={0} max={MAX_TARGET_MARGIN} step="any" value={draft.costs.targetMargin} onChange={(e) => setCosts({ targetMargin: Number(e.target.value) })} className="field" />
+              </FormField>
+            </div>
+            <Table bare minWidth="min-w-180" widths={["", "w-28", "w-28", "w-28", "w-36", "w-40"]} head={<><Th>Size</Th><Th>Buying (৳)</Th><Th>Packing (৳)</Th><Th>Cost / unit</Th><Th>Profit now</Th><Th>Suggested</Th></>}>
+              {draft.variants.map((v, i) => {
+                const size = v.label.en || v.label.bn || `Size ${i + 1}`;
+                const p = priceSize({ cost: v, marketing: perUnit, price: v.price, targetMargin: draft.costs.targetMargin });
+                const tone = !p || p.margin === null ? "neutral" : p.margin < 0 ? "failed" : p.margin * 100 < draft.costs.targetMargin ? "pending" : "success";
+                return (
+                  <tr key={i} className="border-y border-border last:border-b-0">
+                    <Td className="truncate">{size}</Td>
+                    <Td><input aria-label={`Buying price, ${size}`} type="number" min={0} step="any" className={cellField} value={v.buy || ""} placeholder="0" onChange={(e) => setSize(i, { buy: Number(e.target.value) })} /></Td>
+                    <Td><input aria-label={`Packing cost, ${size}`} type="number" min={0} step="any" className={cellField} value={v.pack || ""} placeholder="0" onChange={(e) => setSize(i, { pack: Number(e.target.value) })} /></Td>
+                    <Td className="tabular-nums">{p ? money(p.cost) : <span className="text-fg-tertiary">—</span>}</Td>
+                    <Td>{p && p.profit !== null && p.margin !== null ? <StatusPill tone={tone} className="tabular-nums">{money(p.profit)} · {percent(p.margin)}</StatusPill> : <span className="text-fg-tertiary">—</span>}</Td>
+                    <Td>
+                      {p ? (
+                        <div className="flex items-center gap-2 tabular-nums">
+                          {money(p.suggested)}
+                          {p.suggested !== v.price && <Button variant="outline" size="sm" aria-label={`Use ${money(p.suggested)} as the price of ${size}`} onClick={() => setSize(i, { price: p.suggested })}>Use</Button>}
+                        </div>
+                      ) : (
+                        <span className="text-fg-tertiary">—</span>
+                      )}
+                    </Td>
+                  </tr>
+                );
+              })}
+            </Table>
+            <p className="px-6 pt-3 text-caption text-fg-tertiary">Cost per unit is buying + packing + marketing per unit: selling below it loses money. Profit is green at or above your target margin, amber under it, red at a loss. The suggested price keeps the target margin, rounded up to the next ৳10; Use puts it in that size&apos;s price above.</p>
           </ContentCard>
         </div>
 

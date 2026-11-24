@@ -18,6 +18,8 @@ import { DEFAULT_SETTINGS } from "@/lib/defaults";
 import { DEFAULT_FROM, EMAIL_ADDRESS, EMAIL_EVENTS, type EmailConfig, type EmailEvent, type EmailView, emailView, MAX_RECIPIENTS, saveEmailConfig, sendEmail, validFrom } from "@/lib/email";
 import { testEmail } from "@/lib/notify";
 import { readVault } from "@/lib/vault";
+import { MAX_TARGET_MARGIN, type ProductCosts } from "@/lib/costing";
+import { saveProductCosts } from "@/lib/product-costs";
 import { canCancel, NEXT_STEP, withStatus } from "@/lib/orders";
 import { createOrder } from "@/lib/place-order";
 import { paymentIsCash } from "@/lib/payments";
@@ -263,8 +265,14 @@ export interface ProductDraft {
   seo: { title: Text; description: Text };
   active: boolean;
   lowStockAt: number;
-  variants: { id: string; label: Text; price: number; compareAt: number | null; stock: number }[];
+  /** `buy` and `pack` are one unit's costs (Costs & pricing); they go to the vault, never into the product. */
+  variants: { id: string; label: Text; price: number; compareAt: number | null; stock: number; buy: number; pack: number }[];
+  /** The rest of Costs & pricing, also kept in the vault. */
+  costs: { marketing: number; monthlyUnits: number; targetMargin: number };
 }
+
+/** A cost in taka: paisa allowed (packing can be ৳2.50), nothing negative. */
+const amount = (value: unknown) => Math.min(Math.max(0, Math.round((Number(value) || 0) * 100) / 100), 100_000_000);
 
 export async function saveProduct(draft: ProductDraft): Promise<Saved> {
   await requireAdmin();
@@ -317,7 +325,21 @@ export async function saveProduct(draft: ProductDraft): Promise<Saved> {
     lowStockAt: Math.min(money(draft.lowStockAt), 9999),
   });
 
+  // Costs are kept by the sizes' saved ids, so a new size's costs follow the id it was just given. A form without them
+  // leaves what's stored alone.
+  const costs: ProductCosts | null =
+    draft.costs && typeof draft.costs === "object"
+      ? {
+          sizes: Object.fromEntries(variants.map((v, i) => [v.id, { buy: amount(raw[i]?.buy), pack: amount(raw[i]?.pack) }])),
+          marketing: amount(draft.costs.marketing),
+          monthlyUnits: Math.min(money(draft.costs.monthlyUnits), 10_000_000),
+          targetMargin: Math.min(Math.max(Math.round((Number(draft.costs.targetMargin) || 0) * 10) / 10, 0), MAX_TARGET_MARGIN),
+        }
+      : null;
+
   try {
+    // Costs first: if they can't be kept, nothing is saved and the form says so, rather than a product without them.
+    if (costs) await saveProductCosts(id, costs);
     await saveProducts(existing ? products.map((p) => (p.id === id ? product : p)) : [...products, product]);
   } catch (error) {
     return failed(error);
@@ -354,6 +376,8 @@ export async function deleteProduct(id: string): Promise<Saved> {
     return failed(error);
   }
   await dropUploads([...new Set([...(product.images ?? []), product.image ?? ""])].filter(Boolean));
+  // Its costs go with it. The product is already gone, so a failure here only leaves an unused entry behind.
+  await saveProductCosts(product.id, null).catch(() => {});
   refreshStorefront();
   revalidatePath("/admin", "layout");
   return { ok: true };
