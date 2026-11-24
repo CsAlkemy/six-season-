@@ -7,3 +7,6 @@ next-env.d.ts
 *.tsbuildinfo
 .local-blob
 public/local-uploads
+
+# Lipighor's licence forbids sharing the font file anywhere, this public repo included (assets/fonts/LICENSE-LiAlinurNiladri.txt)
+assets/fonts/LiAlinurNiladri.ttf

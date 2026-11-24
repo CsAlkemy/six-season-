@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { JsonLd } from "@/components/json-ld";
 import { PostCard, PostCover, PostMeta } from "@/components/post-card";
-import { ProductCard } from "@/components/product-card";
+import { PRODUCT_GRID, ProductCard } from "@/components/product-card";
 import { isLive, liveLangs, newestFirst, postCover, postDescription, postProducts } from "@/lib/blog";
 import { findPost, getPosts, getProducts } from "@/lib/data";
 import { STORE_NAME, t } from "@/lib/i18n";
@@ -97,7 +97,7 @@ export default async function PostPage({ params }: PageProps<"/blog/[slug]">) {
       {products.length > 0 && (
         <section className="flex flex-col gap-6">
           <h2 className="text-h3 sm:text-h2">{d.inThisPost}</h2>
-          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 xl:gap-8">
+          <div className={PRODUCT_GRID}>
             {products.map((product) => (
               <ProductCard key={product.id} product={product} lang={lang} />
             ))}

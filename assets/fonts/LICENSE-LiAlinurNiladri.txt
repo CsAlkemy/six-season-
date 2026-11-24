@@ -1,0 +1,10 @@
+Li Alinur Niladri Unicode — Copyright 2021 Lipighor Font Foundry. All rights reserved.
+Designed by Md Alinur Islam, developed by Niladri Shekhar Bala. https://lipighor.com
+
+Licence (https://lipighor.com/EULA.html, and the font's own licence field): free to use in designs, personal or
+commercial, but the font file must not be distributed, uploaded or shared on any website or other medium, sold,
+modified or renamed.
+
+So this file stays on the server. lib/lettering.ts draws the hero's Bangla headline from it as vector shapes, the
+way a designer exports a banner; the font itself is never sent to a browser. Never move it to public/, load it with
+next/font or @font-face, or link to it.

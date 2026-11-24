@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { MOTION_KEY, SEASON_KEY, SEASON_NAME, seasonAt } from "@/lib/season";
-import { SEASONS, type Lang, type Season } from "@/lib/types";
+import { SEASONS, type Season } from "@/lib/types";
 
 import { CheckIcon, SeasonIcon } from "./icons";
 
@@ -28,9 +28,11 @@ function savedChoice(): Choice {
 /**
  * The header's season button: follow the calendar or pick a season, and switch the page animation on (it's off until
  * the visitor asks: the sky, sun and clouds stay, still, and nothing drifts; the footer grass sways regardless). The head script already set <html data-season data-motion>
- * before paint, so the button reads those and CSS shows the right icon.
+ * before paint, so the button reads those and CSS shows the right icon. Seasons go by their Bangla names (শরৎ, হেমন্ত):
+ * the six seasons are how people here know the year, and "Late autumn" says less than হেমন্ত. The English is kept small
+ * under each choice for anyone who doesn't read Bangla.
  */
-export function SeasonPicker({ lang, labels }: { lang: Lang; labels: Labels }) {
+export function SeasonPicker({ labels }: { labels: Labels }) {
   const [open, setOpen] = useState(false);
   const [choice, setChoice] = useState<Choice>("auto");
   const [motion, setMotion] = useState(false);
@@ -84,7 +86,7 @@ export function SeasonPicker({ lang, labels }: { lang: Lang; labels: Labels }) {
         {SEASONS.map((s) => (
           <span key={s} data-season-only={s} className="inline-flex items-center gap-2">
             <SeasonIcon season={s} />
-            <span className="hidden sm:inline">{SEASON_NAME[s][lang]}</span>
+            <span lang="bn" className="hidden text-body-md leading-6 sm:inline">{SEASON_NAME[s].bn}</span>
           </span>
         ))}
       </button>
@@ -100,7 +102,7 @@ export function SeasonPicker({ lang, labels }: { lang: Lang; labels: Labels }) {
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="truncate text-label-md font-semibold">{labels.auto}</span>
                 <span className="truncate text-caption text-fg-secondary first-letter:uppercase">
-                  {labels.today} · {SEASON_NAME[today][lang]}
+                  {labels.today} · <span lang="bn" className="text-body-sm">{SEASON_NAME[today].bn}</span>
                 </span>
               </span>
               <CheckIcon className="season-option-check size-5 shrink-0" />
@@ -109,7 +111,10 @@ export function SeasonPicker({ lang, labels }: { lang: Lang; labels: Labels }) {
               {SEASONS.map((s) => (
                 <button key={s} type="button" role="radio" aria-checked={choice === s} onClick={() => pick(s)} className="season-option flex min-w-0 flex-col items-center gap-1.5 px-1 py-3">
                   <SeasonIcon season={s} className="size-6" />
-                  <span className="max-w-full truncate text-caption font-semibold whitespace-nowrap">{SEASON_NAME[s][lang]}</span>
+                  <span className="flex max-w-full flex-col items-center">
+                    <span lang="bn" className="max-w-full truncate text-body-md font-semibold whitespace-nowrap">{SEASON_NAME[s].bn}</span>
+                    <span className="max-w-full truncate text-caption whitespace-nowrap opacity-60">{SEASON_NAME[s].en}</span>
+                  </span>
                 </button>
               ))}
             </div>

@@ -32,24 +32,27 @@ interface ActionsProps {
   qty?: number;
   /** What Google Analytics and the Pixel are told when it's added; left out, nothing is. */
   item?: Omit<TrackedItem, "qty">;
+  /** A product card's: Add to cart soft, a little smaller, so the card stays light. */
+  card?: boolean;
 }
 
-/** Add to cart in outline and Buy now filled, which adds it and goes straight to checkout. */
-export function CardActions({ id, variant, cartHref, label, addedLabel, buyLabel, qty = 1, item }: ActionsProps) {
+/** Add to cart in outline (soft on a card) and Buy now filled, which adds it and goes straight to checkout. */
+export function CardActions({ id, variant, cartHref, label, addedLabel, buyLabel, qty = 1, item, card = false }: ActionsProps) {
   const router = useRouter();
   const { added, addNow, add } = useAdd();
   const counted = () => item && trackAddToCart({ ...item, qty });
 
   // Side by side when the card has room (a container query on the card body), stacked in narrow columns.
+  const size = card ? "h-11 px-3 text-label-md sm:h-12 sm:px-3" : "h-12 px-3 text-label-md sm:px-3";
   return (
-    <div className="grid gap-2 @[14rem]:grid-cols-2">
+    <div className={`grid gap-2 ${card ? "@[15rem]:grid-cols-2" : "@[14rem]:grid-cols-2"}`}>
       <button
         type="button"
         onClick={() => {
           addNow(id, variant, qty);
           counted();
         }}
-        className="btn h-12 border border-fg-primary px-3 text-label-md text-fg-primary hover:bg-surface sm:px-3"
+        className={card ? `btn ${size} bg-brand-soft text-fg-brand hover:bg-brand-soft-hover` : `btn ${size} border border-fg-primary text-fg-primary hover:bg-surface`}
       >
         {added ? <CheckIcon className="size-4.5" /> : null}
         {added ? addedLabel : label}
@@ -61,7 +64,7 @@ export function CardActions({ id, variant, cartHref, label, addedLabel, buyLabel
           counted();
           router.push(cartHref);
         }}
-        className="btn-primary h-12 px-3 text-label-md sm:px-3"
+        className={`btn-primary ${size}`}
       >
         {buyLabel}
       </button>

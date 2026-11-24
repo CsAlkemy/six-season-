@@ -1,19 +1,19 @@
-import { Baloo_Da_2, Hind_Siliguri } from "next/font/google";
+import { Manrope, Mina } from "next/font/google";
 
-/** Headings and prices: rounded like the logo, with Bangla and Latin in one family. */
-export const baloo = Baloo_Da_2({ subsets: ["bengali", "latin"], variable: "--font-baloo", display: "swap" });
+/** Every Latin letter on the store: a clean, slightly narrow modern sans, set tight in headings. Variable, so one file covers every weight. */
+export const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
 
 /**
- * Body copy: a quiet Bangla-first sans whose Latin sits well beside it. Not preloaded: that fetched all eight files
- * (both scripts, every weight) ahead of the product photo; now a page downloads only the ones its text uses. No 700:
- * headings are Baloo, and <strong> in body text takes 600.
+ * Bangla, which Manrope doesn't draw: product and season names and the ৳ sign fall through to this, a crisp geometric
+ * Bangla that sits well beside Manrope. It comes in two weights only: medium Bangla takes the 400, semibold the 700.
+ * Not preloaded, so it never holds up the hero photo; a page downloads only the files its text uses.
  */
-export const hind = Hind_Siliguri({
-  subsets: ["bengali", "latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-hind",
+export const mina = Mina({
+  subsets: ["bengali"],
+  weight: ["400", "700"],
+  variable: "--font-mina",
   display: "swap",
   preload: false,
 });
 
-export const fontVars = `${baloo.variable} ${hind.variable}`;
+export const fontVars = `${manrope.variable} ${mina.variable}`;

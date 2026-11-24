@@ -8,11 +8,11 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import * as hb from "harfbuzzjs";
 import sharp from "sharp";
 
 import { fromPrice, t, taka } from "./i18n";
 import { readPhoto } from "./photo";
+import { type Face, face, glyphPath, measure, shape } from "./shaping";
 import { SITE_URL } from "./site";
 import type { Lang, Product } from "./types";
 import { defaultVariant, photosOf, variantsOf } from "./variants";
@@ -28,22 +28,6 @@ const BRAND_SOFT = "#eaf6ef";
 const RULE = "#ece4dc";
 
 const DOMAIN = new URL(SITE_URL).hostname.replace(/^www\./, "");
-
-interface Face {
-  font: hb.Font;
-  upem: number;
-  paths: Map<number, string>;
-  /** Kept so the font's face and data outlive it. */
-  keep: unknown[];
-}
-
-function face(data: Buffer, weight?: number): Face {
-  const blob = new hb.Blob(data);
-  const hbFace = new hb.Face(blob);
-  const font = new hb.Font(hbFace);
-  if (weight) font.setVariations([new hb.Variation("wght", weight)]);
-  return { font, upem: hbFace.upem, paths: new Map(), keep: [blob, hbFace] };
-}
 
 /** An SVG file's drawing, placed at any size by its viewBox. */
 interface Art {
@@ -76,29 +60,10 @@ function assets() {
   })());
 }
 
-function shape(f: Face, text: string) {
-  const buffer = new hb.Buffer();
-  buffer.addText(text);
-  buffer.guessSegmentProperties();
-  hb.shape(f.font, buffer);
-  const positions = buffer.getGlyphPositions();
-  let pen = 0;
-  const glyphs = buffer.getGlyphInfos().map((g, i) => {
-    const p = positions[i]!;
-    const glyph = { id: g.codepoint, x: pen + p.xOffset, y: p.yOffset };
-    pen += p.xAdvance;
-    return glyph;
-  });
-  return { glyphs, advance: pen };
-}
-
-const measure = (f: Face, text: string, size: number) => (shape(f, text).advance * size) / f.upem;
-
 /** Text as SVG paths, the left end of its baseline at (x, y). */
 function text(f: Face, value: string, x: number, y: number, size: number, fill: string): string {
   const paths = shape(f, value).glyphs.map(({ id, x: gx, y: gy }) => {
-    let d = f.paths.get(id);
-    if (d === undefined) f.paths.set(id, (d = f.font.glyphToPath(id)));
+    const d = glyphPath(f, id);
     return d ? `<path transform="translate(${gx} ${gy})" d="${d}"/>` : "";
   });
   const s = size / f.upem;

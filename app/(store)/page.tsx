@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 
 import { Faq } from "@/components/home/faq";
+import { HomeHero } from "@/components/home/hero";
 import { JsonLd } from "@/components/json-ld";
-import { ProductCard } from "@/components/product-card";
-import { blurOf } from "@/lib/blur";
-import { blurStyle } from "@/lib/blur-style";
+import { PRODUCT_GRID, ProductCard } from "@/components/product-card";
 import { getProducts, getSettings } from "@/lib/data";
 import { t } from "@/lib/i18n";
-import { sized } from "@/lib/photo-sizes";
 import { alternates, homeSeo, openGraph } from "@/lib/site";
 import { storeJsonLd } from "@/lib/structured-data";
 import type { Product } from "@/lib/types";
@@ -44,31 +42,13 @@ export default async function Home() {
     .filter((s) => s.products.length > 0);
   const { hero } = home;
   const showHero = hero.enabled && hero.title[lang];
-  const heroBlur = showHero && hero.image ? await blurOf(hero.image) : null;
-
-  // The page's first photo is its largest paint: the hero's, or else the first card's.
-  const firstCard = showHero && hero.image ? null : (sections[0]?.products[0] ?? products[0])?.id;
+  // The page's first photo is its largest paint: the hero's (its photo or the first of its mosaic), or else the first card's.
+  const firstCard = showHero ? null : (sections[0]?.products[0] ?? products[0])?.id;
 
   return (
     <>
       <JsonLd data={storeJsonLd(lang, settings)} />
-      {showHero && (
-        <section className="container-page pt-6 sm:pt-8">
-          <div className="relative isolate flex min-h-72 items-end overflow-hidden rounded-xl bg-footer text-fg-footer sm:min-h-96">
-            {hero.image && <img {...sized(hero.image, "(min-width: 1440px) 1328px, 100vw")} alt="" fetchPriority="high" style={blurStyle(heroBlur)} className="absolute inset-0 -z-20 size-full object-cover" />}
-            <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
-            <div className="flex max-w-3xl flex-col items-start gap-4 p-6 sm:p-12">
-              <h1 className="text-h2 sm:text-h1">{hero.title[lang]}</h1>
-              {hero.subtitle[lang] && <p className="text-body-lg opacity-90">{hero.subtitle[lang]}</p>}
-              {hero.cta[lang] && (
-                <a href={sections.length ? "#section-0" : "#products"} className="btn bg-surface text-fg-primary hover:bg-brand-soft">
-                  {hero.cta[lang]}
-                </a>
-              )}
-            </div>
-          </div>
-        </section>
-      )}
+      {showHero && <HomeHero lang={lang} settings={settings} products={products} target={sections.length ? "section-0" : "products"} />}
 
       <div className="container-page flex flex-col gap-12 pt-10 sm:gap-16 sm:pt-16">
         {/* Every page has one h1: the hero's, the heading over the grid below, or (curated sections and no hero) this one, for search and screen readers. */}
@@ -79,7 +59,7 @@ export default async function Home() {
               <h2 className="text-h3 sm:text-h2">{section.title[lang]}</h2>
               {section.subtitle[lang] && <p className="text-body-lg text-fg-secondary">{section.subtitle[lang]}</p>}
             </header>
-            <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 xl:gap-8">
+            <div className={PRODUCT_GRID}>
               {section.products.map((product) => (
                 <ProductCard key={product.id} product={product} lang={lang} priority={i === 0 && product.id === firstCard} />
               ))}
@@ -92,8 +72,8 @@ export default async function Home() {
             {sections.length > 0 || showHero ? <h2 className="text-h3 sm:text-h2">{d.allProducts}</h2> : <h1 className="text-h2 sm:text-h1">{d.ourProducts}</h1>}
             <p className="text-body-lg text-fg-secondary">{d.productsLead}</p>
           </header>
-          {/* One card per row on phones, two then three on tablets, four on desktop; cards in a row share one height. */}
-          <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 xl:gap-8">
+          {/* Two cards across on phones, three on tablets, four on desktop; cards in a row share one height. */}
+          <div className={PRODUCT_GRID}>
             {products.map((product) => (
               <ProductCard key={product.id} product={product} lang={lang} priority={!sections.length && product.id === firstCard} />
             ))}

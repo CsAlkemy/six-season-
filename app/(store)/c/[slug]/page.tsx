@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 
 import { JsonLd } from "@/components/json-ld";
 import { PostCard } from "@/components/post-card";
-import { ProductCard } from "@/components/product-card";
+import { PRODUCT_GRID, ProductCard } from "@/components/product-card";
 import { isLive, newestFirst, postCover } from "@/lib/blog";
 import { CATEGORIES, findCategory, productsIn } from "@/lib/categories";
 import { getPosts, getProducts } from "@/lib/data";
@@ -67,7 +67,7 @@ export default async function CategoryPage({ params }: PageProps<"/c/[slug]">) {
         ))}
       </header>
 
-      <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 xl:gap-8">
+      <div className={PRODUCT_GRID}>
         {products.map((product, i) => (
           <ProductCard key={product.id} product={product} lang={lang} priority={i === 0} />
         ))}

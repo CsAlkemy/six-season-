@@ -1,11 +1,14 @@
 import { uploadImage } from "@/app/admin/actions";
 
-const MAX_SIDE = 1400;
+type Folder = "products" | "home" | "blog";
+
+/** Longest side kept: the home page's banner spans the page, so it keeps more than a product or post photo. */
+const MAX_SIDE: Record<Folder, number> = { products: 1400, blog: 1400, home: 2400 };
 
 /** Shrinks a photo to WebP in the browser, so uploads are small and the store stays fast. */
-async function toWebp(file: File): Promise<{ file: File; width: number; height: number }> {
+async function toWebp(file: File, maxSide: number): Promise<{ file: File; width: number; height: number }> {
   const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+  const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
   canvas.width = Math.round(bitmap.width * scale);
   canvas.height = Math.round(bitmap.height * scale);
@@ -15,8 +18,8 @@ async function toWebp(file: File): Promise<{ file: File; width: number; height: 
 }
 
 /** Resizes then uploads; resolves to the public URL and the size it was saved at, or an error message. */
-export async function uploadPhoto(file: File, folder: "products" | "home" | "blog"): Promise<{ url: string; width: number; height: number } | { error: string }> {
-  const { file: webp, width, height } = await toWebp(file);
+export async function uploadPhoto(file: File, folder: Folder): Promise<{ url: string; width: number; height: number } | { error: string }> {
+  const { file: webp, width, height } = await toWebp(file, MAX_SIDE[folder]);
   const form = new FormData();
   form.set("file", webp);
   form.set("folder", folder);

@@ -23,7 +23,7 @@ export function SiteHeader({ lang }: { lang: Lang }) {
           />
         </Link>
         <nav className="flex items-center gap-1">
-          <SeasonPicker lang={lang} labels={{ season: d.season, auto: d.seasonAuto, today: d.today, animation: d.animation }} />
+          <SeasonPicker labels={{ season: d.season, auto: d.seasonAuto, today: d.today, animation: d.animation }} />
           <Link
             href={`/account`}
             aria-label={d.account}

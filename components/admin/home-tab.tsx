@@ -26,16 +26,28 @@ function moved<T>(list: T[], i: number, by: -1 | 1): T[] {
   return next;
 }
 
-/** The hero as the store draws it, small: the photo or green behind the title, so the admin sees what they're typing. */
+/** The photo fading into the green towards the words, as the store draws it on a wide screen. */
+const PREVIEW_FADE = "linear-gradient(to right, transparent 0%, transparent 30%, #0000008c 48%, #000 66%)";
+
+/**
+ * The hero as the store draws it on a wide screen, small: the photo across a deep green banner, fading away on the
+ * left where the headline, line and button sit, so the admin sees what they're typing.
+ */
 function HeroPreview({ hero }: { hero: Home["hero"] }) {
+  const lines = hero.title.en.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   return (
-    <div className="relative isolate flex aspect-[16/5] items-end overflow-hidden rounded-md bg-footer text-fg-footer">
-      {hero.image && <img src={hero.image} alt="" className="absolute inset-0 -z-20 size-full object-cover" />}
-      <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
-      <div className="flex max-w-[80%] flex-col items-start gap-1.5 p-4 sm:p-6">
-        <p className="font-display text-h4 leading-tight sm:text-h3">{hero.title.en || "Your headline"}</p>
-        {hero.subtitle.en && <p className="text-caption opacity-90">{hero.subtitle.en}</p>}
-        {hero.cta.en && <span className="rounded-full bg-surface px-3 py-1 text-caption text-fg-primary">{hero.cta.en}</span>}
+    <div className="relative isolate flex aspect-[12/5] items-center overflow-hidden rounded-lg bg-[linear-gradient(100deg,#0b2e22_0%,#12493a_38%,#1f6b4b_70%,#3a8a5e_100%)] text-fg-inverse">
+      {hero.image ? (
+        <img src={hero.image} alt="" style={{ maskImage: PREVIEW_FADE }} className="absolute inset-0 -z-10 size-full object-cover object-right" />
+      ) : (
+        <span className="absolute top-3 right-3 rounded-full bg-fg-inverse/15 px-2.5 py-1 text-caption">A product&apos;s photo</span>
+      )}
+      <div className="flex max-w-[55%] flex-col items-start gap-1.5 p-4 sm:p-6">
+        <p className="font-display text-h4 leading-none font-semibold tracking-tight sm:text-h3">
+          {lines.length ? lines.map((line, i) => <span key={i} className="block">{line}</span>) : "Your headline"}
+        </p>
+        {hero.subtitle.en && <p className="line-clamp-2 text-caption opacity-85">{hero.subtitle.en}</p>}
+        {hero.cta.en && <span className="mt-1 rounded-full bg-surface px-3 py-1 text-caption text-[#0b2e22]">{hero.cta.en}</span>}
       </div>
     </div>
   );
@@ -164,10 +176,13 @@ export function HomeTab({ home, products, onChange }: { home: Home; products: Pi
       <ContentCard padding="md" title="Hero" subtitle="The top of the home page: headline, button and photo." action={<Switch aria-label="Show hero" checked={home.hero.enabled} onCheckedChange={(enabled) => setHero({ enabled })} />}>
         <HeroPreview hero={home.hero} />
         <div className={cn("flex flex-col gap-4 transition-opacity", !home.hero.enabled && "opacity-50")}>
-          <TextPair label="Title" value={home.hero.title} onChange={(title) => setHero({ title })} />
+          <div className="flex flex-col gap-1.5">
+            <TextPair label="Title" rows={2} value={home.hero.title} onChange={(title) => setHero({ title })} />
+            <p className="text-caption text-fg-secondary">Press Enter to start a new line. Two short lines read best.</p>
+          </div>
           <TextPair label="Subtitle" value={home.hero.subtitle} onChange={(subtitle) => setHero({ subtitle })} />
           <TextPair label="Button (empty hides it)" value={home.hero.cta} onChange={(cta) => setHero({ cta })} />
-          <PhotoField label="Background photo (optional)" hint="A wide photo works best. It's shrunk to WebP before it uploads." url={home.hero.image} onChange={(image) => setHero({ image })} />
+          <PhotoField label="Photo (optional)" hint="A wide photo, 2400 × 1000 px: the products in its right half, the left side plain, because it fades into the green behind the words. Phones show only the right half. Without one, a product's photo shows. It's shrunk to WebP before it uploads." url={home.hero.image} onChange={(image) => setHero({ image })} />
         </div>
       </ContentCard>
 
